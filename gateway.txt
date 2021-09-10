@@ -1,0 +1,537 @@
+# activity
+
+    if resp.event.activity:
+        print("Activity")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.activity_join_request:
+        print("Activity_join_request")
+        print(resp.event.response)
+        print("")
+
+    # Ban activity
+
+    if resp.event.ban_added:
+        print("Ban added")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.ban_removed:
+        print("Ban removed")
+        print(resp.event.response)
+        print("")
+
+    # call
+
+    if resp.event.call:
+        print("call")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.call_deleted:
+        print("call_deleted")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.call_updated:
+        print("call_updated")
+        print(resp.event.response)
+        print("")
+
+    # channel
+
+    if resp.event.channel:
+        print("channel")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.channel_deleted:
+        print("channel_deleted")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.channel_read_state_updated:
+        print("channel_read_state_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.channel_updated:
+        print("channel_updated")
+        print(resp.event.response)
+        print("")
+
+    # entitlement
+
+    if resp.event.entitlement:
+        print("entitlement")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.entitlement_deleted:
+        print("entitlement_deleted")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.entitlement_updated:
+        print("entitlement_updated")
+        print(resp.event.response)
+        print("")
+
+    # friend suggestions
+
+    if resp.event.friend_suggestion:
+        print("friend_suggestion")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.friend_suggestion_deleted:
+        print("friend_suggestion_deleted")
+        print(resp.event.response)
+        print("")
+
+    # guild
+
+    if resp.event.guild:
+        print("guild")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.guild_application_commands_updated:
+        print("guild_application_commands_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.guild_deleted:
+        print("guild_deleted")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.guild_integrations_updated:
+        print("guild_integrations_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.guild_member_chunk:
+        print("guild_member_chunk")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.guild_member_list:
+        print("guild_member_list")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.guild_member_updated:
+        print("guild_member_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.guild_updated:
+        print("guild_updated")
+        print(resp.event.response)
+        print("")
+
+    # invite
+
+    if resp.event.invite:
+        print("invite")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.invite_deleted:
+        print("invite_deleted")
+        print(resp.event.response)
+        print("")
+
+    # lobby
+
+    if resp.event.lobby:
+        print("lobby")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.lobby_deleted:
+        print("lobby_deleted")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.lobby_member_connected:
+        print("lobby_member_connected")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.lobby_member_disconnected:
+        print("lobby_member_disconnected")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.lobby_member_updated:
+        print("lobby_member_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.lobby_message:
+        print("lobby_message")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.lobby_updated:
+        print("lobby_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.lobby_voice_server_update:
+        print("lobby_voice_server_update")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.lobby_voice_state_update:
+        print("lobby_voice_state_update")
+        print(resp.event.response)
+        print("")
+
+    # message
+
+    if resp.event.bulk_messages_deleted:
+        m = m['d']
+        print(f"BULK MESSAGES DELETED ─┬─> GUILD: '{m['guild_id']} CHANNEL: '{m['channel_id']}'")
+        print(f"                       └─> DELETED '{m['ids']}'")
+        print("")
+
+
+# link?
+
+        #cont_link = get_links(data=content)
+        #if not cont_link == "":
+        #    print(f"LINK IDENTIFIED: {cont_link}")
+
+       # if not embeds == []:
+       #     url = search(data=embeds, filter_fr="'url': '", filter_to="', '")
+       #     image = search(data=embeds, filter_fr="'type': '", filter_to=": {")
+       #     thumbnail = search(data=embeds, filter_fr="'type': '", filter_to=": {")
+       #     if "image" in str(image):
+       #         print(f"IMAGE FOUND (embed): {url}")
+       #     else:
+       #         if "thumbnail" in str(thumbnail):
+       #             print(f"THUMBNAIL FOUND (embed): {url}")
+       #         else:
+        #            print(f"UNKNOWN FOUND (embed): {url}")
+       #             print(f"EMBED DATA: {embeds}")
+
+        #if not attachments == []:
+       #     print(f"attachments DATA: {attachments}")
+        #    url = search(data=attachments, filter_fr="'url': '", filter_to="', '")
+        #    print(f"URL FOUND (attach): {url}")
+
+        #print(
+        #    f"MESSAGE CREATED ─┬─> GUILD: '{guildID}' CHANNEL: '{channelID}' ID: '{id}' | {username}#{discriminator}: {content}")
+       # print(f"                 ├─> CREATED: '{time_created}' TYPE: '{type}' TTS: '{tts}' REPLY: '{reply}'")
+       # print(
+        #    f"                 ├─> MENTIONS: '{mentions}' MENTIONED ROLES: '{mention_roles}' MENTION EVERYONE: '{mention_everyone}'")
+        #print(f"                 └─> EMBEDS: '{embeds}' ATTACHMENTS: '{attachments}'")
+        #print("")
+
+    if resp.event.message_ack:
+        print("message_ack")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.message_deleted:
+        m = m['d']
+        print(f"MESSAGE DELETED ───> CHANNEL: '{m['channel_id']}' ID: '{m['id']}'")
+        print("")
+
+    if resp.event.message_updated:
+        m = m['d']
+        print(f"MESSAGE UPDATED ───> DATA RAW: {m}")
+        print("")
+
+    # payment
+
+    if resp.event.braintree:
+        print("Braintree")  #
+        print(resp.event.response)
+        print("")
+
+    if resp.event.payment_sources_updated:
+        print("payment_sources_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.payments_updated:
+        print("payments_updated")
+        print(resp.event.response)
+        print("")
+
+    # pins
+
+    if resp.event.pins_ack:
+        print("pins_ack")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.pins_updated:
+        print("pins_updated")
+        print(resp.event.response)
+        print("")
+
+    # presence
+
+    if resp.event.presence_replaced:
+        print("presence_replaced")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.presence_updated:
+        m = m['d']
+        user = m['user']
+        id = user['id']
+        try:
+            username = user['username']
+            discriminator = user['discriminator']
+        except:
+            username = None
+            discriminator = None
+        status = m['status']
+        client_status = m['client_status']
+        activities = m['activities']
+
+        #try:
+        #    with open("output/presence_updated_checks.txt", "r", encoding="utf-8") as f:
+        #        prev = f.readlines()
+        #except:
+        #    with open("output/presence_updated_checks.txt", "w", encoding="utf-8") as f:
+       #         f.write("")
+
+        #if not str(prev)[2:-2].replace("\\",
+        #                               "") == f"PRESENCE UPDATE ─┬─> USER: '{username}#{discriminator}' ID: '{id}'" \
+        #                                      f" STATUS '{status}' CLIENT STATUS '{client_status}'" \
+        #                                      f"                 └─> ACTIVITIES '{activities}'":
+        #    with open("output/presence_updated_checks.txt", "w", encoding="utf-8") as f:
+        #        f.write(
+        #            f"PRESENCE UPDATE ─┬─> USER: '{username}#{discriminator}' ID: '{id}' STATUS '{status}' CLIENT STATUS '{client_status}'")
+        #        f.write(f"                 └─> ACTIVITIES '{activities}'")
+
+        # tab below 1 forward if readd above
+        print(
+            f"PRESENCE UPDATE ─┬─> USER: '{username}#{discriminator}' ID: '{id}' STATUS '{status}' CLIENT STATUS '{client_status}'")
+        print(f"                 └─> ACTIVITIES '{activities}'")
+        print("")
+        # tab above 1 forward if readd above
+
+    # reaction
+
+    if resp.event.all_message_reactions_removed:
+        print("All_message_reactions_removed")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.message_reaction_emoji_removed:
+        print("message_reaction_emoji_removed")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.reaction_added:
+        print("reaction_added")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.reaction_removed:
+        print("reaction_removed")
+        print(resp.event.response)
+        print("")
+
+    # recipient (dm chats)
+
+    if resp.event.recipient_added:
+        print("recipient_added")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.recipient_removed:
+        print("recipient_removed")
+        print(resp.event.response)
+        print("")
+
+    # relationship
+
+    if resp.event.relationship_added:
+        print("relationship_added")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.relationship_removed:
+        print("relationship_removed")
+        print(resp.event.response)
+        print("")
+
+    # role
+
+    if resp.event.role:
+        print("role")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.role_deleted:
+        print("role_deleted")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.role_updated:
+        print("role_updated")
+        print(resp.event.response)
+        print("")
+
+    # stream
+
+    if resp.event.stream:
+        print("stream")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.stream_deleted:
+        print("stream_deleted")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.stream_server_updated:
+        print("stream_server_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.stream_updated:
+        print("stream_updated")
+        print(resp.event.response)
+        print("")
+
+    # Random
+
+    if resp.event.achievement_updated:
+        print("Achievement_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.connections_updated:
+        print("connections_updated")  # connected apps
+        print(resp.event.response)
+        print("")
+
+    if resp.event.emojis_updated:
+        print("emojis_updated")  # wtf does this do
+        print(resp.event.response)
+        print("")
+
+    if resp.event.feed_settings_updated:
+        print("feed_settings_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.gift_code_updated:
+        print("gift_code_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.library_app_updated:
+        print("library_app_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.note_updated:
+        print("note_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.oauth2_token_removed:
+        print("oauth2_token_removed")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.recent_mention_deleted:
+        print("recent_mention_deleted")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.required_action_updated:
+        print("required_action_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.session_replaced:
+        print("session_replaced")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.settings_updated:
+        print("settings_updated")
+        print(resp.event.response)
+        print("")
+        # THIS CONTATINS STATUS UPDATES
+
+    if resp.event.stickers_updated:
+        print("stickers_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.subscriptions_updated:
+        print("subscriptions_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.typing:
+        m = m['d']
+        timestamp = m['timestamp']
+        userid = m['user_id']
+        channel_id = m['channel_id']
+        jump = f"<https://discord.com/channels/@me/{channel_id}>"
+
+        m = str(bot.getProfile(userID=userid).text)
+        username = search(data=m, filter_fr="\"username\": \"", filter_to="\", \"avatar\"")
+        discriminator = search(data=m, filter_fr="\"discriminator\": \"", filter_to="\", \"public_flags\"")
+
+        data = (f"DM TYPING DETECTED ───> TIMESTAMP: '{timestamp}' USER ID: '{userid}' DM ID: '{channel_id}'"
+                f" JUMP: '{jump}' | USER: '{username}#{discriminator}'")
+        print(data)
+
+        # console_log(f"{data}")
+        print("")
+        # ToastNotifier().show_toast("Typing detected", f"{data}",
+        # icon_path=None, duration=5)
+
+    if resp.event.user_guild_settings_updated:
+        print("user_guild_settings_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.user_premium_guild_sub_slot:
+        print("user_premium_guild_sub_slot")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.user_premium_guild_sub_slot_updated:
+        print("user_premium_guild_sub_slot_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.user_updated:
+        print("user_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.voice_server_updated:
+        print("voice_server_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.voice_state_updated:
+        print("voice_state_updated")
+        print(resp.event.response)
+        print("")
+
+    if resp.event.webhooks_updated:
+        print("webhooks_updated")
+        print(resp.event.response)
+        print("")
+
+    # else:
+    # print(resp.event.response)
