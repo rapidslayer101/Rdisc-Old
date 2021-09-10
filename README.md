@@ -1,2 +1,2 @@
 # Rdisc
-The source code for the rdisc project
+Part of the source code for the rdisc project
