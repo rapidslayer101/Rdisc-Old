@@ -1,0 +1,16 @@
+
+Lpython:S1066#"/Merge this if statement with the enclosing one.(éÙØûÿÿÿÿ
+spython:S1170"\Rename this local variable "newAlphabet" to match the regular expression ^[_a-z][a-z0-9_]*$.(³®Ú¨
+qpython:S117."[Rename this local variable "partialOne" to match the regular expression ^[_a-z][a-z0-9_]*$.(®Ú¯_
+wpython:S117/"[Rename this local variable "partialTwo" to match the regular expression ^[_a-z][a-z0-9_]*$.(¾ÆáŒüÿÿÿÿ
+Fpython:S1481".Remove the unused local variable "started_at".(µ¬ƒ÷
+lpython:S3776"TRefactor this function to reduce its Cognitive Complexity from 48 to the 15 allowed.(óÜ°÷
+spython:S117{"\Rename this local variable "newAlphabet" to match the regular expression ^[_a-z][a-z0-9_]*$.(³®Ú¨
+qpython:S117y"[Rename this local variable "partialOne" to match the regular expression ^[_a-z][a-z0-9_]*$.(®Ú¯_
+wpython:S117z"[Rename this local variable "partialTwo" to match the regular expression ^[_a-z][a-z0-9_]*$.(¾ÆáŒüÿÿÿÿ
+=python:S1481R"%Remove the unused local variable "i".(…ú¥Ê
+Bpython:S1481r"%Remove the unused local variable "i".(â©Î¼şÿÿÿÿ
+?python:S1481o"'Remove the unused local variable "num".(•‘¸
+Fpython:S1481P".Remove the unused local variable "started_at".(µ¬ƒ÷
+lpython:S3776O"TRefactor this function to reduce its Cognitive Complexity from 45 to the 15 allowed.(¥‘æ–
+dpython:S1764€"KCorrect one of the identical sub-expressions on both sides of operator "-".(‡Ï¶â

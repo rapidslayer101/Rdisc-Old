@@ -1,0 +1,7 @@
+
+lpython:S117a"URename this local variable "inpE" to match the regular expression ^[_a-z][a-z0-9_]*$.(¥ö¶£
+qpython:S117`"URename this local variable "inpU" to match the regular expression ^[_a-z][a-z0-9_]*$.(³”„ñùÿÿÿÿ
+qpython:S3776"TRefactor this function to reduce its Cognitive Complexity from 31 to the 15 allowed.(ÙÇàùýÿÿÿÿ
+<python:S1481"%Remove the unused local variable "i".(£óÇ
+lpython:S117}"URename this local variable "inpE" to match the regular expression ^[_a-z][a-z0-9_]*$.(¥ö¶£
+qpython:S117|"URename this local variable "inpU" to match the regular expression ^[_a-z][a-z0-9_]*$.(³”„ñùÿÿÿÿ
