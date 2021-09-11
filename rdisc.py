@@ -48,7 +48,7 @@ with open("exiter.txt", "w") as f:
 
 if not os.path.isfile("restart.bat"):
     with open("restart.bat", "w", encoding="utf-8") as f:
-        f.write("rchat.exe")
+        f.write("rdisc.exe")
 
 
 def quit_check():
@@ -145,17 +145,6 @@ def seed_to_data(seed):
     return alpha1, alpha2, num2, seed3
 
 
-seed_key = {}
-
-
-class seed_data:
-    def get(self):
-        return seed_key
-
-    def change(self, password):
-        seed_key.update({"SEED KEY": pass_to_seed(password)})
-
-
 def fib_iter(text, num2_):
     a = int(str(num2_)[32:96])
     b = int(str(num2_)[:32])
@@ -195,11 +184,8 @@ def shifter(plaintext, new_num_, num2_, alphabet, forwards):
     return output_enc
 
 
-def encrypt(text, password=None):
-    if password:
-        alpha1, alpha2, num2, seed3 = seed_to_data({"SEED KEY": pass_to_seed(password)})
-    else:
-        alpha1, alpha2, num2, seed3 = seed_to_data(seed_data.get(0))
+def encrypt(text, key):
+    alpha1, alpha2, num2, seed3 = seed_to_data({"SEED KEY": pass_to_seed(key)})
     try:
         plaintext = base64.b85encode(zlib.compress(str(text).encode('utf-8'), 9)).decode('utf-8')
     except:
@@ -212,11 +198,8 @@ def encrypt(text, password=None):
     return shifter(e_text, b, num2, alpha2, True)
 
 
-def decrypt(e_text, password=None):
-    if password:
-        alpha1, alpha2, num2, seed3 = seed_to_data({"SEED KEY": pass_to_seed(password)})
-    else:
-        alpha1, alpha2, num2, seed3 = seed_to_data(seed_data.get(0))
+def decrypt(e_text, key):
+    alpha1, alpha2, num2, seed3 = seed_to_data({"SEED KEY": pass_to_seed(key)})
     b = str(fib_iter(e_text, num2))
     d_txt = shifter(e_text, b, num2, alpha2, False)
     new_num = seed3
@@ -367,8 +350,10 @@ def get_links(data):
 # 0.3 the auth server framework, sha versioning and updating
 # 0.4 the client setup, server version checks, some UI elements updated
 # 0.5 time_key server syncing
+# 0.6 dynamic key shifting and major auth.txt storage and load rewrites
 
-# 0.5 server auth and data exchange
+# 0.7 server connections and message system
+# 0.8 authorised message posting, downloading
 
 
 # ports 8079
@@ -382,6 +367,77 @@ def roundTime(dt=None, round_to=30):
     seconds = (dt.replace(tzinfo=None) - dt.min).seconds
     rounding = (seconds + round_to / 2) // round_to * round_to
     return dt + datetime.timedelta(0, rounding - seconds, -dt.microsecond)
+
+
+encryption_keys = {}
+
+
+class keys():
+    def get_keys(self, key_name=None):
+        if key_name:
+            return encryption_keys[key_name]
+        else:
+            print(encryption_keys)
+
+    def update_key(self, key_name, key):
+        encryption_keys.update({key_name: key})
+        print("Keys updates", encryption_keys)
+
+
+keys.update_key(0, "default_key", "HHk4itWVGs5MkTSVTKxbUel1oLqLcVOCiwdGTfY2MPBphJHZc8dseTXMmKdE")
+keys.get_keys(0)
+
+
+def df_encrypt(text):
+    return encrypt(text, keys.get_keys(0, "default_key"))
+
+
+def df_decrypt(enc_text):
+    return decrypt(enc_text, keys.get_keys(0, "default_key"))
+
+
+def pa_encrypt(text):
+    return encrypt(text, keys.get_keys(0, "pass_key"))
+
+
+def pa_decrypt(enc_text):
+    return decrypt(enc_text, keys.get_keys(0, "pass_key"))
+
+
+def auth_txt_write(token=None, version_data=None, time_key=None):
+    auth_to_write = ""
+    if token:
+        auth_to_write += pa_encrypt(df_encrypt(token))
+    if version_data:
+        auth_to_write += "\n"+df_encrypt(version_data)
+    if time_key:
+        auth_to_write += "\n"+df_encrypt(pa_encrypt(time_key))
+
+    with open("auth.txt", "w", encoding="utf-8") as f:
+        f.write(auth_to_write)
+
+
+if not os.path.isfile("auth.txt"):
+    load = 0
+else:
+    with open("auth.txt", encoding="utf-8") as f:
+        auth_data = f.read().split("\n")
+        if len(auth_data) > 0:
+            if auth_data[0] == "":
+                load = 0
+            else:
+                enc_bot_token = auth_data[0]
+                load = 1
+        if len(auth_data) > 1:
+            unverified_version = df_decrypt(auth_data[1])
+            to_c(f"Loaded version is {unverified_version} (UNVERIFIED)")
+            load = 2
+        if len(auth_data) > 2:
+            enc_time_key = auth_data[2]
+            load = 3
+
+
+print(f"loaded {load}")
 
 
 def listen_for_client(cs, loop):
@@ -408,7 +464,7 @@ def listen_for_client(cs, loop):
 
         return output
 
-    if not os.path.isfile("auth.txt"):
+    if load == 0:
         to_c("\n You have not yet setup this device")
         time.sleep(0.1)
         to_c("🱫[INPUT SHOW] ")
@@ -425,7 +481,7 @@ def listen_for_client(cs, loop):
             else:
                 to_c("\n🱫[COLOR THREAD][RED] PASSWORDS DO NOT MATCH!")
         to_c("\n🱫[COLOR THREAD][GREEN] Passwords match")
-        seed_data.change(0, password_entry_2)
+        keys.update_key(0, "pass_key", password_entry_2)
 
         to_c("\n FOLLOW THE STEPS BELOW\n 1 - Click this link --> https://discord.com/developers/applications"
              "\n 2 - Click new application in the top right"
@@ -464,9 +520,7 @@ def listen_for_client(cs, loop):
             while True:
                 input()
 
-        with open("auth.txt", "w", encoding="utf-8") as f:
-            f.write(encrypt(bot_token))
-
+        auth_txt_write(bot_token)
         to_c("\n 8 - Go to general information on the left panel"
              "\n 9 - Click the copy button under the application id"
              "\n 10 - Send the copied application id to Scott"
@@ -481,37 +535,16 @@ def listen_for_client(cs, loop):
         time.sleep(0.1)
 
         while True:
-            with open("auth.txt", encoding="utf-8") as f:
-                auth_data = f.read()
-                try:
-                    enc_bot_token, enc_loaded_version, enc_time_key = auth_data.split("\n")
-                    time_key_present = True
-                    print("3 load")
-                except ValueError:
-                    try:
-                        enc_bot_token, enc_loaded_version = auth_data.split("\n")
-                        time_key_present = False
-                        print("2 load")
-                    except ValueError:
-                        enc_loaded_version = ""
-                        enc_bot_token = auth_data
-                        time_key_present = False
-                        print("1 load")
-
             try:
                 to_c("\n🱫[COLOR THREAD][YELLOW] Please enter your password")
                 password = receive()
-                seed_data.change(0, password)
-                bot_token = decrypt(enc_bot_token)
-                if enc_loaded_version != "":
-                    loaded_version = decrypt(enc_loaded_version)
-                    to_c(f"Loaded version is {loaded_version} (UNVERIFIED)")
-                    time.sleep(0.1)
-
+                keys.update_key(0, "pass_key", password)
+                bot_token = df_decrypt(pa_decrypt(enc_bot_token))
                 break
             except ValueError:
                 to_c("\n Incorrect password")
         to_c("\n🱫[COLOR THREAD][GREEN] Correct password")
+        print(bot_token)
         time.sleep(0.1)
         to_c("🱫[INPUT HIDE] ")
 
@@ -519,7 +552,7 @@ def listen_for_client(cs, loop):
         to_c("\n >> Logging in")
 
         def client_login():
-            if not time_key_present:
+            if not load == 3:
                 while True:
                     to_c("🱫[INPUT SHOW] ")
                     time.sleep(0.1)
@@ -533,11 +566,9 @@ def listen_for_client(cs, loop):
                         break
                     else:
                         to_c(f"🱫[MNINPTXT] {sign_up_code}")
-                return encrypt(f"[SIGN UP] {hashed}{sign_up_code}",
-                                           "HHk4itWVGs5MkTSVTKxbUel1oLqLcVOCiwdGTfY2MPBphJHZc8dseTXMmKdE")
+                return df_encrypt(f"[SIGN UP] {hashed}{sign_up_code}")
             else:
-                return encrypt(f"[SIGN UP] {hashed}",
-                                           "HHk4itWVGs5MkTSVTKxbUel1oLqLcVOCiwdGTfY2MPBphJHZc8dseTXMmKdE")
+                return df_encrypt(f"[SIGN UP] {hashed}")
 
         @client.event
         async def on_ready():
@@ -553,7 +584,7 @@ def listen_for_client(cs, loop):
         @client.event
         async def on_message(ctx):
             if ctx.author.id == 509330868301594624:
-                content = decrypt(ctx.content, "HHk4itWVGs5MkTSVTKxbUel1oLqLcVOCiwdGTfY2MPBphJHZc8dseTXMmKdE")
+                content = df_decrypt(ctx.content)
                 print(content)
                 update = False
                 if content.startswith("NOTREAL"):
@@ -563,34 +594,30 @@ def listen_for_client(cs, loop):
                 if content.startswith("INVALID-"):
                     to_c(f"\n <> Updating rdisc {content[8:]} in 5 seconds")
                     update = True
-                    with open("auth.txt", "w", encoding="utf-8") as f:
-                        f.write(f"{enc_bot_token}\n{encrypt(content[8:].split('->')[0])}")
+                    auth_txt_write(bot_token, content[8:].split('->')[0])
 
                 if content.startswith("VALID-"):
                     to_c(f"\n << RESPONSE FROM AUTH RECEIVED\n << {content}")
 
-                    to_c(f"Verified version is {content[6:].split('-')[0]} (VERIFIED)")
+                    verified_version = content[6:].split('-')[0]
+                    to_c(f"Verified version is {verified_version} (VERIFIED)")
                     if (content[6:].split('+')[1])[10:11] == " ":
                         print("Sign up")
-                        with open("auth.txt", "w", encoding="utf-8") as f:
-                            f.write(f"{enc_bot_token}\n{encrypt(content[6:].split('-')[0])}"
-                                    f"\n{encrypt(content[6:].split('+')[1])}")
+                        auth_txt_write(bot_token, content[6:].split('-')[0], content[6:].split('+')[1])
                     else:
                         current_server_tme_key_hash = content[6:].split('+')[1]
                         current_server_tme_key_tme = roundTime()
                         try:
-                            current_key_time, current_key = decrypt(enc_time_key).split("=")
+                            current_key_time, current_key = pa_decrypt(df_decrypt(enc_time_key)).split("=")
                         except zlib.error:
                             to_c("\n🱫[COLOR THREAD][RED] Invalid time_key loaded.")  # todo time_key change fail_code
                             while True:
                                 receive()
 
-                        with open("auth.txt", "w", encoding="utf-8") as f:  # temp removal of the key to stop errors
-                            f.write(f"{enc_bot_token}\n{enc_loaded_version}")
+                        auth_txt_write(bot_token, verified_version)  # temp removal of the key to stop errors
 
                         date_format_str = '%Y-%m-%d %H:%M:%S'
                         current_key_time = datetime.datetime.strptime(str(current_key_time), date_format_str)
-
                         curr_tme_fmt = datetime.datetime.strptime(str(current_key_time), date_format_str)
                         diff = datetime.datetime.strptime(str(current_server_tme_key_tme), date_format_str)-curr_tme_fmt
                         iterations = int(diff.total_seconds()) / 30
@@ -610,10 +637,7 @@ def listen_for_client(cs, loop):
                                 to_c(f"\n{round((loop / iterations) * 100, 2)}% complete ({loop}/{int(iterations)}) "
                                      f"Est time left: {round((iterations-loop)/122.33,2)}s")
                                 last_update = time.time()
-
-                        with open("auth.txt", "w", encoding="utf-8") as f:
-                            xxx = encrypt(f"{current_server_tme_key_tme}={current_key}")
-                            f.write(f"{enc_bot_token}\n{enc_loaded_version}\n{xxx}")
+                        auth_txt_write(bot_token, verified_version, f"{current_server_tme_key_tme}={current_key}")
 
                         to_c("\n🱫[COLOR THREAD][GREEN] Key upto-date!")
 
@@ -623,8 +647,9 @@ def listen_for_client(cs, loop):
                             with open("auth.txt", encoding="utf-8") as f:
                                 auth_data = f.read()
                                 try:
-                                    current_key_time, old_key = decrypt(auth_data.split("\n")[2]).split("=")
-                                    current_key_time = datetime.datetime.strptime(str(current_key_time), date_format_str)
+                                    current_key_time, old_key = pa_decrypt(df_decrypt(auth_data.split("\n")[2])).split("=")
+                                    current_key_time = datetime.datetime.strptime(str(current_key_time),
+                                                                                  date_format_str)
                                     desired_time = roundTime()
 
                                     loop = 0
@@ -635,10 +660,8 @@ def listen_for_client(cs, loop):
                                         current_key_time += datetime.timedelta(seconds=30)
 
                                     if str(current_key) != str(old_key):
-                                        with open("auth.txt", "w", encoding="utf-8") as f:
-                                            print(f"{current_key_time}={current_key}")
-                                            xxx = encrypt(f"{current_key_time}={current_key}")
-                                            f.write(f"{enc_bot_token}\n{enc_loaded_version}\n{xxx}")
+                                        print(f"{current_key_time}={current_key}")
+                                        auth_txt_write(bot_token, verified_version, f"{current_key_time}={current_key}")
                                 except Exception as e:
                                     print(e)
                             time.sleep(2)

@@ -26,7 +26,9 @@ exiter.txt,2\9\2908b2dc1ac7efe7bd0f9a89f9867872502c9a2d
 mal.py,d\e\de39f312f515f9f18f6ab3e525b78b7521ad2136
 9
 	README.md,8\e\8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d
-@
-requirements.txt,1\9\19359a61ae2446b51b549167b014da2fcf265768
 ;
 restart.bat,a\0\a06bb18078dfe6b6af5299aef80d5cdece6022f6
+?
+auth - Copy.txt,b\4\b4d55ca0fd161c2a8107bf74aa957c86557c8bea
+C
+auth - Copy (2).txt,8\e\8effd907a25cb4cc2925b1065f79b09e00ddfd0c
