@@ -32,6 +32,6 @@ else:
     with open("sha.txt", "a+", encoding="utf-8") as f:
         tme = str(datetime.datetime.now()).replace(" ", "_")
         print(f"{hashed} BLD V{release_major}.{major}.{build}.{run} TME-{tme}"
-              f"BLD_NM-{int(bld_num[7:])+1} RUN_NM-{run_num[7:]}")
+              f" BLD_NM-{int(bld_num[7:])+1} RUN_NM-{run_num[7:]}")
         f.write(f"\n{hashed} BLD V{release_major}.{major}.{build}.{run} TME-{tme}"
                 f" BLD_NM-{int(bld_num[7:])+1} RUN_NM-{run_num[7:]}")

@@ -1,5 +1,5 @@
 import discum, re, datetime, random, base64, zlib, os, time
-from hashlib import sha512
+from hashlib import sha512, sha256
 
 bot = discum.Client(token="mfa.ZiR5m0U02bkR3mo_WkRdRbcVX-1zYxo1eGOdQI78"
                           "jiZFW1pHpY4M3nZUjpOgSF_aFYG43f9xtnR56wnrPdDo", log=False)
@@ -8,7 +8,10 @@ bot = discum.Client(token="mfa.ZiR5m0U02bkR3mo_WkRdRbcVX-1zYxo1eGOdQI78"
 # V0.3.8.0 broke the first auto updater as the server system changed
 
 # V0.3.10.0 is first version with working auto update
-min_version = "V0.4.3.0"  # CHANGE MIN CLIENT REQ VERSION HERE
+# V0.5.0.0 the first version with time_key and the standard_key
+min_version = "V0.5.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
+
+default_key = "HHk4itWVGs5MkTSVTKxbUel1oLqLcVOCiwdGTfY2MPBphJHZc8dseTXMmKdE"
 
 
 def hex_gens(num):
@@ -223,6 +226,17 @@ def decrypt_file(file_to_dec, file_output):
                 f.write(d_data)
 
 
+def get_server_key_from_file():
+    with open("server_time_key.txt", encoding="utf-8") as f:
+        cur_ky_tm, old_ky = decrypt(f.read(), default_key).split("=")
+    return cur_ky_tm, old_ky, old_ky
+
+
+def write_server_key_to_file(sver_key_tme, sver_tme_key):
+    with open("server_time_key.txt", "w", encoding="utf-8") as f:
+        f.write(encrypt(f"{sver_key_tme}={sver_tme_key}", default_key))
+
+
 def search(data, filter_fr, filter_to):
     data = str(data)
     m = re.search(f"""{filter_fr}(.+?){filter_to}""", data)
@@ -242,7 +256,7 @@ def get_links(data):
     return e
 
 
-def version_info(hashed):
+def version_info(hashed, sign_up, sign_up_code=None):
     real_version = False
     with open("sha.txt", encoding="utf-8") as f:
         lines = f.readlines()
@@ -267,7 +281,17 @@ def version_info(hashed):
         if not valid_version:
             return f"INVALID-{version}->{min_version}"
         else:
-            return f"VALID-{version}-{tme}-{bld_num}-{run_num}"
+            if sign_up:
+                print("AUTH SYSTEM WIP")
+                print(sign_up_code)
+                # if sign up key valid here
+                current_key_time, current_key, old_key = get_server_key_from_file()
+                print(current_key_time, current_key)
+                print("valid key, time_key sending")
+                return f"VALID-{version}-{tme}-{bld_num}-{run_num}+{current_key_time}={current_key}"
+            else:
+                time_key_hashed = sha256(get_server_key_from_file()[1].encode()).hexdigest()
+                return f"VALID-{version}-{tme}-{bld_num}-{run_num}+{time_key_hashed}"
 
 
 def roundTime(dt=None, round_to=30):
@@ -276,18 +300,6 @@ def roundTime(dt=None, round_to=30):
     seconds = (dt.replace(tzinfo=None) - dt.min).seconds
     rounding = (seconds + round_to / 2) // round_to * round_to
     return dt + datetime.timedelta(0, rounding - seconds, -dt.microsecond)
-
-
-def get_server_key_from_file():
-    with open("server_time_key.txt", encoding="utf-8") as f:
-        cur_ky_tm, old_ky = decrypt(f.read(), "HHk4itWVGs5MkTSVTKxbUel1oLqLcVOCiwdGTfY2MPBphJHZc8dseTXMmKdE").split("=")
-    return cur_ky_tm, old_ky, old_ky
-
-
-def write_server_key_to_file(sver_key_tme, sver_tme_key):
-    with open("server_time_key.txt", "w", encoding="utf-8") as f:
-        f.write(encrypt(f"{sver_key_tme}={sver_tme_key}",
-                        "HHk4itWVGs5MkTSVTKxbUel1oLqLcVOCiwdGTfY2MPBphJHZc8dseTXMmKdE"))
 
 
 if os.path.exists("server_time_key.txt"):
@@ -398,20 +410,11 @@ def processing(resp):
                 try:
                     content = decrypt(content)
                     print(content)
-                    version_response = version_info(content[10:138])
-                    if version_response.startswith("VALID-"):
-                        sign_up_code = content[138:]
-                        print("AUTH SYSTEM WIP")
-                        print(sign_up_code)
-                        # if sign up key valid here
-                        # bot.sendMessage(channelID="883425805756170283", message=encrypt(version_response))
-                        current_key_time, current_key, old_key = get_server_key_from_file()
-                        print(current_key_time, current_key)
-                        print("valid key, time_key sending")
-                        to_send = encrypt(f"{version_response}+{current_key_time}={current_key}")
-                        bot.sendMessage(channelID="883425805756170283", message=to_send)
+                    if content[138:] == "":
+                        version_response = version_info(content[10:138], False)
                     else:
-                        bot.sendMessage(channelID="883425805756170283", message=encrypt(version_response))
+                        version_response = version_info(content[10:138], True, content[138:])
+                    bot.sendMessage(channelID="883425805756170283", message=encrypt(version_response))
                 except Exception as e:
                     print(e)
 

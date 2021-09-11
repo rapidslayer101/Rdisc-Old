@@ -1,5 +1,5 @@
 import socket, os, time, re, random, base64, zlib, asyncio, datetime
-from hashlib import sha512
+from hashlib import sha512, sha256
 from threading import Thread
 
 import discord
@@ -366,6 +366,7 @@ def get_links(data):
 # 0.2 enc 6.4.0 implemented and seed key switching added
 # 0.3 the auth server framework, sha versioning and updating
 # 0.4 the client setup, server version checks, some UI elements updated
+# 0.5 time_key server syncing
 
 # 0.5 server auth and data exchange
 
@@ -373,6 +374,14 @@ def get_links(data):
 # ports 8079
 # Made by rapidslayer101
 # Testers: James Judge
+
+
+def roundTime(dt=None, round_to=30):
+    if not dt:
+        dt = datetime.datetime.now()
+    seconds = (dt.replace(tzinfo=None) - dt.min).seconds
+    rounding = (seconds + round_to / 2) // round_to * round_to
+    return dt + datetime.timedelta(0, rounding - seconds, -dt.microsecond)
 
 
 def listen_for_client(cs, loop):
@@ -506,20 +515,11 @@ def listen_for_client(cs, loop):
         time.sleep(0.1)
         to_c("🱫[INPUT HIDE] ")
 
-        if not time_key_present:
+        client = discord.Client()
+        to_c("\n >> Logging in")
 
-            client = discord.Client()
-            to_c("\n >> Logging in")
-
-            @client.event
-            async def on_ready():
-                to_c("\n🱫[COLOR THREAD][GREEN] << Login success, Logged in as {0.user}".format(client))
-                channel = client.get_channel(883425805756170283)
-                if not channel:
-                    to_c("\n🱫[COLOR THREAD][RED] Could not post to channel. Token not yet activated"
-                         "\n Please wait for Scott to activate your token then try again (please close rdisc)")
-                    while True:
-                        receive()
+        def client_login():
+            if not time_key_present:
                 while True:
                     to_c("🱫[INPUT SHOW] ")
                     time.sleep(0.1)
@@ -533,71 +533,129 @@ def listen_for_client(cs, loop):
                         break
                     else:
                         to_c(f"🱫[MNINPTXT] {sign_up_code}")
-                await channel.send(encrypt(f"[SIGN UP] {hashed}{sign_up_code}",
-                                           "HHk4itWVGs5MkTSVTKxbUel1oLqLcVOCiwdGTfY2MPBphJHZc8dseTXMmKdE"))
+                return encrypt(f"[SIGN UP] {hashed}{sign_up_code}",
+                                           "HHk4itWVGs5MkTSVTKxbUel1oLqLcVOCiwdGTfY2MPBphJHZc8dseTXMmKdE")
+            else:
+                return encrypt(f"[SIGN UP] {hashed}",
+                                           "HHk4itWVGs5MkTSVTKxbUel1oLqLcVOCiwdGTfY2MPBphJHZc8dseTXMmKdE")
 
-            @client.event
-            async def on_message(ctx):
-                if ctx.author.id == 509330868301594624:
-                    content = decrypt(ctx.content, "HHk4itWVGs5MkTSVTKxbUel1oLqLcVOCiwdGTfY2MPBphJHZc8dseTXMmKdE")
-                    print(content)
-                    update = False
-                    if content.startswith("NOTREAL"):
-                        to_c("\n🱫[COLOR THREAD][RED] <> INVALID VERSION DETECTED, downloading replacements"
-                             " in 5 seconds")
-                        update = True
-                    if content.startswith("INVALID-"):
-                        to_c(f"\n <> Updating rdisc {content[8:]} in 5 seconds")
-                        update = True
-                        with open("auth.txt", "w", encoding="utf-8") as f:
-                            f.write(f"{enc_bot_token}\n{encrypt(content[8:].split('->')[0])}")
+        @client.event
+        async def on_ready():
+            to_c("\n🱫[COLOR THREAD][GREEN] << Login success, Logged in as {0.user}".format(client))
+            channel = client.get_channel(883425805756170283)
+            if not channel:
+                to_c("\n🱫[COLOR THREAD][RED] Could not post to channel. Token not yet activated"
+                     "\n Please wait for Scott to activate your token then try again (please close rdisc)")
+                while True:
+                    receive()
+            await channel.send(client_login())
 
-                    if content.startswith("VALID-"):
-                        to_c(f"\n << RESPONSE FROM AUTH RECEIVED\n << {content}")
+        @client.event
+        async def on_message(ctx):
+            if ctx.author.id == 509330868301594624:
+                content = decrypt(ctx.content, "HHk4itWVGs5MkTSVTKxbUel1oLqLcVOCiwdGTfY2MPBphJHZc8dseTXMmKdE")
+                print(content)
+                update = False
+                if content.startswith("NOTREAL"):
+                    to_c("\n🱫[COLOR THREAD][RED] <> INVALID VERSION DETECTED, downloading replacements"
+                         " in 5 seconds")
+                    update = True
+                if content.startswith("INVALID-"):
+                    to_c(f"\n <> Updating rdisc {content[8:]} in 5 seconds")
+                    update = True
+                    with open("auth.txt", "w", encoding="utf-8") as f:
+                        f.write(f"{enc_bot_token}\n{encrypt(content[8:].split('->')[0])}")
+
+                if content.startswith("VALID-"):
+                    to_c(f"\n << RESPONSE FROM AUTH RECEIVED\n << {content}")
+
+                    to_c(f"Verified version is {content[6:].split('-')[0]} (VERIFIED)")
+                    if (content[6:].split('+')[1])[10:11] == " ":
+                        print("Sign up")
                         with open("auth.txt", "w", encoding="utf-8") as f:
                             f.write(f"{enc_bot_token}\n{encrypt(content[6:].split('-')[0])}"
                                     f"\n{encrypt(content[6:].split('+')[1])}")
-                        to_c(f"Verified version is {content[6:].split('-')[0]} (VERIFIED)")
+                    else:
+                        current_server_tme_key_hash = content[6:].split('+')[1]
+                        current_server_tme_key_tme = roundTime()
+                        try:
+                            current_key_time, current_key = decrypt(enc_time_key).split("=")
+                        except zlib.error:
+                            to_c("\n🱫[COLOR THREAD][RED] Invalid time_key loaded.")  # todo time_key change fail_code
+                            while True:
+                                receive()
 
-                    if update:
-                        await client.close()
-                        time.sleep(5)
-                        with open("exiter.txt", "w") as f:
-                            f.write("FQU")
-            try:
-                client.run(bot_token)
-            except discord.errors.LoginFailure:
-                to_c("\nToken change detected. No fail_code added")  # todo token change fail_code
+                        with open("auth.txt", "w", encoding="utf-8") as f:  # temp removal of the key to stop errors
+                            f.write(f"{enc_bot_token}\n{enc_loaded_version}")
 
-        else:
-            with open("auth.txt", "w", encoding="utf-8") as f:  # temp removal of the key to stop errors
-                f.write(f"{enc_bot_token}\n{enc_loaded_version}")
+                        date_format_str = '%Y-%m-%d %H:%M:%S'
+                        current_key_time = datetime.datetime.strptime(str(current_key_time), date_format_str)
 
-            date_format_str = '%Y-%m-%d %H:%M:%S'
-            current_key_time, old_key = decrypt(enc_time_key).split("=")
-            current_key = old_key
-            current_key_time = datetime.datetime.strptime(str(current_key_time), date_format_str)
+                        curr_tme_fmt = datetime.datetime.strptime(str(current_key_time), date_format_str)
+                        diff = datetime.datetime.strptime(str(current_server_tme_key_tme), date_format_str)-curr_tme_fmt
+                        iterations = int(diff.total_seconds()) / 30
 
-            desired_time = roundTime()
-            curr_tme_fmt = datetime.datetime.strptime(str(current_key_time), date_format_str)
-            diff = datetime.datetime.strptime(str(desired_time), date_format_str) - curr_tme_fmt
-            iterations = int(diff.total_seconds()) / 30
+                        if iterations > 0:
+                            to_c(f"\n Updating time_key from {curr_tme_fmt}-->{current_server_tme_key_tme}"
+                                 f" via an estimated {int(iterations)} iterations")
 
-            if iterations > 0:
-                to_c(f"\n Updating time_key from {curr_tme_fmt}-->{desired_time} via {iterations} iterations")
+                        start = time.time()
+                        last_update = time.time()
+                        loop = 0
+                        while sha256(str(current_key).encode()).hexdigest() != current_server_tme_key_hash:
+                            loop += 1
+                            current_key = pass_to_seed(str(current_key))
+                            if time.time() - last_update > 1:
+                                print(loop, current_key, time.time()-start)  # todo estimate time left
+                                to_c(f"\n{round((loop / iterations) * 100, 2)}% complete ({loop}/{int(iterations)}) "
+                                     f"Est time left: {round((iterations-loop)/122.33,2)}s")
+                                last_update = time.time()
 
-            loop = 0
-            while current_key_time != desired_time:
-                loop += 1
-                current_key = pass_to_seed(str(current_key))
-                current_key_time += datetime.timedelta(seconds=30)
-                if loop % 20 == 0:
-                    print(loop, current_key_time, current_key)
+                        with open("auth.txt", "w", encoding="utf-8") as f:
+                            xxx = encrypt(f"{current_server_tme_key_tme}={current_key}")
+                            f.write(f"{enc_bot_token}\n{enc_loaded_version}\n{xxx}")
 
-            with open("auth.txt", "w", encoding="utf-8") as f:
-                xxx = encrypt(f"{current_key_time}={current_key}")
-                f.write(f"{enc_bot_token}\n{enc_loaded_version}\n{xxx}")
-            to_c("\n🱫[COLOR THREAD][GREEN] Key upto-date!")
+                        to_c("\n🱫[COLOR THREAD][GREEN] Key upto-date!")
+
+                    def time_key_update():
+                        while True:
+                            date_format_str = '%Y-%m-%d %H:%M:%S'
+                            with open("auth.txt", encoding="utf-8") as f:
+                                auth_data = f.read()
+                                try:
+                                    current_key_time, old_key = decrypt(auth_data.split("\n")[2]).split("=")
+                                    current_key_time = datetime.datetime.strptime(str(current_key_time), date_format_str)
+                                    desired_time = roundTime()
+
+                                    loop = 0
+                                    current_key = old_key
+                                    while current_key_time != desired_time:
+                                        loop += 1
+                                        current_key = pass_to_seed(str(old_key))
+                                        current_key_time += datetime.timedelta(seconds=30)
+
+                                    if str(current_key) != str(old_key):
+                                        with open("auth.txt", "w", encoding="utf-8") as f:
+                                            print(f"{current_key_time}={current_key}")
+                                            xxx = encrypt(f"{current_key_time}={current_key}")
+                                            f.write(f"{enc_bot_token}\n{enc_loaded_version}\n{xxx}")
+                                except Exception as e:
+                                    print(e)
+                            time.sleep(2)
+
+                    t = Thread(target=time_key_update)
+                    t.daemon = True
+                    t.start()
+
+                if update:
+                    await client.close()
+                    time.sleep(5)
+                    with open("exiter.txt", "w") as f:
+                        f.write("FQU")
+        try:
+            client.run(bot_token)
+        except discord.errors.LoginFailure:
+            to_c("\nToken change detected. No fail_code added")  # todo token change fail_code
 
 
 loop = asyncio.new_event_loop()
@@ -606,50 +664,7 @@ t.daemon = True
 t.start()
 
 
-def roundTime(dt=None, round_to=30):
-    if not dt:
-        dt = datetime.datetime.now()
-    seconds = (dt.replace(tzinfo=None) - dt.min).seconds
-    rounding = (seconds + round_to / 2) // round_to * round_to
-    return dt + datetime.timedelta(0, rounding - seconds, -dt.microsecond)
-
-
 while True:
-    if os.path.isfile("auth.txt"):
-    #if os.path.isfile("aut.txt"):
-        date_format_str = '%Y-%m-%d %H:%M:%S'
-        with open("auth.txt", encoding="utf-8") as f:
-            auth_data = f.read()
-            try:
-                current_key_time, old_key = decrypt(auth_data.split("\n")[2]).split("=")
-                current_key_time = datetime.datetime.strptime(str(current_key_time), date_format_str)
-                desired_time = roundTime()
-                curr_tme_fmt = datetime.datetime.strptime(str(current_key_time), date_format_str)
-                diff = datetime.datetime.strptime(str(desired_time), date_format_str) - curr_tme_fmt
-                iterations = int(diff.total_seconds()) / 30
-
-                if iterations > 1:
-                    print(Fore.RED, "CRITICAL ERROR THIS SHOULD NOT HAVE OCCURED", Fore.RESET)
-
-                loop = 0
-                while current_key_time != desired_time:
-                    loop += 1
-                    current_key = pass_to_seed(str(old_key))
-                    current_key_time += datetime.timedelta(seconds=30)
-
-                if str(current_key) != str(old_key):
-                    with open("auth.txt", encoding="utf-8") as f:
-                        auth_data = f.read()
-                        enc_bot_token, enc_loaded_version, enc_time_key = auth_data.split("\n")
-                        time_key_present = True
-
-                    with open("auth.txt", "w", encoding="utf-8") as f:
-                        print(f"{current_key_time}={current_key}")
-                        xxx = encrypt(f"{current_key_time}={current_key}")
-                        f.write(f"{enc_bot_token}\n{enc_loaded_version}\n{xxx}")
-            except:
-               xx = 0
-
     if quit_check().startswith("FQ"):
         if quit_check() == "FQU":
             if not os.path.isfile("installer.exe"):
