@@ -8,16 +8,20 @@ init()
 
 #todo add encrypted text size output for sending messages
 
-try:
+
+def hash_a_file(file):
     block_size = 65536
     hash_ = sha512()
-    with open("rdisc.py", 'rb') as hash_file:
+    with open(file, 'rb') as hash_file:
         buf = hash_file.read(block_size)
         while len(buf) > 0:
             hash_.update(buf)
             buf = hash_file.read(block_size)
-    hashed = hash_.hexdigest()
+    return hash_.hexdigest()
 
+
+try:
+    hashed = hash_a_file("rdisc.py")
     with open("sha.txt", "r", encoding="utf-8") as f:
         latest_sha, type, version, tme, bld_num, run_num = f.readlines()[-1].split(" ")
         print("prev", latest_sha, type, version, tme, bld_num, run_num)
@@ -33,14 +37,7 @@ try:
                     f" BLD_NM-{bld_num[7:]} RUN_NM-{int(run_num[7:])+1}")
         print(f"Running rdisc V{release_major}.{major}.{build}.{run}")
 except FileNotFoundError:
-    block_size = 65536
-    hash_ = sha512()
-    with open("rdisc.exe", 'rb') as hash_file:
-        buf = hash_file.read(block_size)
-        while len(buf) > 0:
-            hash_.update(buf)
-            buf = hash_file.read(block_size)
-    hashed = hash_.hexdigest()
+    hashed = hash_a_file("rdisc.exe")
 
 
 with open("exiter.txt", "w") as f:
@@ -84,14 +81,7 @@ def sha_to_data(sha):
 
 
 def pass_to_seed(password):
-    block_size_ = 65536
-    hash__ = sha512()
-    with open("user_agents.zip", 'rb') as hash_file_:  #todo change
-        buf_ = hash_file_.read(block_size_)
-        while len(buf_) > 0:
-            hash__.update(buf_)
-            buf_ = hash_file_.read(block_size_)
-    hash_disrupt, salt = sha_to_data(hash__.hexdigest())
+    hash_disrupt, salt = sha_to_data(hash_a_file("user_agents.zip"))
     salt = salt.replace("a", "2").replace("b", "3").replace("c", "5") \
         .replace("d", "7").replace("e", "9").replace("f", "1")
 
@@ -113,10 +103,10 @@ def pass_to_seed(password):
 
 def seed_to_data(seed):
     seed_ = pass_to_seed(str(seed["SEED KEY"]))
-    seed2 = str(pass_to_seed((str(seed)[32:] + str(seed)[:32])[::-1]))
+    seed2 = str(pass_to_seed((str(seed)[32:]+str(seed)[:32])[::-1]))
     seed2_ = str(pass_to_seed(str(seed2)[::-1]))
-    seed2 = seed2_ + seed2
-    seed3 = int(str(seed["SEED KEY"]) + str(seed_))
+    seed2 = seed2_+seed2
+    seed3 = int(str(seed["SEED KEY"])+str(seed_))
 
     def seed2_to_alpha(seeds):
         alpha_gen = "`1234567890-=¬!\"£$%^&*()_+qwertyuiop[]QWERTYUIOP{}asdfghjkl;'#ASDFGHJKL:@~\zxcvbnm,.|ZXCVBNM<>?/"
@@ -352,8 +342,10 @@ def get_links(data):
 # 0.5 time_key server syncing
 # 0.6 dynamic key shifting and major auth.txt storage and load rewrites
 
-# 0.7 server connections and message system
-# 0.8 authorised message posting, downloading
+# 0.7 df_key.txt added, auth_key system, first time login
+
+# 0.8 server connections and message system
+# 0.9 authorised message posting, downloading
 
 
 # ports 8079
@@ -364,9 +356,9 @@ def get_links(data):
 def roundTime(dt=None, round_to=30):
     if not dt:
         dt = datetime.datetime.now()
-    seconds = (dt.replace(tzinfo=None) - dt.min).seconds
-    rounding = (seconds + round_to / 2) // round_to * round_to
-    return dt + datetime.timedelta(0, rounding - seconds, -dt.microsecond)
+    seconds = (dt.replace(tzinfo=None)-dt.min).seconds
+    rounding = (seconds + round_to/2)//round_to*round_to
+    return dt + datetime.timedelta(0, rounding-seconds, -dt.microsecond)
 
 
 encryption_keys = {}
@@ -384,7 +376,14 @@ class keys():
         print("Keys updates", encryption_keys)
 
 
-keys.update_key(0, "default_key", "HHk4itWVGs5MkTSVTKxbUel1oLqLcVOCiwdGTfY2MPBphJHZc8dseTXMmKdE")
+if not os.path.isfile("df_key.txt"):
+    time.sleep(0.1)
+    to_c("\n🱫[COLOR THREAD][RED] CRITICAL FILE df_key.txt MISSING")
+    time.sleep(0.1)
+    to_c("\n🱫[COLOR THREAD][YELLOW] Tell scott that you require df_key and he will help you")
+    while True:
+        input()
+keys.update_key(0, "default_key", hash_a_file("df_key.txt"))
 keys.get_keys(0)
 
 
@@ -469,6 +468,8 @@ def listen_for_client(cs, loop):
         time.sleep(0.1)
         to_c("🱫[INPUT SHOW] ")
         time.sleep(0.1)
+        to_c("🱫[MNINPLEN][256] ")
+        time.sleep(0.1)
         while True:
             to_c("\n🱫[COLOR THREAD][YELLOW] Please enter a password")
             password_entry_1 = receive()
@@ -492,10 +493,10 @@ def listen_for_client(cs, loop):
              "\n 7 - Click the copy button under reveal token")
         time.sleep(0.1)
         while True:
+            to_c("🱫[MNINPLEN][59] ")
+            time.sleep(0.1)
             to_c("\n🱫[COLOR THREAD][YELLOW] Paste the copied token below")
             bot_token = receive()
-            if len(bot_token) > 59:
-                to_c("\n🱫[COLOR THREAD][RED] Token is to long (should be 59 chars)")
             if len(bot_token) < 59:
                 to_c("\n🱫[COLOR THREAD][RED] Token is to short (should be 59 chars)")
             if len(bot_token) == 59:
@@ -533,7 +534,8 @@ def listen_for_client(cs, loop):
     else:
         to_c("🱫[INPUT SHOW] ")
         time.sleep(0.1)
-
+        to_c("🱫[MNINPLEN][256] ")
+        time.sleep(0.1)
         while True:
             try:
                 to_c("\n🱫[COLOR THREAD][YELLOW] Please enter your password")
@@ -553,23 +555,26 @@ def listen_for_client(cs, loop):
 
         def client_login():
             if not load == 3:
+                to_c("🱫[INPUT SHOW] ")
+                time.sleep(0.1)
+                to_c("🱫[MNINPLEN][64] ")
+                time.sleep(0.1)
                 while True:
-                    to_c("🱫[INPUT SHOW] ")
-                    time.sleep(0.1)
-                    to_c("\n🱫[COLOR THREAD][YELLOW] Enter your sign up code")
-                    sign_up_code = receive()
-                    to_c(f"\n You entered: {sign_up_code}")
+                    to_c("\n🱫[COLOR THREAD][YELLOW] Enter what you would like to be called?")
+                    name_be_called = receive()
+                    to_c(f"\n You entered: {name_be_called}")
                     time.sleep(0.1)
                     to_c(f"\n🱫[COLOR THREAD][YELLOW] Is this correct (y/n)?")
                     choice = receive()
-                    if choice.lower() == "y":
+                    if choice.lower() in ["yes", "y"]:
                         break
                     else:
-                        to_c(f"🱫[MNINPTXT] {sign_up_code}")
-                return df_encrypt(f"[SIGN UP] {hashed}{sign_up_code}")
+                        to_c(f"🱫[MNINPTXT] {name_be_called}")
+                return df_encrypt(f"[LOGIN] {hashed}{name_be_called}")
             else:
-                return df_encrypt(f"[SIGN UP] {hashed}")
+                return df_encrypt(f"[LOGIN] {hashed}")
 
+        to_c("🱫[MNINPLEN][4000] ")
         @client.event
         async def on_ready():
             to_c("\n🱫[COLOR THREAD][GREEN] << Login success, Logged in as {0.user}".format(client))
@@ -602,7 +607,6 @@ def listen_for_client(cs, loop):
                     verified_version = content[6:].split('-')[0]
                     to_c(f"Verified version is {verified_version} (VERIFIED)")
                     if (content[6:].split('+')[1])[10:11] == " ":
-                        print("Sign up")
                         auth_txt_write(bot_token, content[6:].split('-')[0], content[6:].split('+')[1])
                     else:
                         current_server_tme_key_hash = content[6:].split('+')[1]

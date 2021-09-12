@@ -256,44 +256,6 @@ def get_links(data):
     return e
 
 
-def version_info(hashed, sign_up, sign_up_code=None):
-    real_version = False
-    with open("sha.txt", encoding="utf-8") as f:
-        lines = f.readlines()
-        for line in lines:
-            if hashed in line:
-                real_version = True
-                version_data = line
-    if not real_version:
-        return "NOTREAL"
-    else:
-        latest_sha, type, version, tme, bld_num, run_num = version_data.split(" ")
-        print(latest_sha, type, version, tme, bld_num, run_num)
-        release_major, major, build, run = version.replace("V", "").split(".")
-        req_release_major, req_major, req_build, req_run = min_version.replace("V", "").split(".")
-        valid_version = False
-        if int(release_major) > int(req_release_major) - 1:
-            if int(major) > int(req_major) - 1:
-                if int(build) > int(req_build) - 1:
-                    if int(run) > int(req_run) - 1:
-                        valid_version = True
-                        print(f"{version} is valid for the {min_version} requirement")
-        if not valid_version:
-            return f"INVALID-{version}->{min_version}"
-        else:
-            if sign_up:
-                print("AUTH SYSTEM WIP")
-                print(sign_up_code)
-                # if sign up key valid here
-                current_key_time, current_key, old_key = get_server_key_from_file()
-                print(current_key_time, current_key)
-                print("valid key, time_key sending")
-                return f"VALID-{version}-{tme}-{bld_num}-{run_num}+{current_key_time}={current_key}"
-            else:
-                time_key_hashed = sha256(get_server_key_from_file()[1].encode()).hexdigest()
-                return f"VALID-{version}-{tme}-{bld_num}-{run_num}+{time_key_hashed}"
-
-
 def roundTime(dt=None, round_to=30):
     if not dt:
         dt = datetime.datetime.now()
@@ -307,7 +269,7 @@ if os.path.exists("server_time_key.txt"):
     current_key_time, current_key, old_key = get_server_key_from_file()
     current_key_time = datetime.datetime.strptime(str(current_key_time), date_format_str)
 
-    desired_time = roundTime()
+    desired_time = roundTime()+datetime.timedelta(seconds=30)
     curr_tme_fmt = datetime.datetime.strptime(str(current_key_time), date_format_str)
     diff = datetime.datetime.strptime(str(desired_time), date_format_str) - curr_tme_fmt
     iterations = int(diff.total_seconds()) / 30
@@ -335,13 +297,27 @@ else:
     write_server_key_to_file(current_key_time, current_key)
 
 
+valid_time_keys = {"OLD": "NO TIME KEY", "CURRENT": "NO TIME KEY", "NEW": "NO TIME KEY"}
+print(valid_time_keys)
+date_format_str = '%Y-%m-%d %H:%M:%S'
+
+
+class time_keys():
+    def get(self):
+        return valid_time_keys
+
+    def add(self, time_key):
+        valid_time_keys.update({"OLD": f"{valid_time_keys['CURRENT']}"})
+        valid_time_keys.update({"CURRENT": f"{valid_time_keys['NEW']}"})
+        valid_time_keys.update({"NEW": f"{time_key}"})
+
+
 def update_server_time_key():
     while True:
-        date_format_str = '%Y-%m-%d %H:%M:%S'
         current_key_time, current_key, old_key = get_server_key_from_file()
         try:
             current_key_time = datetime.datetime.strptime(str(current_key_time), date_format_str)
-            desired_time = roundTime()
+            desired_time = roundTime()+datetime.timedelta(seconds=30)
             curr_tme_fmt = datetime.datetime.strptime(str(current_key_time), date_format_str)
             diff = datetime.datetime.strptime(str(desired_time), date_format_str) - curr_tme_fmt
             iterations = int(diff.total_seconds()) / 30
@@ -358,10 +334,50 @@ def update_server_time_key():
             if str(current_key) != str(old_key):
                 print(f"{current_key_time}={current_key}")
                 write_server_key_to_file(current_key_time, current_key)
+                time_keys.add(0, current_key)
         except Exception as e:
             print("error", e)
             xx = 0
         time.sleep(1)
+
+
+def version_info(hashed, sign_up_name=None, bot_id=None):
+    real_version = False
+    with open("sha.txt", encoding="utf-8") as f:
+        lines = f.readlines()
+        for line in lines:
+            if hashed in line:
+                real_version = True
+                version_data = line
+    if not real_version:
+        return "NOTREAL"
+    else:
+        latest_sha, type, version, tme, bld_num, run_num = version_data.split(" ")
+        print(latest_sha, type, version, tme, bld_num, run_num)
+        release_major, major, build, run = version.replace("V", "").split(".")
+        req_release_major, req_major, req_build, req_run = min_version.replace("V", "").split(".")
+        valid_version = False
+        if int(release_major) > int(req_release_major) - 1:
+            if int(major) > int(req_major) - 1:
+                if int(build) > int(req_build) - 1:
+                    if int(run) > int(req_run) - 1:
+                        valid_version = True
+                        print(f"{version} is valid for the {min_version} requirement")
+        if not valid_version:
+            return f"INVALID-{version}->{min_version}"
+        else:
+            if sign_up_name:
+                print("AUTH SYSTEM WIP")
+                print(sign_up_name)
+                # if sign up key valid here
+                current_key_time, current_key, old_key = get_server_key_from_file()
+                current_key_time = datetime.datetime.strptime(str(current_key_time), date_format_str)
+                return f"VALID-{version}-{tme}-{bld_num}-{run_num}+" \
+                       f"{current_key_time-datetime.timedelta(seconds=30)}={valid_time_keys['CURRENT']}"
+                # todo the new time system
+            else:
+                time_key_hashed = sha256(valid_time_keys['CURRENT'].encode()).hexdigest()
+                return f"VALID-{version}-{tme}-{bld_num}-{run_num}+{time_key_hashed}"
 
 
 from threading import Thread
@@ -373,6 +389,8 @@ t.start()
 @bot.gateway.command
 def processing(resp):
     m = resp.event.response
+    if not str(m) == "{'t': None, 's': None, 'op': 11, 'd': None}":
+        print(m)
 
     if resp.event.ready_supplemental:  # ready_supplemental is sent after ready
         user = bot.gateway.session.user
@@ -399,27 +417,34 @@ def processing(resp):
         mention_everyone = m['mention_everyone']
 
         id = m['id']
+        print(id)
         embeds = m['embeds']
         attachments = m['attachments']
 
         if channelID == "883425805756170283":
             if username+"#"+discriminator != "HELLOTHERE#9406":
                 print(m)
-
-                seed_data.change(0, "HHk4itWVGs5MkTSVTKxbUel1oLqLcVOCiwdGTfY2MPBphJHZc8dseTXMmKdE")
+                block_size = 65536
+                hash_ = sha512()
+                with open("df_key.txt", 'rb') as hash_file:
+                    buf = hash_file.read(block_size)
+                    while len(buf) > 0:
+                        hash_.update(buf)
+                        buf = hash_file.read(block_size)
+                seed_data.change(0, hash_.hexdigest())
                 try:
                     content = decrypt(content)
                     print(content)
-                    if content[138:] == "":
-                        version_response = version_info(content[10:138], False)
+                    if content[136:] == "":
+                        version_response = version_info(content[8:136])
                     else:
-                        version_response = version_info(content[10:138], True, content[138:])
+                        version_response = version_info(content[8:136], content[136:], )
                     bot.sendMessage(channelID="883425805756170283", message=encrypt(version_response))
                 except Exception as e:
                     print(e)
 
-        if channelID == "883425805756170283" and username+"#"+discriminator == "HELLOTHERE#9406":
-            bot.deleteMessage(channelID=f"{channelID}", messageID=f"{id}")
+        #if channelID == "883425805756170283":
+        #    bot.deleteMessage(channelID=f"{channelID}", messageID=f"{id}")
 
 
 bot.gateway.run(auto_reconnect=True)

@@ -22,13 +22,11 @@ exiter.txt,2\9\2908b2dc1ac7efe7bd0f9a89f9867872502c9a2d
 gateway.txt,f\c\fcaea54c7bdce7c8f443e8ae7009b0bc2db638a3
 <
 installer.py,e\1\e1b39fb2e4acdec6ba7ff7c10094edb59df4bb53
-6
-mal.py,d\e\de39f312f515f9f18f6ab3e525b78b7521ad2136
 9
 	README.md,8\e\8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d
 ;
 restart.bat,a\0\a06bb18078dfe6b6af5299aef80d5cdece6022f6
-?
-auth - Copy.txt,b\4\b4d55ca0fd161c2a8107bf74aa957c86557c8bea
-C
-auth - Copy (2).txt,8\e\8effd907a25cb4cc2925b1065f79b09e00ddfd0c
+@
+requirements.txt,1\9\19359a61ae2446b51b549167b014da2fcf265768
+6
+mal.py,d\e\de39f312f515f9f18f6ab3e525b78b7521ad2136
