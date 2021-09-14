@@ -40,24 +40,20 @@ except FileNotFoundError:
     hashed = hash_a_file("rdisc.exe")
 
 
-with open("exiter.txt", "w") as f:
-    f.write("--")
+exiter = {"QUIT": "--"}
+
+
+class should_exit():
+    def check(self):
+        return exiter["QUIT"]
+
+    def change(self, change_to):
+        return exiter.update({"QUIT": change_to})
+
 
 if not os.path.isfile("restart.bat"):
     with open("restart.bat", "w", encoding="utf-8") as f:
         f.write("rdisc.exe")
-
-
-def quit_check():
-    with open("exiter.txt") as f:
-        force_quit_ = str(f.readlines())[2:-2]
-        if force_quit_.startswith("FQ"):
-            if force_quit_ == "FQ":
-                return "FQ"
-            if force_quit_ == "FQU":
-                return "FQU"
-        else:
-            return "--"
 
 
 def hex_gens(num):
@@ -341,11 +337,11 @@ def get_links(data):
 # 0.4 the client setup, server version checks, some UI elements updated
 # 0.5 time_key server syncing
 # 0.6 dynamic key shifting and major auth.txt storage and load rewrites
-
-# 0.7 df_key.txt added, auth_key system, first time login
+# 0.7 df_key.txt added, auth_key system, first time login, removed exiter.txt, removed git pushes of password files
 
 # 0.8 server connections and message system
-# 0.9 authorised message posting, downloading
+# 0.9 UI overhaul
+# 0.10 authorised message posting, downloading
 
 
 # ports 8079
@@ -380,7 +376,7 @@ if not os.path.isfile("df_key.txt"):
     time.sleep(0.1)
     to_c("\n🱫[COLOR THREAD][RED] CRITICAL FILE df_key.txt MISSING")
     time.sleep(0.1)
-    to_c("\n🱫[COLOR THREAD][YELLOW] Tell scott that you require df_key and he will help you")
+    to_c("\n🱫[COLOR THREAD][YELLOW] Tell the developer that you require df_key and he will help you")
     while True:
         input()
 keys.update_key(0, "default_key", hash_a_file("df_key.txt"))
@@ -403,7 +399,7 @@ def pa_decrypt(enc_text):
     return decrypt(enc_text, keys.get_keys(0, "pass_key"))
 
 
-def auth_txt_write(token=None, version_data=None, time_key=None):
+def auth_txt_write(token=None, version_data=None, time_key=None, auth_token=None):
     auth_to_write = ""
     if token:
         auth_to_write += pa_encrypt(df_encrypt(token))
@@ -411,6 +407,8 @@ def auth_txt_write(token=None, version_data=None, time_key=None):
         auth_to_write += "\n"+df_encrypt(version_data)
     if time_key:
         auth_to_write += "\n"+df_encrypt(pa_encrypt(time_key))
+    if auth_token:
+        auth_to_write += "\n"+pa_encrypt(df_encrypt(auth_token))
 
     with open("auth.txt", "w", encoding="utf-8") as f:
         f.write(auth_to_write)
@@ -433,7 +431,8 @@ else:
             load = 2
         if len(auth_data) > 2:
             enc_time_key = auth_data[2]
-            load = 3
+            enc_auth_token = auth_data[3]
+            load = 4
 
 
 print(f"loaded {load}")
@@ -458,8 +457,7 @@ def listen_for_client(cs, loop):
             os.startfile("restart.bat")
 
         if output.lower() == '-quit':
-            with open("exiter.txt", "w") as f:
-                f.write("FQ")
+            should_exit.change(0, "FQ")
 
         return output
 
@@ -516,8 +514,7 @@ def listen_for_client(cs, loop):
         except discord.errors.LoginFailure:
             to_c("\n🱫[COLOR THREAD][RED] The entered token was invalid, rdisc will now restart")
             os.startfile("restart.bat")
-            with open("exiter.txt", "w") as f:
-                f.write("FQ")
+            should_exit.change(0, "FQ")
             while True:
                 input()
 
@@ -525,7 +522,7 @@ def listen_for_client(cs, loop):
         to_c("\n 8 - Go to general information on the left panel"
              "\n 9 - Click the copy button under the application id"
              "\n 10 - Send the copied application id to Scott"
-             "\n\n There is nothing more for you to do here until scott activates your token"
+             "\n\n There is nothing more for you to do here until Scott activates your token"
              "\n As your token can be found by logging into your discord account it is suggested "
              "\n that you enable 2 factor auth on your account"
              "\n\n Close rdisc once you're finished and re-open it once your token has been activated")
@@ -546,6 +543,9 @@ def listen_for_client(cs, loop):
             except ValueError:
                 to_c("\n Incorrect password")
         to_c("\n🱫[COLOR THREAD][GREEN] Correct password")
+
+        if load == 4:
+            keys.update_key(0, "AUTH_TOKEN", df_decrypt(pa_decrypt(enc_auth_token)))
         print(bot_token)
         time.sleep(0.1)
         to_c("🱫[INPUT HIDE] ")
@@ -554,7 +554,7 @@ def listen_for_client(cs, loop):
         to_c("\n >> Logging in")
 
         def client_login():
-            if not load == 3:
+            if not load == 4:
                 to_c("🱫[INPUT SHOW] ")
                 time.sleep(0.1)
                 to_c("🱫[MNINPLEN][64] ")
@@ -575,6 +575,7 @@ def listen_for_client(cs, loop):
                 return df_encrypt(f"[LOGIN] {hashed}")
 
         to_c("🱫[MNINPLEN][4000] ")
+
         @client.event
         async def on_ready():
             to_c("\n🱫[COLOR THREAD][GREEN] << Login success, Logged in as {0.user}".format(client))
@@ -591,28 +592,37 @@ def listen_for_client(cs, loop):
             if ctx.author.id == 509330868301594624:
                 content = df_decrypt(ctx.content)
                 print(content)
-                update = False
                 if content.startswith("NOTREAL"):
                     to_c("\n🱫[COLOR THREAD][RED] <> INVALID VERSION DETECTED, downloading replacements"
                          " in 5 seconds")
-                    update = True
+                    await client.close()
+                    time.sleep(5)
+                    should_exit.change(0, "FQU")
                 if content.startswith("INVALID-"):
                     to_c(f"\n <> Updating rdisc {content[8:]} in 5 seconds")
-                    update = True
+                    await client.close()
+                    time.sleep(5)
+                    should_exit.change(0, "FQU")
                     auth_txt_write(bot_token, content[8:].split('->')[0])
 
-                if content.startswith("VALID-"):
-                    to_c(f"\n << RESPONSE FROM AUTH RECEIVED\n << {content}")
+                if content.startswith("ACC_ALR_EXT"):
+                    to_c("\n🱫[COLOR THREAD][RED] THIS ACCOUNT ALREADY EXISTS. Ask developer for support")
 
+                if content.startswith("ACC_CRT_NTA"):
+                    to_c("\n🱫[COLOR THREAD][RED] ACCOUNT CREATION NOT ALLOWED. Ask developer for support")
+
+                if content.startswith("VALID-"):
                     verified_version = content[6:].split('-')[0]
+                    to_c(f"\n << RESPONSE FROM AUTH RECEIVED\n << {verified_version}")
                     to_c(f"Verified version is {verified_version} (VERIFIED)")
-                    if (content[6:].split('+')[1])[10:11] == " ":
-                        auth_txt_write(bot_token, content[6:].split('-')[0], content[6:].split('+')[1])
+                    if (content[6:].split('Ō')[1])[10:11] == " ":
+                        time_key, auth_token = content[6:].split('Ō')[1].split("Ǘ")
+                        auth_txt_write(bot_token, content[6:].split('-')[0], time_key, auth_token)
                     else:
-                        current_server_tme_key_hash = content[6:].split('+')[1]
+                        current_server_tme_key_hash = content[6:].split('Ō')[1]
                         current_server_tme_key_tme = roundTime()
                         try:
-                            current_key_time, current_key = pa_decrypt(df_decrypt(enc_time_key)).split("=")
+                            current_kt, current_key = pa_decrypt(df_decrypt(enc_time_key)).split("=")
                         except zlib.error:
                             to_c("\n🱫[COLOR THREAD][RED] Invalid time_key loaded.")  # todo time_key change fail_code
                             while True:
@@ -621,8 +631,8 @@ def listen_for_client(cs, loop):
                         auth_txt_write(bot_token, verified_version)  # temp removal of the key to stop errors
 
                         date_format_str = '%Y-%m-%d %H:%M:%S'
-                        current_key_time = datetime.datetime.strptime(str(current_key_time), date_format_str)
-                        curr_tme_fmt = datetime.datetime.strptime(str(current_key_time), date_format_str)
+                        current_kt = datetime.datetime.strptime(str(current_kt), date_format_str)
+                        curr_tme_fmt = datetime.datetime.strptime(str(current_kt), date_format_str)
                         diff = datetime.datetime.strptime(str(current_server_tme_key_tme), date_format_str)-curr_tme_fmt
                         iterations = int(diff.total_seconds()) / 30
 
@@ -636,36 +646,40 @@ def listen_for_client(cs, loop):
                         while sha256(str(current_key).encode()).hexdigest() != current_server_tme_key_hash:
                             loop += 1
                             current_key = pass_to_seed(str(current_key))
-                            if time.time() - last_update > 1:
-                                print(loop, current_key, time.time()-start)  # todo estimate time left
-                                to_c(f"\n{round((loop / iterations) * 100, 2)}% complete ({loop}/{int(iterations)}) "
-                                     f"Est time left: {round((iterations-loop)/122.33,2)}s")
-                                last_update = time.time()
-                        auth_txt_write(bot_token, verified_version, f"{current_server_tme_key_tme}={current_key}")
+                            try:
+                                if time.time() - last_update > 1:
+                                    print(loop, current_key, time.time()-start)  # todo estimate time left
+                                    to_c(f"\n{round((loop / iterations) * 100, 2)}"
+                                         f"% complete ({loop}/{int(iterations)}) "
+                                         f"Est time left: {round((iterations-loop)/122.33,2)}s")
+                                    last_update = time.time()
+                            except ZeroDivisionError:
+                                xx = 0
+                        auth_txt_write(bot_token, verified_version,
+                                       f"{current_server_tme_key_tme}={current_key}", keys.get_keys(0, "AUTH_TOKEN"))
 
                         to_c("\n🱫[COLOR THREAD][GREEN] Key upto-date!")
 
                     def time_key_update():
                         while True:
-                            date_format_str = '%Y-%m-%d %H:%M:%S'
                             with open("auth.txt", encoding="utf-8") as f:
                                 auth_data = f.read()
                                 try:
-                                    current_key_time, old_key = pa_decrypt(df_decrypt(auth_data.split("\n")[2])).split("=")
-                                    current_key_time = datetime.datetime.strptime(str(current_key_time),
-                                                                                  date_format_str)
+                                    current_kt, old_key = pa_decrypt(df_decrypt(auth_data.split("\n")[2])).split("=")
+                                    current_kt = datetime.datetime.strptime(str(current_kt), '%Y-%m-%d %H:%M:%S')
                                     desired_time = roundTime()
 
                                     loop = 0
                                     current_key = old_key
-                                    while current_key_time != desired_time:
+                                    while current_kt != desired_time:
                                         loop += 1
                                         current_key = pass_to_seed(str(old_key))
-                                        current_key_time += datetime.timedelta(seconds=30)
+                                        current_kt += datetime.timedelta(seconds=30)
 
                                     if str(current_key) != str(old_key):
-                                        print(f"{current_key_time}={current_key}")
-                                        auth_txt_write(bot_token, verified_version, f"{current_key_time}={current_key}")
+                                        print(f"{current_kt}={current_key}")
+                                        auth_txt_write(bot_token, verified_version,
+                                                       f"{current_kt}={current_key}", keys.get_keys(0, "AUTH_TOKEN"))
                                 except Exception as e:
                                     print(e)
                             time.sleep(2)
@@ -673,12 +687,6 @@ def listen_for_client(cs, loop):
                     t = Thread(target=time_key_update)
                     t.daemon = True
                     t.start()
-
-                if update:
-                    await client.close()
-                    time.sleep(5)
-                    with open("exiter.txt", "w") as f:
-                        f.write("FQU")
         try:
             client.run(bot_token)
         except discord.errors.LoginFailure:
@@ -692,8 +700,8 @@ t.start()
 
 
 while True:
-    if quit_check().startswith("FQ"):
-        if quit_check() == "FQU":
+    if should_exit.check(0).startswith("FQ"):
+        if should_exit.check(0) == "FQU":
             if not os.path.isfile("installer.exe"):
                 from mega import Mega
                 mega = Mega()

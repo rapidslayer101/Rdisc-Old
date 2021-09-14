@@ -1,5 +1,0 @@
-discum
-discord
-colorama
-mega.py
-pyinstaller

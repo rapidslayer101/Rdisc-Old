@@ -1,5 +1,6 @@
 import discum, re, datetime, random, base64, zlib, os, time
 from hashlib import sha512, sha256
+from threading import Thread
 
 bot = discum.Client(token="mfa.ZiR5m0U02bkR3mo_WkRdRbcVX-1zYxo1eGOdQI78"
                           "jiZFW1pHpY4M3nZUjpOgSF_aFYG43f9xtnR56wnrPdDo", log=False)
@@ -11,7 +12,15 @@ bot = discum.Client(token="mfa.ZiR5m0U02bkR3mo_WkRdRbcVX-1zYxo1eGOdQI78"
 # V0.5.0.0 the first version with time_key and the standard_key
 min_version = "V0.5.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
 
-default_key = "HHk4itWVGs5MkTSVTKxbUel1oLqLcVOCiwdGTfY2MPBphJHZc8dseTXMmKdE"
+
+block_size = 65536
+hash_ = sha512()
+with open("df_key.txt", 'rb') as hash_file:
+    buf = hash_file.read(block_size)
+    while len(buf) > 0:
+        hash_.update(buf)
+        buf = hash_file.read(block_size)
+default_key = hash_.hexdigest()
 
 
 def hex_gens(num):
@@ -146,11 +155,8 @@ def shifter(plaintext, new_num_, num2_, alphabet, forwards):
     return output_enc
 
 
-def encrypt(text, password=None):
-    if password:
-        alpha1, alpha2, num2, seed3 = seed_to_data({"SEED KEY": pass_to_seed(password)})
-    else:
-        alpha1, alpha2, num2, seed3 = seed_to_data(seed_data.get(0))
+def encrypt(text, key):
+    alpha1, alpha2, num2, seed3 = seed_to_data({"SEED KEY": pass_to_seed(key)})
     try:
         plaintext = base64.b85encode(zlib.compress(str(text).encode('utf-8'), 9)).decode('utf-8')
     except:
@@ -163,11 +169,8 @@ def encrypt(text, password=None):
     return shifter(e_text, b, num2, alpha2, True)
 
 
-def decrypt(e_text, password=None):
-    if password:
-        alpha1, alpha2, num2, seed3 = seed_to_data({"SEED KEY": pass_to_seed(password)})
-    else:
-        alpha1, alpha2, num2, seed3 = seed_to_data(seed_data.get(0))
+def decrypt(e_text, key):
+    alpha1, alpha2, num2, seed3 = seed_to_data({"SEED KEY": pass_to_seed(key)})
     b = str(fib_iter(e_text, num2))
     d_txt = shifter(e_text, b, num2, alpha2, False)
     new_num = seed3
@@ -368,19 +371,45 @@ def version_info(hashed, sign_up_name=None, bot_id=None):
         else:
             if sign_up_name:
                 print("AUTH SYSTEM WIP")
-                print(sign_up_name)
+                print(sign_up_name, bot_id)
                 # if sign up key valid here
-                current_key_time, current_key, old_key = get_server_key_from_file()
-                current_key_time = datetime.datetime.strptime(str(current_key_time), date_format_str)
-                return f"VALID-{version}-{tme}-{bld_num}-{run_num}+" \
-                       f"{current_key_time-datetime.timedelta(seconds=30)}={valid_time_keys['CURRENT']}"
-                # todo the new time system
+                valid_sign_up = False
+
+                lines = []
+                with open("users.txt", encoding="utf-8") as f:
+                    for line in f.readlines():
+                        split_line = line.split(", ")
+                        if split_line[0] == "ACCOUNT":
+                            if str(bot_id) == split_line[1].replace("\n", ""):
+                                print("ACCOUNT ALREADY EXISTS")
+                                return "ACC_ALR_EXT"
+                        if split_line[0] == "NEW_ACCOUNT":
+                            if str(bot_id) == split_line[1].replace("\n", ""):
+                                auth_token = hex_gens(32)
+                                print("VALID BOT ACCOUNT", bot_id, sign_up_name, auth_token)
+                                line = f"ACCOUNT, {bot_id}, {sign_up_name}, {auth_token}"
+                                valid_sign_up = True
+                        lines.append(line)
+                if valid_sign_up:
+                    with open("users.txt", "w", encoding="utf-8") as f:
+                        to_write = ""
+                        for item in lines:
+                            to_write += item.replace("\n", "")+"\n"
+                        f.write(to_write)
+
+                    current_kt, current_key, old_key = get_server_key_from_file()
+                    current_kt = datetime.datetime.strptime(str(current_kt), date_format_str)
+                    return f"VALID-{version}-{tme}-{bld_num}-{run_num}Ō" \
+                           f"{current_kt-datetime.timedelta(seconds=30)}={valid_time_keys['CURRENT']}" \
+                           f"Ǘ{auth_token}"
+                    # todo the new time system
+                else:
+                    return "ACC_CRT_NTA"
             else:
                 time_key_hashed = sha256(valid_time_keys['CURRENT'].encode()).hexdigest()
-                return f"VALID-{version}-{tme}-{bld_num}-{run_num}+{time_key_hashed}"
+                return f"VALID-{version}-{tme}-{bld_num}-{run_num}Ō{time_key_hashed}"
 
 
-from threading import Thread
 t = Thread(target=update_server_time_key)
 t.daemon = True
 t.start()
@@ -417,29 +446,21 @@ def processing(resp):
         mention_everyone = m['mention_everyone']
 
         id = m['id']
-        print(id)
+        bot_id = m['author']['id']
         embeds = m['embeds']
         attachments = m['attachments']
 
         if channelID == "883425805756170283":
             if username+"#"+discriminator != "HELLOTHERE#9406":
                 print(m)
-                block_size = 65536
-                hash_ = sha512()
-                with open("df_key.txt", 'rb') as hash_file:
-                    buf = hash_file.read(block_size)
-                    while len(buf) > 0:
-                        hash_.update(buf)
-                        buf = hash_file.read(block_size)
-                seed_data.change(0, hash_.hexdigest())
                 try:
-                    content = decrypt(content)
+                    content = decrypt(content, default_key)
                     print(content)
                     if content[136:] == "":
                         version_response = version_info(content[8:136])
                     else:
-                        version_response = version_info(content[8:136], content[136:], )
-                    bot.sendMessage(channelID="883425805756170283", message=encrypt(version_response))
+                        version_response = version_info(content[8:136], content[136:], bot_id)
+                    bot.sendMessage(channelID="883425805756170283", message=encrypt(version_response, default_key))
                 except Exception as e:
                     print(e)
 

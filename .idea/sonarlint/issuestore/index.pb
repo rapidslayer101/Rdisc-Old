@@ -24,9 +24,5 @@ exiter.txt,2\9\2908b2dc1ac7efe7bd0f9a89f9867872502c9a2d
 installer.py,e\1\e1b39fb2e4acdec6ba7ff7c10094edb59df4bb53
 9
 	README.md,8\e\8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d
-;
-restart.bat,a\0\a06bb18078dfe6b6af5299aef80d5cdece6022f6
-@
-requirements.txt,1\9\19359a61ae2446b51b549167b014da2fcf265768
 6
 mal.py,d\e\de39f312f515f9f18f6ab3e525b78b7521ad2136
