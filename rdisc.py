@@ -1,27 +1,21 @@
-import socket, os, time, re, random, base64, zlib, asyncio, datetime
-from hashlib import sha512, sha256
+import socket, os, time, zlib, asyncio, datetime
+from hashlib import sha256
 from threading import Thread
+
+import aiohttp.client_exceptions
+from mega import Mega
 
 import discord
 from colorama import Fore, Back, Style, init
 init()
 
+import enclib as enc
+
 #todo add encrypted text size output for sending messages
 
 
-def hash_a_file(file):
-    block_size = 65536
-    hash_ = sha512()
-    with open(file, 'rb') as hash_file:
-        buf = hash_file.read(block_size)
-        while len(buf) > 0:
-            hash_.update(buf)
-            buf = hash_file.read(block_size)
-    return hash_.hexdigest()
-
-
 try:
-    hashed = hash_a_file("rdisc.py")
+    hashed = enc.hash_a_file("rdisc.py")
     with open("sha.txt", "r", encoding="utf-8") as f:
         latest_sha, type, version, tme, bld_num, run_num = f.readlines()[-1].split(" ")
         print("prev", latest_sha, type, version, tme, bld_num, run_num)
@@ -37,7 +31,7 @@ try:
                     f" BLD_NM-{bld_num[7:]} RUN_NM-{int(run_num[7:])+1}")
         print(f"Running rdisc V{release_major}.{major}.{build}.{run}")
 except FileNotFoundError:
-    hashed = hash_a_file("rdisc.exe")
+    hashed = enc.hash_a_file("rdisc.exe")
 
 
 exiter = {"QUIT": "--"}
@@ -56,194 +50,6 @@ if not os.path.isfile("restart.bat"):
         f.write("rdisc.exe")
 
 
-def hex_gens(num):
-    hex_gens_ = ""
-    while len(hex_gens_) != num:
-        alphagens = "`1234567890-=¬!\"£$%^&*()_+qwertyuiop[]QWERTYUIOP{}asdfghjkl;'#ASDFGHJKL:@~\zxcvbnm,.|ZXCVBNM<>?/"
-        hex_gens_add = random.choice(alphagens)
-        hex_gens_ += hex_gens_add
-    return hex_gens_
-
-
-def sha_to_data(sha):
-    num_ = ""
-    letters_ = ""
-    for char in sha:
-        if char in "1234567890":
-            num_ += char
-        else:
-            letters_ += char
-    return num_, letters_
-
-
-def pass_to_seed(password):
-    hash_disrupt, salt = sha_to_data(hash_a_file("user_agents.zip"))
-    salt = salt.replace("a", "2").replace("b", "3").replace("c", "5") \
-        .replace("d", "7").replace("e", "9").replace("f", "1")
-
-    inp = str(int(hash_disrupt[::-1]) / 2) + password
-    sha = sha512(sha512(base64.b85encode(inp.encode())).hexdigest().encode()).hexdigest()
-    num, letters = sha_to_data(sha)
-    sha2 = sha512(letters.encode()).hexdigest()
-    num2_, letters2 = sha_to_data(sha2)
-    letters2 = letters2.replace("a", "2").replace("b", "3").replace("c", "5") \
-        .replace("d", "7").replace("e", "9").replace("f", "1")
-
-    if not len(str(int(((num + num2_[::-1])[::-1])[:128])-int(salt[:16])+int(salt[-16:]))) > 127:
-        int_seed = int((num+letters2[-(128-len(str(num+num2_))):]+num2_[::-1])[::-1])-int(salt[:16])+int(salt[-16:])
-        int_seed = int((str(int_seed)[::-1])[:128])
-    else:
-        int_seed = int(((num+num2_[::-1])[::-1])[:128])-int(salt[:16])+int(salt[-16:])
-    return int(int_seed)
-
-
-def seed_to_data(seed):
-    seed_ = pass_to_seed(str(seed["SEED KEY"]))
-    seed2 = str(pass_to_seed((str(seed)[32:]+str(seed)[:32])[::-1]))
-    seed2_ = str(pass_to_seed(str(seed2)[::-1]))
-    seed2 = seed2_+seed2
-    seed3 = int(str(seed["SEED KEY"])+str(seed_))
-
-    def seed2_to_alpha(seeds):
-        alpha_gen = "`1234567890-=¬!\"£$%^&*()_+qwertyuiop[]QWERTYUIOP{}asdfghjkl;'#ASDFGHJKL:@~\zxcvbnm,.|ZXCVBNM<>?/"
-        counter = 0
-        alpha = ""
-        while len(alpha_gen) > 1:
-            counter += 3
-            value = int(str(seeds)[counter:counter + 1]) + int(str(seeds)[counter:counter + 1])
-            while value > len(alpha_gen) - 1:
-                value = value // 2
-            if len(str(seeds)[counter:]) < 2:
-                alpha += alpha_gen
-                alpha_gen = alpha_gen.replace(alpha_gen, "")
-            else:
-                chosen = alpha_gen[value]
-                alpha += chosen
-                alpha_gen = alpha_gen.replace(chosen, "")
-        return alpha
-
-    alpha1 = seed2_to_alpha(seed3)
-    alpha2 = seed2_to_alpha(seed2)
-    num2 = int(str(seed_) + str(seed2_))
-    if num2 > 8999:
-        num2 -= 2500
-
-    return alpha1, alpha2, num2, seed3
-
-
-def fib_iter(text, num2_):
-    a = int(str(num2_)[32:96])
-    b = int(str(num2_)[:32])
-    c = int(str(num2_)[160:])
-    d = int(str(num2_)[96:160])
-    total = ""
-    while len(str(total)) < len(text) * 3 + 100:
-        total += str(int(str(a)+str(b-c).replace("-", ""))-d)
-        a = str(int(str(a)[:1024])*6)+str(c//3)
-    return total
-
-
-def shifter(plaintext, new_num_, num2_, alphabet, forwards):
-    output_enc = ""
-    counter = 0
-    for msg in plaintext:
-        counter = counter + 2
-        if msg in alphabet:
-            key = int(new_num_[counter:counter + 2])
-            if key > 96:
-                key = int(str(num2_)[:2])
-            if not forwards:
-                key = key * (-1)
-            if key == 0:
-                new_alphabet = alphabet
-            new_alphabet = alphabet[key:] + alphabet[:key]
-            encrypted = ""
-            for message_index in range(0, len(msg)):
-                if msg[message_index] == " ":
-                    encrypted += " "
-                for alphabet_index in range(0, len(new_alphabet)):
-                    if msg[message_index] == alphabet[alphabet_index]:
-                        encrypted += new_alphabet[alphabet_index]
-            output_enc += encrypted
-        else:
-            output_enc += msg
-    return output_enc
-
-
-def encrypt(text, key):
-    alpha1, alpha2, num2, seed3 = seed_to_data({"SEED KEY": pass_to_seed(key)})
-    try:
-        plaintext = base64.b85encode(zlib.compress(str(text).encode('utf-8'), 9)).decode('utf-8')
-    except:
-        plaintext = base64.b85encode(zlib.compress(text, 9)).decode('utf-8')
-    new_num = seed3
-    while len(str(new_num)) < len(plaintext)*3+100:  # todo revise more precise with analysed char data
-        new_num = str(int(str(new_num)[:512])//2)+str(new_num)+str(int(str(new_num)[:512])*2)
-    e_text = shifter(plaintext, str(new_num), num2, alpha1, True)
-    b = str(fib_iter(e_text, num2))
-    return shifter(e_text, b, num2, alpha2, True)
-
-
-def decrypt(e_text, key):
-    alpha1, alpha2, num2, seed3 = seed_to_data({"SEED KEY": pass_to_seed(key)})
-    b = str(fib_iter(e_text, num2))
-    d_txt = shifter(e_text, b, num2, alpha2, False)
-    new_num = seed3
-    while len(str(new_num)) < len(d_txt)*3+100:  # todo revise more precise with analysed char data
-        new_num = str(int(str(new_num)[:512])//2)+str(new_num)+str(int(str(new_num)[:512])*2)
-    output_end = shifter(d_txt, str(new_num), num2, alpha1, False).replace(" ", "")
-    try:
-        output_end = zlib.decompress(base64.b85decode(output_end)).decode('utf-8')
-    except:
-        output_end = zlib.decompress(base64.b85decode(output_end))
-    return output_end
-
-
-def encrypt_file(file_to_enc, file_output):
-    block_size = 65536
-    bytes = b""
-    try:
-        with open(file_to_enc, 'rb') as hash_file:
-            buf = hash_file.read(block_size)
-            while len(buf) > 0:
-                bytes += buf
-                buf = hash_file.read(block_size)
-
-        start = datetime.datetime.now()
-        e_data = encrypt(bytes)
-        print(datetime.datetime.now() - start)
-
-        with open(f"enc/{file_output}", "w", encoding="utf-8") as f:
-            f.write(e_data)
-    except:
-        print("Error")
-
-
-def decrypt_file(file_to_dec, file_output):
-    data = ""
-    with open(file_to_dec, encoding="utf-8") as dec_file:
-        for line_ in dec_file.readlines():
-            data += line_
-    start = datetime.datetime.now()
-    d_data = decrypt(data)
-    print(datetime.datetime.now() - start)
-    print(type(d_data))
-    if type(d_data) == str:
-        print("Str file")
-        with open(f"enc/{file_output}", "w", encoding="utf-8") as f:
-            print(d_data)
-            f.write(d_data.replace("\r", ""))
-    else:
-        if type(d_data) == bytes:
-            print("Byte file")
-            with open(f"enc/{file_output}", "wb") as f:
-                f.write(d_data)
-        else:
-            print("?? file")
-            with open(f"enc/{file_output}", "wb") as f:
-                f.write(d_data)
-
-
 client_sockets = set()
 s = socket.socket()
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -254,7 +60,6 @@ try:
     os.startfile("ui.exe")
 except FileNotFoundError:
     print(Fore.YELLOW, ">> Attempting to download missing/broken file", Fore.RESET)
-    from mega import Mega
     mega = Mega()
     m = mega.login("theretards909@gmail.com", "smokester1/")
     file = m.find('ui.exe')
@@ -275,20 +80,6 @@ s.listen(10)
 def to_c(text):
     for client_sock in client_sockets:
         client_sock.send(text.encode(encoding="utf-16"))
-
-
-def warn(text):
-    to_c(f"\n🱫[COLOR THREAD][RED] [!] [{date_now()}] {text}")
-
-
-def search(data, filter_fr, filter_to):
-    data = str(data)
-    m = re.search(f"""{filter_fr}(.+?){filter_to}""", data)
-    if m:
-        output = m.group(1)
-    else:
-        output = None
-    return output
 
 
 def date_now():
@@ -316,15 +107,6 @@ print(f" Connected to ui.exe via socket {client_address}")
 to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n")
 
 
-def get_links(data):
-    a = (re.findall(r'(https?://[^\s]+)', str(data)))
-    b = (re.findall(r'(http?://[^\s]+)', str(data)))
-    c = ('\n'.join(a))
-    d = ('\n'.join(b))
-    e = c + d
-    return e
-
-
 # jump
 
 # implemented code:
@@ -338,34 +120,23 @@ def get_links(data):
 # 0.5 time_key server syncing
 # 0.6 dynamic key shifting and major auth.txt storage and load rewrites
 # 0.7 df_key.txt added, auth_key system, first time login, removed exiter.txt, removed git pushes of password files
+# 0.8 most encryption stuff moved into enclib.py library, some login checks
 
 # 0.8 server connections and message system
 # 0.9 UI overhaul
 # 0.10 authorised message posting, downloading
 
 
-# ports 8079
+# ports localhost:8079
 # Made by rapidslayer101
 # Testers: James Judge
-
-
-def roundTime(dt=None, round_to=30):
-    if not dt:
-        dt = datetime.datetime.now()
-    seconds = (dt.replace(tzinfo=None)-dt.min).seconds
-    rounding = (seconds + round_to/2)//round_to*round_to
-    return dt + datetime.timedelta(0, rounding-seconds, -dt.microsecond)
-
 
 encryption_keys = {}
 
 
 class keys():
-    def get_keys(self, key_name=None):
-        if key_name:
-            return encryption_keys[key_name]
-        else:
-            print(encryption_keys)
+    def get_key(self, key_name):
+        return encryption_keys[key_name]
 
     def update_key(self, key_name, key):
         encryption_keys.update({key_name: key})
@@ -379,24 +150,23 @@ if not os.path.isfile("df_key.txt"):
     to_c("\n🱫[COLOR THREAD][YELLOW] Tell the developer that you require df_key and he will help you")
     while True:
         input()
-keys.update_key(0, "default_key", hash_a_file("df_key.txt"))
-keys.get_keys(0)
+keys.update_key(0, "default_key", enc.hash_a_file("df_key.txt"))
 
 
 def df_encrypt(text):
-    return encrypt(text, keys.get_keys(0, "default_key"))
+    return enc.encrypt(text, keys.get_key(0, "default_key"))
 
 
 def df_decrypt(enc_text):
-    return decrypt(enc_text, keys.get_keys(0, "default_key"))
+    return enc.decrypt(enc_text, keys.get_key(0, "default_key"))
 
 
 def pa_encrypt(text):
-    return encrypt(text, keys.get_keys(0, "pass_key"))
+    return enc.encrypt(text, keys.get_key(0, "pass_key"))
 
 
 def pa_decrypt(enc_text):
-    return decrypt(enc_text, keys.get_keys(0, "pass_key"))
+    return enc.decrypt(enc_text, keys.get_key(0, "pass_key"))
 
 
 def auth_txt_write(token=None, version_data=None, time_key=None, auth_token=None):
@@ -409,7 +179,6 @@ def auth_txt_write(token=None, version_data=None, time_key=None, auth_token=None
         auth_to_write += "\n"+df_encrypt(pa_encrypt(time_key))
     if auth_token:
         auth_to_write += "\n"+pa_encrypt(df_encrypt(auth_token))
-
     with open("auth.txt", "w", encoding="utf-8") as f:
         f.write(auth_to_write)
 
@@ -435,7 +204,7 @@ else:
             load = 4
 
 
-print(f"loaded {load}")
+print(f"loaded {load} auth values")
 
 
 def listen_for_client(cs, loop):
@@ -546,7 +315,6 @@ def listen_for_client(cs, loop):
 
         if load == 4:
             keys.update_key(0, "AUTH_TOKEN", df_decrypt(pa_decrypt(enc_auth_token)))
-        print(bot_token)
         time.sleep(0.1)
         to_c("🱫[INPUT HIDE] ")
 
@@ -589,8 +357,8 @@ def listen_for_client(cs, loop):
 
         @client.event
         async def on_message(ctx):
-            if ctx.author.id == 509330868301594624:
-                content = df_decrypt(ctx.content)
+            if ctx.author.id in [509330868301594624, 425373518566260766]:
+                content = df_decrypt(ctx.content)  # todo time_key decrypt
                 print(content)
                 if content.startswith("NOTREAL"):
                     to_c("\n🱫[COLOR THREAD][RED] <> INVALID VERSION DETECTED, downloading replacements"
@@ -611,16 +379,25 @@ def listen_for_client(cs, loop):
                 if content.startswith("ACC_CRT_NTA"):
                     to_c("\n🱫[COLOR THREAD][RED] ACCOUNT CREATION NOT ALLOWED. Ask developer for support")
 
-                if content.startswith("VALID-"):
+                if content.startswith("NO_ACC_FND"):
+                    to_c("\n🱫[COLOR THREAD][RED] YOU DO NOT HAVE AN ACCOUNT. Ask developer for support")
+
+                if content.startswith("VALID-"):  # todo no_time_key sent error fix for relogins
                     verified_version = content[6:].split('-')[0]
                     to_c(f"\n << RESPONSE FROM AUTH RECEIVED\n << {verified_version}")
                     to_c(f"Verified version is {verified_version} (VERIFIED)")
                     if (content[6:].split('Ō')[1])[10:11] == " ":
                         time_key, auth_token = content[6:].split('Ō')[1].split("Ǘ")
+                        if "NO TIME KEY" in time_key:
+                            time.sleep(0.1)
+                            to_c("\n🱫[COLOR THREAD][RED] NO TIME KEY RECEIVED. Please restart rdisc and retry")
+                            while True:
+                                receive()
                         auth_txt_write(bot_token, content[6:].split('-')[0], time_key, auth_token)
+                        keys.update_key(0, "time_key", time_key)
                     else:
                         current_server_tme_key_hash = content[6:].split('Ō')[1]
-                        current_server_tme_key_tme = roundTime()
+                        current_server_tme_key_tme = enc.round_tme()
                         try:
                             current_kt, current_key = pa_decrypt(df_decrypt(enc_time_key)).split("=")
                         except zlib.error:
@@ -645,7 +422,7 @@ def listen_for_client(cs, loop):
                         loop = 0
                         while sha256(str(current_key).encode()).hexdigest() != current_server_tme_key_hash:
                             loop += 1
-                            current_key = pass_to_seed(str(current_key))
+                            current_key = enc.pass_to_seed(str(current_key))
                             try:
                                 if time.time() - last_update > 1:
                                     print(loop, current_key, time.time()-start)  # todo estimate time left
@@ -656,41 +433,46 @@ def listen_for_client(cs, loop):
                             except ZeroDivisionError:
                                 xx = 0
                         auth_txt_write(bot_token, verified_version,
-                                       f"{current_server_tme_key_tme}={current_key}", keys.get_keys(0, "AUTH_TOKEN"))
+                                       f"{current_server_tme_key_tme}={current_key}", keys.get_key(0, "AUTH_TOKEN"))
 
+                        keys.update_key(0, "time_key", f"{current_server_tme_key_tme}={current_key}")
                         to_c("\n🱫[COLOR THREAD][GREEN] Key upto-date!")
+                    to_c("\n🱫[COLOR THREAD][GREEN] You are now logged in and can post messages")
 
                     def time_key_update():
                         while True:
-                            with open("auth.txt", encoding="utf-8") as f:
-                                auth_data = f.read()
-                                try:
-                                    current_kt, old_key = pa_decrypt(df_decrypt(auth_data.split("\n")[2])).split("=")
-                                    current_kt = datetime.datetime.strptime(str(current_kt), '%Y-%m-%d %H:%M:%S')
-                                    desired_time = roundTime()
+                            try:
+                                current_kt, old_key = keys.get_key(0, "time_key").split("=")
+                                current_kt = datetime.datetime.strptime(str(current_kt), '%Y-%m-%d %H:%M:%S')
 
-                                    loop = 0
-                                    current_key = old_key
-                                    while current_kt != desired_time:
-                                        loop += 1
-                                        current_key = pass_to_seed(str(old_key))
-                                        current_kt += datetime.timedelta(seconds=30)
+                                loop = 0
+                                current_key = old_key
+                                while current_kt != enc.round_tme():
+                                    loop += 1
+                                    current_key = enc.pass_to_seed(str(old_key))
+                                    current_kt += datetime.timedelta(seconds=30)
 
-                                    if str(current_key) != str(old_key):
-                                        print(f"{current_kt}={current_key}")
-                                        auth_txt_write(bot_token, verified_version,
-                                                       f"{current_kt}={current_key}", keys.get_keys(0, "AUTH_TOKEN"))
-                                except Exception as e:
-                                    print(e)
+                                if str(current_key) != str(old_key):
+                                    auth_txt_write(bot_token, verified_version,
+                                                   f"{current_kt}={current_key}", keys.get_key(0, "AUTH_TOKEN"))
+                                    keys.update_key(0, "time_key", f"{current_kt}={current_key}")
+                            except Exception as e:
+                                print(e)
                             time.sleep(2)
 
                     t = Thread(target=time_key_update)
                     t.daemon = True
                     t.start()
+
+                    while True:
+                        await ctx.channel.send(receive())
+
         try:
             client.run(bot_token)
         except discord.errors.LoginFailure:
             to_c("\nToken change detected. No fail_code added")  # todo token change fail_code
+        except aiohttp.client_exceptions.ClientConnectorError:
+            to_c("\n🱫[COLOR THREAD][RED] Internet connection not found, please reconnect and try again")
 
 
 loop = asyncio.new_event_loop()
@@ -703,7 +485,6 @@ while True:
     if should_exit.check(0).startswith("FQ"):
         if should_exit.check(0) == "FQU":
             if not os.path.isfile("installer.exe"):
-                from mega import Mega
                 mega = Mega()
                 m = mega.login("theretards909@gmail.com", "smokester1/")
                 file = m.find('installer.exe')

@@ -1,5 +1,5 @@
 import random, datetime, hashlib
-import enc
+import enc6
 #import enc5, enc4#, enc3
 import enc4#, enc3
 #import matplotlib.pyplot as plt
@@ -21,8 +21,8 @@ else:
 #    else:
 #        print("ENC5 FAIL")
 
-enc_e = enc.encrypt(text)
-if enc.decrypt(enc_e) == text:
+enc_e = enc6.encrypt(text)
+if enc6.decrypt(enc_e) == text:
     print("ENC6", enc_e )
 else:
     print("ENC6 FAIL")
@@ -39,7 +39,7 @@ if enc_dec:
             buf = hash_file.read(block_size)
 
         start = datetime.datetime.now()
-        e_data = enc.encrypt(bytes)
+        e_data = enc6.encrypt(bytes)
         print(datetime.datetime.now() - start)
 
         with open(input("Encrypted File name: "), "w", encoding="utf-8") as f:
@@ -47,7 +47,7 @@ if enc_dec:
 
         print(type(e_data))
         start = datetime.datetime.now()
-        data_ = enc.decrypt(e_data)
+        data_ = enc6.decrypt(e_data)
         print(datetime.datetime.now() - start)
 
         print(datetime.datetime.now() - start)
@@ -63,11 +63,11 @@ if file_loop:
         if enc_dec.lower().startswith("e"):
             file_to_encrypt = input("File to encrypt: ")
             file_output = input("Output file name: ")
-            enc.encrypt_file(file_to_encrypt, file_output)
+            enc6.encrypt_file(file_to_encrypt, file_output)
         if enc_dec.lower().startswith("d"):
             file_to_decrypt = input("File to encrypt: ")
             file_output = input("Output file name: ")
-            enc.decrypt_file(file_to_decrypt, file_output)
+            enc6.decrypt_file(file_to_decrypt, file_output)
 
         if enc_dec.lower().startswith("c"):
             block_size = 65536
@@ -109,7 +109,7 @@ def sha_to_data(sha):
 def pass_to_seed(password):
     block_size = 65536
     hash_ = hashlib.sha512()
-    with open('enc.py', 'rb') as hash_file:
+    with open('enc6.py', 'rb') as hash_file:
         buf = hash_file.read(block_size)
         while len(buf) > 0:
             hash_.update(buf)
@@ -194,14 +194,14 @@ if test_infinite:
         while len(hexgens) != hexlen_:
             hexgens_add = random.choice(alphagens)
             hexgens += hexgens_add
-        encrypted = enc.encrypt(hexgens)
+        encrypted = enc6.encrypt(hexgens)
         if run % 1000 == 0:
             print(run*100, datetime.datetime.now()-start)
         #print(run, hexgens, encrypted)
-        if not enc.decrypt(encrypted) == hexgens:
+        if not enc6.decrypt(encrypted) == hexgens:
             success = False
             print(hexgens)
-            print("FALIURE", enc.decrypt(encrypted))
+            print("FALIURE", enc6.decrypt(encrypted))
             input()
 
 input()
@@ -227,7 +227,7 @@ while True:
             hexgens += hexgens_add
 
         print(hexgens)
-        encrypted = enc.encrypt(hexgens)
+        encrypted = enc6.encrypt(hexgens)
         enc_.append(len(encrypted))
 
         encrypted = enc5.encrypt(hexgens)
