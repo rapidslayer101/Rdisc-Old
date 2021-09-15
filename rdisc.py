@@ -77,9 +77,11 @@ print(" -> Listening for ui.exe internal socket connection")
 s.listen(10)
 
 
-def to_c(text):
+def to_c(text, delay=None):
+    if delay:
+        time.sleep(delay)
     for client_sock in client_sockets:
-        client_sock.send(text.encode(encoding="utf-16"))
+        client_sock.send(str(text).encode(encoding="utf-16"))
 
 
 def date_now():
@@ -104,7 +106,7 @@ class cooldown():
 client_socket, client_address = s.accept()
 client_sockets.add(client_socket)
 print(f" Connected to ui.exe via socket {client_address}")
-to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n")
+to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
 
 
 # jump
@@ -120,11 +122,11 @@ to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n")
 # 0.5 time_key server syncing
 # 0.6 dynamic key shifting and major auth.txt storage and load rewrites
 # 0.7 df_key.txt added, auth_key system, first time login, removed exiter.txt, removed git pushes of password files
-# 0.8 most encryption stuff moved into enclib.py library, some login checks
+# 0.8 most encryption stuff moved into enclib.py library, some login checks, some minor UI changes
 
-# 0.8 server connections and message system
-# 0.9 UI overhaul
-# 0.10 authorised message posting, downloading
+# 0.9 server connections and message system
+# 0.10 UI overhaul
+# 0.11 authorised message posting, downloading
 
 
 # ports localhost:8079
@@ -144,10 +146,8 @@ class keys():
 
 
 if not os.path.isfile("df_key.txt"):
-    time.sleep(0.1)
-    to_c("\n🱫[COLOR THREAD][RED] CRITICAL FILE df_key.txt MISSING")
-    time.sleep(0.1)
-    to_c("\n🱫[COLOR THREAD][YELLOW] Tell the developer that you require df_key and he will help you")
+    to_c("\n🱫[COLOR THREAD][RED] CRITICAL FILE df_key.txt MISSING", 0.1)
+    to_c("\n🱫[COLOR THREAD][YELLOW] Tell the developer that you require df_key and he will help you", 0.1)
     while True:
         input()
 keys.update_key(0, "default_key", enc.hash_a_file("df_key.txt"))
@@ -232,17 +232,12 @@ def listen_for_client(cs, loop):
 
     if load == 0:
         to_c("\n You have not yet setup this device")
-        time.sleep(0.1)
-        to_c("🱫[INPUT SHOW] ")
-        time.sleep(0.1)
-        to_c("🱫[MNINPLEN][256] ")
-        time.sleep(0.1)
+        to_c("🱫[INPUT SHOW]🱫[MNINPLEN][256] ", 0.1)
         while True:
-            to_c("\n🱫[COLOR THREAD][YELLOW] Please enter a password")
+            to_c("\n🱫[COLOR THREAD][YELLOW] Please enter a password", 0.1)
             password_entry_1 = receive()
             to_c(f"\n Entered ({len(password_entry_1)}chrs): "+"*"*len(password_entry_1))
-            time.sleep(0.1)
-            to_c("\n🱫[COLOR THREAD][YELLOW] Please re-enter password")
+            to_c("\n🱫[COLOR THREAD][YELLOW] Please re-enter password", 0.1)
             password_entry_2 = receive()
             if password_entry_1 == password_entry_2:
                 break
@@ -258,17 +253,14 @@ def listen_for_client(cs, loop):
              "\n 5 - Click add bot on the right and then yes"
              "\n 6 - In the bots settings turn on presence intent and server members intent"
              "\n 7 - Click the copy button under reveal token")
-        time.sleep(0.1)
         while True:
-            to_c("🱫[MNINPLEN][59] ")
-            time.sleep(0.1)
-            to_c("\n🱫[COLOR THREAD][YELLOW] Paste the copied token below")
+            to_c("🱫[MNINPLEN][59] ", 0.1)
+            to_c("\n🱫[COLOR THREAD][YELLOW] Paste the copied token below", 0.1)
             bot_token = receive()
             if len(bot_token) < 59:
                 to_c("\n🱫[COLOR THREAD][RED] Token is to short (should be 59 chars)")
             if len(bot_token) == 59:
-                to_c("\n >> Testing token")
-                to_c("🱫[INPUT HIDE] ")
+                to_c("🱫[INPUT HIDE]\n >> Testing token")
                 break
 
         client = discord.Client()
@@ -298,41 +290,32 @@ def listen_for_client(cs, loop):
         while True:
             receive()
     else:
-        to_c("🱫[INPUT SHOW] ")
-        time.sleep(0.1)
-        to_c("🱫[MNINPLEN][256] ")
-        time.sleep(0.1)
+        to_c("🱫[INPUT SHOW]🱫[MNINPLEN][256] ", 0.1)
         while True:
             try:
-                to_c("\n🱫[COLOR THREAD][YELLOW] Please enter your password")
+                to_c("\n🱫[COLOR THREAD][YELLOW] Please enter your password", 0.1)
                 password = receive()
                 keys.update_key(0, "pass_key", password)
                 bot_token = df_decrypt(pa_decrypt(enc_bot_token))
                 break
             except ValueError:
                 to_c("\n Incorrect password")
-        to_c("\n🱫[COLOR THREAD][GREEN] Correct password")
+        to_c("\n🱫[COLOR THREAD][GREEN] Correct password", 0.1)
 
         if load == 4:
             keys.update_key(0, "AUTH_TOKEN", df_decrypt(pa_decrypt(enc_auth_token)))
-        time.sleep(0.1)
-        to_c("🱫[INPUT HIDE] ")
 
         client = discord.Client()
-        to_c("\n >> Logging in")
+        to_c("🱫[INPUT HIDE]\n >> Logging in")
 
         def client_login():
             if not load == 4:
-                to_c("🱫[INPUT SHOW] ")
-                time.sleep(0.1)
-                to_c("🱫[MNINPLEN][64] ")
-                time.sleep(0.1)
+                to_c("🱫[INPUT SHOW]🱫[MNINPLEN][64] ")
                 while True:
-                    to_c("\n🱫[COLOR THREAD][YELLOW] Enter what you would like to be called?")
+                    to_c("\n🱫[COLOR THREAD][YELLOW] Enter what you would like to be called?", 0.1)
                     name_be_called = receive()
                     to_c(f"\n You entered: {name_be_called}")
-                    time.sleep(0.1)
-                    to_c(f"\n🱫[COLOR THREAD][YELLOW] Is this correct (y/n)?")
+                    to_c(f"\n🱫[COLOR THREAD][YELLOW] Is this correct (y/n)?", 0.1)
                     choice = receive()
                     if choice.lower() in ["yes", "y"]:
                         break
@@ -389,8 +372,7 @@ def listen_for_client(cs, loop):
                     if (content[6:].split('Ō')[1])[10:11] == " ":
                         time_key, auth_token = content[6:].split('Ō')[1].split("Ǘ")
                         if "NO TIME KEY" in time_key:
-                            time.sleep(0.1)
-                            to_c("\n🱫[COLOR THREAD][RED] NO TIME KEY RECEIVED. Please restart rdisc and retry")
+                            to_c("\n🱫[COLOR THREAD][RED] NO TIME KEY RECEIVED. Please restart rdisc and retry", 0.1)
                             while True:
                                 receive()
                         auth_txt_write(bot_token, content[6:].split('-')[0], time_key, auth_token)
@@ -424,8 +406,9 @@ def listen_for_client(cs, loop):
                             loop += 1
                             current_key = enc.pass_to_seed(str(current_key))
                             try:
-                                if time.time() - last_update > 1:
+                                if time.time() - last_update > 0.1:
                                     print(loop, current_key, time.time()-start)  # todo estimate time left
+                                    #to_c(f"🱫[SMELNE]\n{round((loop / iterations) * 100, 2)}"
                                     to_c(f"\n{round((loop / iterations) * 100, 2)}"
                                          f"% complete ({loop}/{int(iterations)}) "
                                          f"Est time left: {round((iterations-loop)/122.33,2)}s")
@@ -437,6 +420,7 @@ def listen_for_client(cs, loop):
 
                         keys.update_key(0, "time_key", f"{current_server_tme_key_tme}={current_key}")
                         to_c("\n🱫[COLOR THREAD][GREEN] Key upto-date!")
+                    to_c("🱫[INPUT SHOW] ")
                     to_c("\n🱫[COLOR THREAD][GREEN] You are now logged in and can post messages")
 
                     def time_key_update():
@@ -466,6 +450,13 @@ def listen_for_client(cs, loop):
 
                     while True:
                         await ctx.channel.send(receive())
+
+                    counter = 0
+                    #while True:
+                    #    time.sleep(0.01)
+                    #    counter += 1
+                    #    to_c(f"\n{counter}")
+                    #    print(counter)
 
         try:
             client.run(bot_token)

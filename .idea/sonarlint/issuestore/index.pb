@@ -19,5 +19,9 @@
 	README.md,8\e\8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d
 6
 mal.py,d\e\de39f312f515f9f18f6ab3e525b78b7521ad2136
-8
-build.py,e\9\e9caecba20d7dec63ecb344525ee3224abb3827c
+7
+enc6.py,c\8\c8406f3238b71b855a1df60c18350e69b11c5974
+B
+enc-test-ground.py,9\5\9570fe764374c764fee4f28497c06ea58932aa3e
+9
+	enclib.py,3\e\3efbf33e429bd339b8cc2c5ad864cca5da3dbe02
