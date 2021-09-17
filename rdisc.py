@@ -123,10 +123,11 @@ to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
 # 0.6 dynamic key shifting and major auth.txt storage and load rewrites
 # 0.7 df_key.txt added, auth_key system, first time login, removed exiter.txt, removed git pushes of password files
 # 0.8 most encryption stuff moved into enclib.py library, some login checks, some minor UI changes
+# 0.9 UI overhaul part 1, some work done towards resizable forms and message processing stuff
 
-# 0.9 server connections and message system
-# 0.10 UI overhaul
+# 0.10 server connections and message system
 # 0.11 authorised message posting, downloading
+# 0.12 logout system and storing data
 
 
 # ports localhost:8079
@@ -167,6 +168,15 @@ def pa_encrypt(text):
 
 def pa_decrypt(enc_text):
     return enc.decrypt(enc_text, keys.get_key(0, "pass_key"))
+
+
+def tk_encrypt(text):
+    print(keys.get_key(0, "time_key").split("=")[1])
+    return enc.encrypt(text, keys.get_key(0, "time_key").split("=")[1])
+
+
+def tk_decrypt(enc_text):
+    return enc.decrypt(enc_text, keys.get_key(0, "time_key").split("=")[1])
 
 
 def auth_txt_write(token=None, version_data=None, time_key=None, auth_token=None):
@@ -420,8 +430,8 @@ def listen_for_client(cs, loop):
 
                         keys.update_key(0, "time_key", f"{current_server_tme_key_tme}={current_key}")
                         to_c("\n🱫[COLOR THREAD][GREEN] Key upto-date!")
-                    to_c("🱫[INPUT SHOW] ")
-                    to_c("\n🱫[COLOR THREAD][GREEN] You are now logged in and can post messages")
+                    to_c("🱫[INPUT SHOW] ", 0.1)
+                    to_c("\n🱫[COLOR THREAD][GREEN] You are now logged in and can post messages", 0.1)
 
                     def time_key_update():
                         while True:
@@ -449,7 +459,11 @@ def listen_for_client(cs, loop):
                     t.start()
 
                     while True:
-                        await ctx.channel.send(receive())
+                        recieved = receive()
+                        print(recieved)
+                        recieved = tk_encrypt(recieved)
+                        print(recieved)
+                        await ctx.channel.send(recieved)
 
                     counter = 0
                     #while True:

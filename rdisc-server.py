@@ -228,21 +228,36 @@ def processing(resp):
         embeds = m['embeds']
         attachments = m['attachments']
 
+        print(time_created, content, )
+
         if channelID == "883425805756170283":
             if username+"#"+discriminator != "HELLOTHERE#9406":
                 print(m)
-                #try:
-                print(valid_time_keys.get(0))  # todo recieve time_key encrypted messages
                 try:
-                    content = enc.decrypt(content, default_key)
+                    print(valid_time_keys['CURRENT'])  # todo add other 2 keys
+                    content = enc.decrypt(content, valid_time_keys['CURRENT'])
                     print(content)
-                    if content[136:] == "":
-                        version_response = version_info(content[8:136], bot_id)
-                    else:
-                        version_response = version_info(content[8:136], bot_id, content[136:])
-                    bot.sendMessage(channelID="883425805756170283", message=enc.encrypt(version_response, default_key))
-                except Exception as e:
-                    print(e)
+                except:
+                    try:
+                        content = enc.decrypt(content, default_key)
+                        print(content)
+                        if content[136:] == "":
+                            version_response = version_info(content[8:136], bot_id)
+                        else:
+                            version_response = version_info(content[8:136], bot_id, content[136:])
+                        bot.sendMessage(channelID="883425805756170283",
+                                        message=enc.encrypt(version_response, default_key))
+                    except:
+                        try:
+                            content = enc.decrypt(content, valid_time_keys['OLD'])
+                            print(content)
+                        except:
+                            try:
+                                content = enc.decrypt(content, valid_time_keys['NEW'])
+                                print(content)
+                            except Exception as e:
+                                print("Could not decrypt", e)
+
 
         #if channelID == "883425805756170283":
         #    bot.deleteMessage(channelID=f"{channelID}", messageID=f"{id}")

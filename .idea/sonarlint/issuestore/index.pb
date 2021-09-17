@@ -3,8 +3,6 @@
 ..idea/inspectionProfiles/profiles_settings.xml,1\e\1e9075f5bf079c01ef2c910709e91a497d262080
 \
 ,.idea/inspectionProfiles/Project_Default.xml,4\9\496a238a6afa168dbaf6efd37bb459331589579c
-9
-	build.bat,2\8\282119df8cfcad4c8c8421ba30fdcdf8793f5f82
 7
 enc3.py,9\d\9d267a77c32b258875635de8cfd054d7b7162480
 7
@@ -25,3 +23,7 @@ B
 enc-test-ground.py,9\5\9570fe764374c764fee4f28497c06ea58932aa3e
 9
 	enclib.py,3\e\3efbf33e429bd339b8cc2c5ad864cca5da3dbe02
+9
+	build.bat,2\8\282119df8cfcad4c8c8421ba30fdcdf8793f5f82
+8
+build.py,e\9\e9caecba20d7dec63ecb344525ee3224abb3827c
