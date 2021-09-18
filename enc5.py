@@ -230,7 +230,7 @@ print(f"ENCRYPTION KEY:\n{master_key}\n\nSETTINGS KEY:\n{config_key}\n")
 def encrypt(text):
     plaintext = base64.b85encode(zlib.compress(text.encode('utf-8'), 9)).decode('utf-8')
     global prime_numbers
-    prime_numbers = get_prime_number(random.randint(100000, 800000))  # todo could generate this via the seed
+    prime_numbers = get_prime_number(random.randint(100000, 800000))
     num = next(prime_numbers)
 
     new_num = shifter_gen_loop(plaintext)

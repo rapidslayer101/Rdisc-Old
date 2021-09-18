@@ -124,10 +124,11 @@ to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
 # 0.7 df_key.txt added, auth_key system, first time login, removed exiter.txt, removed git pushes of password files
 # 0.8 most encryption stuff moved into enclib.py library, some login checks, some minor UI changes
 # 0.9 UI overhaul part 1, some work done towards resizable forms and message processing stuff
+# 0.10 server connections and basic message sending system
 
-# 0.10 server connections and message system
-# 0.11 authorised message posting, downloading
-# 0.12 logout system and storing data
+# 0.11 message formatting, authorisation, naming
+# 0.12 authorised message posting, downloading
+# 0.13 logout system and storing data
 
 
 # ports localhost:8079
@@ -217,7 +218,18 @@ else:
 print(f"loaded {load} auth values")
 
 
-def listen_for_client(cs, loop):
+launch_client = {"LAUNCH": "FALSE"}
+
+
+class launch_client_state():
+    def get(self):
+        return launch_client["LAUNCH"]
+
+    def change(self, to):
+        launch_client.update({"LAUNCH": to})
+
+
+def listen_for_cleint(cs, loop):
     asyncio.set_event_loop(loop)
 
     def receive():
@@ -231,6 +243,35 @@ def listen_for_client(cs, loop):
         #    to_send = f"\n{to_send}"
         #    to_c(to_send)
 
+        output = cs.recv(1024).decode(encoding="utf-16")
+        if output.lower() == '-restart':
+            os.startfile("restart.bat")
+
+        if output.lower() == '-quit':
+            should_exit.change(0, "FQ")
+
+        return output
+
+    print("now in client loop")
+    client = discord.Client()
+    to_c("\n >> Logging in", 0.1)
+
+    @client.event
+    async def on_ready():
+        to_c("🱫[INPUT SHOW]\n🱫[COLOR THREAD][GREEN] << You are now logged in and can post messages", 0.1)
+        while True:
+            recieved = receive()
+            recieved = tk_encrypt(recieved)  # TODO MAKE THIS DF_KEY AS WELL
+            channel = client.get_channel(883425805756170283)
+            await channel.send(recieved)
+
+    client.run("ODgzODI4MjAyNjE3ODMxNDI2.YTPnKA.Y8YA8NrohVie7hFJaaeZ42e3CT8")
+
+
+def listen_for_server(cs, loop):
+    asyncio.set_event_loop(loop)
+
+    def receive():
         output = cs.recv(1024).decode(encoding="utf-16")
         if output.lower() == '-restart':
             os.startfile("restart.bat")
@@ -352,126 +393,110 @@ def listen_for_client(cs, loop):
         async def on_message(ctx):
             if ctx.author.id in [509330868301594624, 425373518566260766]:
                 content = df_decrypt(ctx.content)  # todo time_key decrypt
-                print(content)
-                if content.startswith("NOTREAL"):
-                    to_c("\n🱫[COLOR THREAD][RED] <> INVALID VERSION DETECTED, downloading replacements"
-                         " in 5 seconds")
-                    await client.close()
-                    time.sleep(5)
-                    should_exit.change(0, "FQU")
-                if content.startswith("INVALID-"):
-                    to_c(f"\n <> Updating rdisc {content[8:]} in 5 seconds")
-                    await client.close()
-                    time.sleep(5)
-                    should_exit.change(0, "FQU")
-                    auth_txt_write(bot_token, content[8:].split('->')[0])
+                try:
+                    content = tk_decrypt(content)
+                    to_c(f"\n{content}", 0.1)
+                    print(content)
+                except:
+                    print(content)
+                    if content.startswith("NOTREAL"):
+                        to_c("\n🱫[COLOR THREAD][RED] <> INVALID VERSION DETECTED, downloading replacements"
+                             " in 5 seconds")
+                        await client.close()
+                        time.sleep(5)
+                        should_exit.change(0, "FQU")
+                    if content.startswith("INVALID-"):
+                        to_c(f"\n <> Updating rdisc {content[8:]} in 5 seconds")
+                        await client.close()
+                        time.sleep(5)
+                        should_exit.change(0, "FQU")
+                        auth_txt_write(bot_token, content[8:].split('->')[0])
 
-                if content.startswith("ACC_ALR_EXT"):
-                    to_c("\n🱫[COLOR THREAD][RED] THIS ACCOUNT ALREADY EXISTS. Ask developer for support")
+                    if content.startswith("ACC_ALR_EXT"):
+                        to_c("\n🱫[COLOR THREAD][RED] THIS ACCOUNT ALREADY EXISTS. Ask developer for support")
 
-                if content.startswith("ACC_CRT_NTA"):
-                    to_c("\n🱫[COLOR THREAD][RED] ACCOUNT CREATION NOT ALLOWED. Ask developer for support")
+                    if content.startswith("ACC_CRT_NTA"):
+                        to_c("\n🱫[COLOR THREAD][RED] ACCOUNT CREATION NOT ALLOWED. Ask developer for support")
 
-                if content.startswith("NO_ACC_FND"):
-                    to_c("\n🱫[COLOR THREAD][RED] YOU DO NOT HAVE AN ACCOUNT. Ask developer for support")
+                    if content.startswith("NO_ACC_FND"):
+                        to_c("\n🱫[COLOR THREAD][RED] YOU DO NOT HAVE AN ACCOUNT. Ask developer for support")
 
-                if content.startswith("VALID-"):  # todo no_time_key sent error fix for relogins
-                    verified_version = content[6:].split('-')[0]
-                    to_c(f"\n << RESPONSE FROM AUTH RECEIVED\n << {verified_version}")
-                    to_c(f"Verified version is {verified_version} (VERIFIED)")
-                    if (content[6:].split('Ō')[1])[10:11] == " ":
-                        time_key, auth_token = content[6:].split('Ō')[1].split("Ǘ")
-                        if "NO TIME KEY" in time_key:
-                            to_c("\n🱫[COLOR THREAD][RED] NO TIME KEY RECEIVED. Please restart rdisc and retry", 0.1)
-                            while True:
-                                receive()
-                        auth_txt_write(bot_token, content[6:].split('-')[0], time_key, auth_token)
-                        keys.update_key(0, "time_key", time_key)
-                    else:
-                        current_server_tme_key_hash = content[6:].split('Ō')[1]
-                        current_server_tme_key_tme = enc.round_tme()
-                        try:
-                            current_kt, current_key = pa_decrypt(df_decrypt(enc_time_key)).split("=")
-                        except zlib.error:
-                            to_c("\n🱫[COLOR THREAD][RED] Invalid time_key loaded.")  # todo time_key change fail_code
-                            while True:
-                                receive()
-
-                        auth_txt_write(bot_token, verified_version)  # temp removal of the key to stop errors
-
-                        date_format_str = '%Y-%m-%d %H:%M:%S'
-                        current_kt = datetime.datetime.strptime(str(current_kt), date_format_str)
-                        curr_tme_fmt = datetime.datetime.strptime(str(current_kt), date_format_str)
-                        diff = datetime.datetime.strptime(str(current_server_tme_key_tme), date_format_str)-curr_tme_fmt
-                        iterations = int(diff.total_seconds()) / 30
-
-                        if iterations > 0:
-                            to_c(f"\n Updating time_key from {curr_tme_fmt}-->{current_server_tme_key_tme}"
-                                 f" via an estimated {int(iterations)} iterations")
-
-                        start = time.time()
-                        last_update = time.time()
-                        loop = 0
-                        while sha256(str(current_key).encode()).hexdigest() != current_server_tme_key_hash:
-                            loop += 1
-                            current_key = enc.pass_to_seed(str(current_key))
+                    if content.startswith("VALID-"):
+                        verified_version = content[6:].split('-')[0]
+                        to_c(f"\n << RESPONSE FROM AUTH RECEIVED\n << {verified_version}")
+                        to_c(f"Verified version is {verified_version} (VERIFIED)")
+                        if (content[6:].split('Ō')[1])[10:11] == " ":
+                            time_key, auth_token = content[6:].split('Ō')[1].split("Ǘ")
+                            if "NO TIME KEY" in time_key:
+                                to_c("\n🱫[COLOR THREAD][RED] NO TIME KEY RECEIVED. Please restart rdisc and retry", 0.1)
+                                while True:
+                                    receive()
+                            auth_txt_write(bot_token, content[6:].split('-')[0], time_key, auth_token)
+                            keys.update_key(0, "time_key", time_key)
+                        else:
+                            current_server_tme_key_hash = content[6:].split('Ō')[1]
+                            current_server_tme_key_tme = enc.round_tme()
                             try:
-                                if time.time() - last_update > 0.1:
-                                    print(loop, current_key, time.time()-start)  # todo estimate time left
-                                    #to_c(f"🱫[SMELNE]\n{round((loop / iterations) * 100, 2)}"
-                                    to_c(f"\n{round((loop / iterations) * 100, 2)}"
-                                         f"% complete ({loop}/{int(iterations)}) "
-                                         f"Est time left: {round((iterations-loop)/122.33,2)}s")
-                                    last_update = time.time()
-                            except ZeroDivisionError:
-                                xx = 0
-                        auth_txt_write(bot_token, verified_version,
-                                       f"{current_server_tme_key_tme}={current_key}", keys.get_key(0, "AUTH_TOKEN"))
+                                current_kt, current_key = pa_decrypt(df_decrypt(enc_time_key)).split("=")
+                            except zlib.error:
+                                to_c("\n🱫[COLOR THREAD][RED] Invalid time_key loaded.")  # todo time_key change fail_code
+                                while True:
+                                    receive()
 
-                        keys.update_key(0, "time_key", f"{current_server_tme_key_tme}={current_key}")
-                        to_c("\n🱫[COLOR THREAD][GREEN] Key upto-date!")
-                    to_c("🱫[INPUT SHOW] ", 0.1)
-                    to_c("\n🱫[COLOR THREAD][GREEN] You are now logged in and can post messages", 0.1)
+                            date_format_str = '%Y-%m-%d %H:%M:%S'
+                            current_kt = datetime.datetime.strptime(str(current_kt), date_format_str)
+                            curr_tme_fmt = datetime.datetime.strptime(str(current_kt), date_format_str)
+                            diff = datetime.datetime.strptime(str(current_server_tme_key_tme), date_format_str)-curr_tme_fmt
+                            iterations = int(diff.total_seconds()) / 30
 
-                    def time_key_update():
-                        while True:
-                            try:
-                                current_kt, old_key = keys.get_key(0, "time_key").split("=")
-                                current_kt = datetime.datetime.strptime(str(current_kt), '%Y-%m-%d %H:%M:%S')
+                            if iterations > 0:
+                                to_c(f"\n Updating time_key from {curr_tme_fmt}-->{current_server_tme_key_tme}"
+                                     f" via an estimated {int(iterations)} iterations")
 
-                                loop = 0
-                                current_key = old_key
-                                while current_kt != enc.round_tme():
-                                    loop += 1
-                                    current_key = enc.pass_to_seed(str(old_key))
-                                    current_kt += datetime.timedelta(seconds=30)
+                            last_update = time.time()
+                            tk_loop = 0
+                            while sha256(str(current_key).encode()).hexdigest() != current_server_tme_key_hash:
+                                tk_loop += 1
+                                current_key = enc.pass_to_seed(str(current_key))
+                                curr_tme_fmt += datetime.timedelta(seconds=30)
+                                try:
+                                    if time.time() - last_update > 0.1:
+                                        to_c(f"🱫[TMKYT]{str(curr_tme_fmt).split(' ')[1]}"
+                                             f"\n{round((iterations-tk_loop)/122.33,2)}s")
+                                        last_update = time.time()
+                                except ZeroDivisionError:
+                                    print("Division error in key_update on load")
+                            auth_txt_write(bot_token, verified_version,
+                                           f"{current_server_tme_key_tme}={current_key}", keys.get_key(0, "AUTH_TOKEN"))
 
-                                if str(current_key) != str(old_key):
-                                    auth_txt_write(bot_token, verified_version,
-                                                   f"{current_kt}={current_key}", keys.get_key(0, "AUTH_TOKEN"))
-                                    keys.update_key(0, "time_key", f"{current_kt}={current_key}")
-                            except Exception as e:
-                                print(e)
-                            time.sleep(2)
+                            keys.update_key(0, "time_key", f"{current_server_tme_key_tme}={current_key}")
+                            to_c(f"🱫[TMKYT]{str(current_server_tme_key_tme).split(' ')[1]}", 0.1)
+                            to_c("\n🱫[COLOR THREAD][GREEN] Key upto-date!")
 
-                    t = Thread(target=time_key_update)
-                    t.daemon = True
-                    t.start()
+                        def time_key_update():
+                            while True:
+                                try:
+                                    current_kt, old_key = keys.get_key(0, "time_key").split("=")
+                                    current_kt = datetime.datetime.strptime(str(current_kt), '%Y-%m-%d %H:%M:%S')
 
-                    while True:
-                        recieved = receive()
-                        print(recieved)
-                        recieved = tk_encrypt(recieved)
-                        print(recieved)
-                        await ctx.channel.send(recieved)
+                                    current_key = old_key
+                                    while current_kt != enc.round_tme():
+                                        current_key = enc.pass_to_seed(str(old_key))
+                                        current_kt += datetime.timedelta(seconds=30)
 
-                    counter = 0
-                    #while True:
-                    #    time.sleep(0.01)
-                    #    counter += 1
-                    #    to_c(f"\n{counter}")
-                    #    print(counter)
+                                    if str(current_key) != str(old_key):
+                                        to_c(f"🱫[TMKYT]{str(current_kt).split(' ')[1]}")
+                                        auth_txt_write(bot_token, verified_version,
+                                                       f"{current_kt}={current_key}", keys.get_key(0, "AUTH_TOKEN"))
+                                        keys.update_key(0, "time_key", f"{current_kt}={current_key}")
+                                except Exception as e:
+                                    print(e)
+                                time.sleep(2)
 
+                        t = Thread(target=time_key_update)
+                        t.daemon = True
+                        t.start()
+                        launch_client_state.change(0, "TRUE")
         try:
             client.run(bot_token)
         except discord.errors.LoginFailure:
@@ -481,12 +506,19 @@ def listen_for_client(cs, loop):
 
 
 loop = asyncio.new_event_loop()
-t = Thread(target=listen_for_client, args=(client_socket, loop,))
+t = Thread(target=listen_for_server, args=(client_socket, loop,))
 t.daemon = True
 t.start()
 
 
 while True:
+    if launch_client_state.get(0) == "TRUE":
+        launch_client_state.change(0, "FALSE")
+        loop = asyncio.new_event_loop()
+        t = Thread(target=listen_for_cleint, args=(client_socket, loop,))
+        t.daemon = True
+        t.start()
+
     if should_exit.check(0).startswith("FQ"):
         if should_exit.check(0) == "FQU":
             if not os.path.isfile("installer.exe"):

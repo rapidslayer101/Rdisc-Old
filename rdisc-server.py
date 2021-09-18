@@ -233,10 +233,10 @@ def processing(resp):
         if channelID == "883425805756170283":
             if username+"#"+discriminator != "HELLOTHERE#9406":
                 print(m)
+                actual_message = False
                 try:
-                    print(valid_time_keys['CURRENT'])  # todo add other 2 keys
-                    content = enc.decrypt(content, valid_time_keys['CURRENT'])
-                    print(content)
+                    content = enc.decrypt(content, valid_time_keys['CURRENT'])  # TODO MAKE THIS DF_KEY AS WELL
+                    actual_message = True
                 except:
                     try:
                         content = enc.decrypt(content, default_key)
@@ -249,15 +249,19 @@ def processing(resp):
                                         message=enc.encrypt(version_response, default_key))
                     except:
                         try:
-                            content = enc.decrypt(content, valid_time_keys['OLD'])
-                            print(content)
+                            content = enc.decrypt(content, valid_time_keys['OLD'])  # TODO MAKE THIS DF_KEY AS WELL
+                            actual_message = True
                         except:
                             try:
-                                content = enc.decrypt(content, valid_time_keys['NEW'])
-                                print(content)
+                                content = enc.decrypt(content, valid_time_keys['NEW'])  # TODO MAKE THIS DF_KEY AS WELL
+                                actual_message = True
                             except Exception as e:
                                 print("Could not decrypt", e)
 
+                if actual_message:
+                    print(content)
+                    bot.sendMessage(channelID="883425805756170283",
+                                    message=enc.encrypt(enc.encrypt(content, valid_time_keys['CURRENT']), default_key))
 
         #if channelID == "883425805756170283":
         #    bot.deleteMessage(channelID=f"{channelID}", messageID=f"{id}")

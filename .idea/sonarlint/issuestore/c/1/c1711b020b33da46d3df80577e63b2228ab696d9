@@ -1,10 +1,0 @@
-
-npython:S1192Æ"UDefine a constant instead of duplicating this literal "settings/enc-key.txt" 4 times.(ê¬úÖ
-Cpython:S1481?"&Remove the unused local variable "xx".(Î°˜³ÿÿÿÿÿ
-lpython:S3776"TRefactor this function to reduce its Cognitive Complexity from 39 to the 15 allowed.(§á¶é
-Ypython:S5754?"<Specify an exception class to catch or reraise the exception(Î°˜³ÿÿÿÿÿ
-qpython:S3776t"TRefactor this function to reduce its Cognitive Complexity from 33 to the 15 allowed.(å­Û«ÿÿÿÿÿ
-Upython:S5754È"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
-Upython:S5754Ð"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
-Upython:S5754ß"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
-Upython:S5754•"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
