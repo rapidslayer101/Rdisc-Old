@@ -84,10 +84,6 @@ def to_c(text, delay=None):
         client_sock.send(str(text).encode(encoding="utf-16"))
 
 
-def date_now():
-    return datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
-
-
 cooldown_data = {"x": (str(datetime.datetime.utcnow()))}
 
 
@@ -144,7 +140,7 @@ class keys():
 
     def update_key(self, key_name, key):
         encryption_keys.update({key_name: key})
-        print("Keys updates", encryption_keys)
+        print("Keys updates", {key_name: key})
 
 
 if not os.path.isfile("df_key.txt"):
@@ -259,13 +255,15 @@ def listen_for_cleint(cs, loop):
     @client.event
     async def on_ready():
         to_c("🱫[INPUT SHOW]\n🱫[COLOR THREAD][GREEN] << You are now logged in and can post messages", 0.1)
+        channel = client.get_channel(883425805756170283)
+        type = "MSG"
         while True:
             recieved = receive()
-            recieved = tk_encrypt(recieved)  # TODO MAKE THIS DF_KEY AS WELL
-            channel = client.get_channel(883425805756170283)
-            await channel.send(recieved)
+            client_send = f"{keys.get_key(0, 'AUTH_TOKEN')}{type}{recieved}"
+            print(client_send)
+            await channel.send(tk_encrypt(client_send))
 
-    client.run("ODgzODI4MjAyNjE3ODMxNDI2.YTPnKA.Y8YA8NrohVie7hFJaaeZ42e3CT8")
+    client.run(keys.get_key(0, "bot_token"))
 
 
 def listen_for_server(cs, loop):
@@ -381,6 +379,7 @@ def listen_for_server(cs, loop):
         @client.event
         async def on_ready():
             to_c("\n🱫[COLOR THREAD][GREEN] << Login success, Logged in as {0.user}".format(client))
+            keys.update_key(0, "bot_token", bot_token)
             channel = client.get_channel(883425805756170283)
             if not channel:
                 to_c("\n🱫[COLOR THREAD][RED] Could not post to channel. Token not yet activated"
@@ -433,6 +432,7 @@ def listen_for_server(cs, loop):
                                     receive()
                             auth_txt_write(bot_token, content[6:].split('-')[0], time_key, auth_token)
                             keys.update_key(0, "time_key", time_key)
+                            keys.update_key(0, "AUTH_TOKEN", auth_token)
                         else:
                             current_server_tme_key_hash = content[6:].split('Ō')[1]
                             current_server_tme_key_tme = enc.round_tme()
@@ -500,9 +500,26 @@ def listen_for_server(cs, loop):
         try:
             client.run(bot_token)
         except discord.errors.LoginFailure:
-            to_c("\nToken change detected. No fail_code added")  # todo token change fail_code
-        except aiohttp.client_exceptions.ClientConnectorError:
-            to_c("\n🱫[COLOR THREAD][RED] Internet connection not found, please reconnect and try again")
+            to_c("🱫[INPUT SHOW]\n🱫[COLOR THREAD][RED] Loaded token is invalid")
+            to_c("\n FOLLOW THE STEPS BELOW TO FIX"
+                 "\n 1 - Click this link --> https://discord.com/developers/applications"
+                 "\n 2 - Click on your rdisc app"
+                 "\n 3 - Inside the settings for the rdisc app, on the left panel click bot"
+                 "\n 4 - Click the copy button under reveal token")
+            while True:
+                to_c("🱫[MNINPLEN][59] ", 0.1)
+                to_c("\n🱫[COLOR THREAD][YELLOW] Paste the copied token below", 0.1)
+                bot_token = receive()
+                if len(bot_token) < 59:
+                    to_c("\n🱫[COLOR THREAD][RED] Token is to short (should be 59 chars)")
+                if len(bot_token) == 59:
+                    to_c("🱫[INPUT HIDE]\n Restarting")
+                    break
+            current_kt, current_key = pa_decrypt(df_decrypt(enc_time_key)).split("=")
+            auth_txt_write(bot_token, unverified_version,
+                           f"{current_kt}={current_key}", keys.get_key(0, "AUTH_TOKEN"))
+            to_c("🱫[QUIT]")
+            should_exit.change(0, "FQR")
 
 
 loop = asyncio.new_event_loop()
@@ -531,5 +548,7 @@ while True:
                     os.startfile("installer.exe")
             else:
                 os.startfile("installer.exe")
+        if should_exit.check(0) == "FQR":
+            os.startfile("restart.bat")
         break
     time.sleep(1)

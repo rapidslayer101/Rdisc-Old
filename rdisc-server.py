@@ -83,6 +83,31 @@ class time_keys():
         valid_time_keys.update({"NEW": f"{time_key}"})
 
 
+user_data = {}
+
+
+class users():
+    def reload(self):
+        with open("users.txt", encoding="utf-8") as f:
+            for line in f.readlines():
+                line = line.replace("\n", "")
+                if len(line.split(", ")) == 3:
+                    account_id, account_name, account_auth = line.split(", ")
+                    user_data.update({account_id: f"ACCOUNT-{account_name}-{account_auth}"})
+                else:
+                    user_data.update({line.split(', ')[0]: "NEW_ACCOUNT"})
+        print("reload", user_data)
+
+    def get(self, userid):
+        try:
+            return user_data[str(userid)]
+        except:
+            return False
+
+
+users.reload(0)
+
+
 def update_server_time_key():
     while True:
         current_key_time, current_key, old_key = get_server_key_from_file()
@@ -132,14 +157,6 @@ def version_info(hashed, bot_id=None, sign_up_name=None):
                 if int(build) > int(req_build) - 1:
                     if int(run) > int(req_run) - 1:
                         valid_version = True
-                        # user checks
-                        valid_user = False
-                        with open("users.txt", encoding="utf-8") as f:
-                            for line in f.readlines():
-                                print(str(bot_id), line.split(", ")[1])
-                                if str(bot_id) == line.split(", ")[1]:
-                                    valid_user = True
-
                         print(f"{version} is valid for the {min_version} requirement")
         if not valid_version:
             return f"INVALID-{version}->{min_version}"
@@ -147,41 +164,37 @@ def version_info(hashed, bot_id=None, sign_up_name=None):
             if sign_up_name:
                 print("AUTH SYSTEM WIP")
                 print(sign_up_name, bot_id)
-                # if sign up key valid here
-                valid_sign_up = False
+                if users.get(0, bot_id):
+                    user_checks = users.get(0, bot_id)
+                    if user_checks.startswith("NEW_ACCOUNT"):
+                        print("allowed")
+                        auth_token = enc.hex_gens(32)
+                        print("VALID BOT ACCOUNT", bot_id, sign_up_name, auth_token)
+                        lines = []
+                        with open("users.txt", encoding="utf-8") as f:
+                            for line in f.readlines():
+                                if line.startswith(str(bot_id)):
+                                    lines.append(f"{bot_id}, {sign_up_name}, {auth_token}")
+                                else:
+                                    lines.append(line)
+                        with open("users.txt", "w", encoding="utf-8") as f:
+                            to_write = ""
+                            for item in lines:
+                                to_write += item.replace("\n", "") + "\n"
+                            f.write(to_write)
 
-                lines = []
-                with open("users.txt", encoding="utf-8") as f:
-                    for line in f.readlines():
-                        split_line = line.split(", ")
-                        if split_line[0] == "ACCOUNT":
-                            if str(bot_id) == split_line[1].replace("\n", ""):
-                                print("ACCOUNT ALREADY EXISTS")
-                                return "ACC_ALR_EXT"
-                        if split_line[0] == "NEW_ACCOUNT":
-                            if str(bot_id) == split_line[1].replace("\n", ""):
-                                auth_token = enc.hex_gens(32)
-                                print("VALID BOT ACCOUNT", bot_id, sign_up_name, auth_token)
-                                line = f"ACCOUNT, {bot_id}, {sign_up_name}, {auth_token}"
-                                valid_sign_up = True
-                        lines.append(line)
-                if valid_sign_up:
-                    with open("users.txt", "w", encoding="utf-8") as f:
-                        to_write = ""
-                        for item in lines:
-                            to_write += item.replace("\n", "")+"\n"
-                        f.write(to_write)
-
-                    current_kt, current_key, old_key = get_server_key_from_file()
-                    current_kt = datetime.datetime.strptime(str(current_kt), date_format_str)
-                    return f"VALID-{version}-{tme}-{bld_num}-{run_num}Ō" \
-                           f"{current_kt-datetime.timedelta(seconds=30)}={valid_time_keys['CURRENT']}" \
-                           f"Ǘ{auth_token}"
-                    # todo the new time system
+                        current_kt, current_key, old_key = get_server_key_from_file()
+                        current_kt = datetime.datetime.strptime(str(current_kt), date_format_str)
+                        users.reload(0)
+                        return f"VALID-{version}-{tme}-{bld_num}-{run_num}Ō" \
+                               f"{current_kt - datetime.timedelta(seconds=30)}={valid_time_keys['CURRENT']}" \
+                               f"Ǘ{auth_token}"
+                    else:
+                        return "ACC_ALR_EXT"
                 else:
                     return "ACC_CRT_NTA"
             else:
-                if valid_user:
+                if users.get(0, bot_id):
                     time_key_hashed = sha256(valid_time_keys['CURRENT'].encode()).hexdigest()
                     return f"VALID-{version}-{tme}-{bld_num}-{run_num}Ō{time_key_hashed}"
                 else:
@@ -228,19 +241,18 @@ def processing(resp):
         embeds = m['embeds']
         attachments = m['attachments']
 
-        print(time_created, content, )
-
+        print(time_created, content)
         if channelID == "883425805756170283":
             if username+"#"+discriminator != "HELLOTHERE#9406":
                 print(m)
                 actual_message = False
                 try:
-                    content = enc.decrypt(content, valid_time_keys['CURRENT'])  # TODO MAKE THIS DF_KEY AS WELL
+                    content = enc.decrypt(content, valid_time_keys['CURRENT'])
                     actual_message = True
                 except:
                     try:
                         content = enc.decrypt(content, default_key)
-                        print(content)
+                        print("login", content)
                         if content[136:] == "":
                             version_response = version_info(content[8:136], bot_id)
                         else:
@@ -249,22 +261,26 @@ def processing(resp):
                                         message=enc.encrypt(version_response, default_key))
                     except:
                         try:
-                            content = enc.decrypt(content, valid_time_keys['OLD'])  # TODO MAKE THIS DF_KEY AS WELL
+                            content = enc.decrypt(content, valid_time_keys['OLD'])
                             actual_message = True
                         except:
                             try:
-                                content = enc.decrypt(content, valid_time_keys['NEW'])  # TODO MAKE THIS DF_KEY AS WELL
+                                content = enc.decrypt(content, valid_time_keys['NEW'])
                                 actual_message = True
                             except Exception as e:
                                 print("Could not decrypt", e)
 
                 if actual_message:
-                    print(content)
-                    bot.sendMessage(channelID="883425805756170283",
-                                    message=enc.encrypt(enc.encrypt(content, valid_time_keys['CURRENT']), default_key))
-
-        #if channelID == "883425805756170283":
-        #    bot.deleteMessage(channelID=f"{channelID}", messageID=f"{id}")
+                    print("actual message", content)
+                    print(bot_id)
+                    account_state, account_name, account_auth = users.get(0, bot_id).split("-")
+                    print(user_data)
+                    if content[:32] == account_auth:
+                        content = f"{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')} " \
+                                  f"{account_name}: {content[35:]}"
+                        bot.sendMessage(channelID="883425805756170283",
+                                        message=enc.encrypt(enc.encrypt(content,
+                                                                        valid_time_keys['CURRENT']), default_key))
 
 
 bot.gateway.run(auto_reconnect=True)
