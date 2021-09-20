@@ -21,3 +21,7 @@ B
 enc6.py,c\8\c8406f3238b71b855a1df60c18350e69b11c5974
 7
 enc5.py,c\1\c1711b020b33da46d3df80577e63b2228ab696d9
+9
+	build.bat,2\8\282119df8cfcad4c8c8421ba30fdcdf8793f5f82
+9
+	enclib.py,3\e\3efbf33e429bd339b8cc2c5ad864cca5da3dbe02

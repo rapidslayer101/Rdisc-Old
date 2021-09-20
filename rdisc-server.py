@@ -8,10 +8,9 @@ bot = discum.Client(token="mfa.ZiR5m0U02bkR3mo_WkRdRbcVX-1zYxo1eGOdQI78"
 
 # V0.3.7.0 the first version with auto update
 # V0.3.8.0 broke the first auto updater as the server system changed
-
 # V0.3.10.0 is first version with working auto update
 # V0.5.0.0 the first version with time_key and the standard_key
-min_version = "V0.7.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
+min_version = "V0.11.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
 
 
 block_size = 65536
@@ -275,12 +274,15 @@ def processing(resp):
                     print(bot_id)
                     account_state, account_name, account_auth = users.get(0, bot_id).split("-")
                     print(user_data)
-                    if content[:32] == account_auth:
+                    try:
+                        content = enc.decrypt(content, account_auth)
                         content = f"{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')} " \
-                                  f"{account_name}: {content[35:]}"
+                                  f"{account_name}: {content[3:]}"
                         bot.sendMessage(channelID="883425805756170283",
                                         message=enc.encrypt(enc.encrypt(content,
-                                                                        valid_time_keys['CURRENT']), default_key))
+                                                            valid_time_keys['CURRENT']), default_key))
+                    except:
+                        print("auth decrypt error")
 
 
 bot.gateway.run(auto_reconnect=True)

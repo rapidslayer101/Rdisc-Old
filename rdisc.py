@@ -2,9 +2,6 @@ import socket, os, time, zlib, asyncio, datetime
 from hashlib import sha256
 from threading import Thread
 
-import aiohttp.client_exceptions
-from mega import Mega
-
 import discord
 from colorama import Fore, Back, Style, init
 init()
@@ -45,35 +42,17 @@ class should_exit():
         return exiter.update({"QUIT": change_to})
 
 
-if not os.path.isfile("restart.bat"):
-    with open("restart.bat", "w", encoding="utf-8") as f:
-        f.write("rdisc.exe")
-
-
 client_sockets = set()
 s = socket.socket()
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 s.bind(("127.0.0.1", 8079))
 
 print(" -> Launching ui.exe")
-try:
+if not os.path.isfile("ui.exe"):
+    print(Fore.RED, "[!] CRITICAL FILE ui.exe MISSING", Fore.RESET)
+else:
     os.startfile("ui.exe")
-except FileNotFoundError:
-    print(Fore.YELLOW, ">> Attempting to download missing/broken file", Fore.RESET)
-    mega = Mega()
-    m = mega.login("theretards909@gmail.com", "smokester1/")
-    file = m.find('ui.exe')
-    try:
-        m.download(file)
-    except PermissionError:
-        print(Fore.GREEN, " << Missing file successfully downloaded", Fore.RESET)
-        try:
-            os.startfile("ui.exe")
-        except:
-            print(Fore.RED, "[!] CRITICAL ERROR. ui.exe could not be launched", Fore.RESET)
 print(Fore.GREEN, "<- ui.exe launched", Fore.RESET)
-
-print(" -> Listening for ui.exe internal socket connection")
 s.listen(10)
 
 
@@ -84,28 +63,10 @@ def to_c(text, delay=None):
         client_sock.send(str(text).encode(encoding="utf-16"))
 
 
-cooldown_data = {"x": (str(datetime.datetime.utcnow()))}
-
-
-class cooldown():
-    def check(self, msg_to_fast):
-        last_msg_time = datetime.datetime.strptime(cooldown_data["x"], '%Y-%m-%d %H:%M:%S.%f')
-        time_since_insertion = datetime.datetime.utcnow() - last_msg_time
-        if time_since_insertion.seconds < 0.35:
-            msg_to_fast += 1
-        if time_since_insertion.seconds > 3:
-            msg_to_fast = 0
-        cooldown_data.update({"x": (str(datetime.datetime.utcnow()))})
-        return msg_to_fast
-
-
 client_socket, client_address = s.accept()
 client_sockets.add(client_socket)
 print(f" Connected to ui.exe via socket {client_address}")
 to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
-
-
-# jump
 
 # implemented code:
 # rchat 0.7.119.14 (process build 119, rchat GUI build 14)
@@ -121,15 +82,15 @@ to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
 # 0.8 most encryption stuff moved into enclib.py library, some login checks, some minor UI changes
 # 0.9 UI overhaul part 1, some work done towards resizable forms and message processing stuff
 # 0.10 server connections and basic message sending system
-
 # 0.11 message formatting, authorisation, naming
-# 0.12 authorised message posting, downloading
-# 0.13 logout system and storing data
+# 0.12 message post fixes, cooldown + changes. ui.exe now usable as launcher, restart.bat removed
+
+# 0.13 downloading, saving
+# 0.14 logout system and storing data
 
 
 # ports localhost:8079
-# Made by rapidslayer101
-# Testers: James Judge
+# Made by rapidslayer101, Main tester: James Judge
 
 encryption_keys = {}
 
@@ -140,7 +101,10 @@ class keys():
 
     def update_key(self, key_name, key):
         encryption_keys.update({key_name: key})
-        print("Keys updates", {key_name: key})
+
+
+if not os.path.isfile("installer.exe"):
+    to_c("\n🱫[COLOR THREAD][YELLOW] IMPORTANT FILE installer.exe MISSING", 0.1)
 
 
 if not os.path.isfile("df_key.txt"):
@@ -168,12 +132,19 @@ def pa_decrypt(enc_text):
 
 
 def tk_encrypt(text):
-    print(keys.get_key(0, "time_key").split("=")[1])
     return enc.encrypt(text, keys.get_key(0, "time_key").split("=")[1])
 
 
 def tk_decrypt(enc_text):
     return enc.decrypt(enc_text, keys.get_key(0, "time_key").split("=")[1])
+
+
+def at_encrypt(text):
+    return enc.encrypt(text, keys.get_key(0, "AUTH_TOKEN"))
+
+
+def at_decrypt(enc_text):
+    return enc.decrypt(enc_text, keys.get_key(0, "AUTH_TOKEN"))
 
 
 def auth_txt_write(token=None, version_data=None, time_key=None, auth_token=None):
@@ -217,7 +188,7 @@ print(f"loaded {load} auth values")
 launch_client = {"LAUNCH": "FALSE"}
 
 
-class launch_client_state():
+class launch_client_state:
     def get(self):
         return launch_client["LAUNCH"]
 
@@ -225,27 +196,45 @@ class launch_client_state():
         launch_client.update({"LAUNCH": to})
 
 
+cooldown_data = {"x": (str(datetime.datetime.utcnow())), "msg_counter": 0}
+
+
+class cooldown():
+    def check(self):
+        last_msg_time = datetime.datetime.strptime(cooldown_data["x"], '%Y-%m-%d %H:%M:%S.%f')
+        time_since_insertion = datetime.datetime.utcnow() - last_msg_time
+        if time_since_insertion.seconds < 1.5:  # time between messages before counter adds 1
+            cooldown_data.update({"msg_counter": cooldown_data["msg_counter"]+1})
+        if time_since_insertion.seconds > 5:  # cooldown(s) when triggered
+            cooldown_data.update({"msg_counter": 0})
+
+        if cooldown_data["msg_counter"] > 3:  # total before counter triggers cooldown(s)
+            return round(5-time_since_insertion.seconds, 2)
+        else:
+            cooldown_data.update({"x": (str(datetime.datetime.utcnow()))})
+            return "True"
+
+
 def listen_for_cleint(cs, loop):
     asyncio.set_event_loop(loop)
 
     def receive():
-        #allow_send = True  # todo cooldown features
-        #msg_to_fast = cooldown.check(0, msg_to_fast)
-        #if msg_to_fast > 10:
-        #    warn(f"YOU'RE SENDING MESSAGES TOO FAST! (cooldown 3s)")
-        #    allow_send = 0
-        #if allow_send == 1:
-        #    print(to_send)
-        #    to_send = f"\n{to_send}"
-        #    to_c(to_send)
+        while True:
+            output = cs.recv(1024).decode(encoding="utf-16")
+            if output.lower() == '-restart':
+                os.startfile("restart.bat")
 
-        output = cs.recv(1024).decode(encoding="utf-16")
-        if output.lower() == '-restart':
-            os.startfile("restart.bat")
+            if output.lower() == '-quit':
+                should_exit.change(0, "FQ")
 
-        if output.lower() == '-quit':
-            should_exit.change(0, "FQ")
+            while output.endswith("\n"):
+                output = output[:-2]
 
+            checked = cooldown.check(0)  # todo maybe stop input until allowed, bring back what was entered
+            if checked == "True":
+                break
+            else:
+                to_c(f"\nYOU'RE SENDING MESSAGES TOO FAST! please wait {checked}s~")
         return output
 
     print("now in client loop")
@@ -256,12 +245,10 @@ def listen_for_cleint(cs, loop):
     async def on_ready():
         to_c("🱫[INPUT SHOW]\n🱫[COLOR THREAD][GREEN] << You are now logged in and can post messages", 0.1)
         channel = client.get_channel(883425805756170283)
-        type = "MSG"
         while True:
             recieved = receive()
-            client_send = f"{keys.get_key(0, 'AUTH_TOKEN')}{type}{recieved}"
-            print(client_send)
-            await channel.send(tk_encrypt(client_send))
+            client_send = f"MSG{recieved}"
+            await channel.send(tk_encrypt(at_encrypt(client_send)))
 
     client.run(keys.get_key(0, "bot_token"))
 
@@ -272,7 +259,7 @@ def listen_for_server(cs, loop):
     def receive():
         output = cs.recv(1024).decode(encoding="utf-16")
         if output.lower() == '-restart':
-            os.startfile("restart.bat")
+            should_exit.change(0, "FQR")
 
         if output.lower() == '-quit':
             should_exit.change(0, "FQ")
@@ -323,8 +310,7 @@ def listen_for_server(cs, loop):
             client.run(bot_token)
         except discord.errors.LoginFailure:
             to_c("\n🱫[COLOR THREAD][RED] The entered token was invalid, rdisc will now restart")
-            os.startfile("restart.bat")
-            should_exit.change(0, "FQ")
+            should_exit.change(0, "FQR")
             while True:
                 input()
 
@@ -538,17 +524,8 @@ while True:
 
     if should_exit.check(0).startswith("FQ"):
         if should_exit.check(0) == "FQU":
-            if not os.path.isfile("installer.exe"):
-                mega = Mega()
-                m = mega.login("theretards909@gmail.com", "smokester1/")
-                file = m.find('installer.exe')
-                try:
-                    m.download(file)
-                except PermissionError:
-                    os.startfile("installer.exe")
-            else:
-                os.startfile("installer.exe")
+            os.startfile("installer.exe")
         if should_exit.check(0) == "FQR":
-            os.startfile("restart.bat")
+            os.startfile("rdisc.exe")
         break
     time.sleep(1)
