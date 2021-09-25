@@ -195,7 +195,7 @@ def decrypt(e_text):
         return "[CND]" + e
 
 
-def encrypt_file(file_to_enc, file_output):
+def encrypt_file(file_to_enc, file_output):  # todo, file type header for decrypt
     block_size = 65536
     bytes = b""
     try:

@@ -282,54 +282,42 @@ def listen_for_server(cs, loop):
         to_c("\n🱫[COLOR THREAD][GREEN] Passwords match")
         keys.update_key(0, "pass_key", password_entry_2)
 
-        to_c("\n FOLLOW THE STEPS BELOW\n 1 - Click this link --> https://discord.com/developers/applications"
-             "\n 2 - Click new application in the top right"
-             "\n 3 - Enter 'Rdisc' as the name and click create"
-             "\n 4 - Inside the settings for the rdisc app, on the left panel click bot"
-             "\n 5 - Click add bot on the right and then yes"
-             "\n 6 - In the bots settings turn on presence intent and server members intent"
-             "\n 7 - Click the copy button under reveal token")
+
+
+
+        to_c("🱫[MNINPLEN][64]")
+        to_c("\n🱫[COLOR THREAD][YELLOW] Enter your 64 char account token", 0.1)
         while True:
-            to_c("🱫[MNINPLEN][59] ", 0.1)
-            to_c("\n🱫[COLOR THREAD][YELLOW] Paste the copied token below", 0.1)
-            bot_token = receive()
-            if len(bot_token) < 59:
-                to_c("\n🱫[COLOR THREAD][RED] Token is to short (should be 59 chars)")
-            if len(bot_token) == 59:
-                to_c("🱫[INPUT HIDE]\n >> Testing token")
+            account_token = receive()
+            if len(account_token) < 64:
+                to_c("\n🱫[COLOR THREAD][RED] Token is to short (should be 64 chars)")
+            if len(account_token) == 64:
+                to_c("🱫[INPUT HIDE]\n >> Verifying token")
                 break
 
-        client = discord.Client()
-
-        @client.event
-        async def on_ready():
-            print('Logged in as {0.user}'.format(client))
-            to_c("\n🱫[COLOR THREAD][GREEN] << Login success, Logged in as {0.user}".format(client))
-            await client.close()
+        server_host = "26.111.108.30"
+        server_port = 8080
+        s = socket.socket()
         try:
-            client.run(bot_token)
-        except discord.errors.LoginFailure:
-            to_c("\n🱫[COLOR THREAD][RED] The entered token was invalid, rdisc will now restart")
-            should_exit.change(0, "FQR")
-            while True:
-                input()
+            s.connect((server_host, server_port))
+        except:
+            to_c("\n Could not connect to host")
+            input()
 
-        auth_txt_write(bot_token)
-        to_c("\n 8 - Go to general information on the left panel"
-             "\n 9 - Click the copy button under the application id"
-             "\n 10 - Send the copied application id to Scott"
-             "\n\n There is nothing more for you to do here until Scott activates your token"
-             "\n As your token can be found by logging into your discord account it is suggested "
-             "\n that you enable 2 factor auth on your account"
-             "\n\n Close rdisc once you're finished and re-open it once your token has been activated")
-        while True:
-            receive()
+        #df_encrypt(f"[LOGIN] {hashed}{name_be_called}").encode()
+        s.send(df_decrypt(account_token.encode()))
+
+        # todo sign up stage
+
+        input("done")
+        auth_txt_write(account_token)
     else:
         to_c("🱫[INPUT SHOW]🱫[MNINPLEN][256] ", 0.1)
         while True:
             try:
                 to_c("\n🱫[COLOR THREAD][YELLOW] Please enter your password", 0.1)
-                password = receive()
+                #password = receive()
+                password = "smokester1/"
                 keys.update_key(0, "pass_key", password)
                 bot_token = df_decrypt(pa_decrypt(enc_bot_token))
                 break
@@ -340,172 +328,165 @@ def listen_for_server(cs, loop):
         if load == 4:
             keys.update_key(0, "AUTH_TOKEN", df_decrypt(pa_decrypt(enc_auth_token)))
 
-        client = discord.Client()
         to_c("🱫[INPUT HIDE]\n >> Logging in")
 
-        def client_login():
-            if not load == 4:
-                to_c("🱫[INPUT SHOW]🱫[MNINPLEN][64] ")
-                while True:
-                    to_c("\n🱫[COLOR THREAD][YELLOW] Enter what you would like to be called?", 0.1)
-                    name_be_called = receive()
-                    to_c(f"\n You entered: {name_be_called}")
-                    to_c(f"\n🱫[COLOR THREAD][YELLOW] Is this correct (y/n)?", 0.1)
-                    choice = receive()
-                    if choice.lower() in ["yes", "y"]:
-                        break
-                    else:
-                        to_c(f"🱫[MNINPTXT] {name_be_called}")
-                return df_encrypt(f"[LOGIN] {hashed}{name_be_called}")
-            else:
-                return df_encrypt(f"[LOGIN] {hashed}")
+        if not load == 4:
+            to_c("🱫[INPUT SHOW]🱫[MNINPLEN][64] ")
+            while True:
+                to_c("\n🱫[COLOR THREAD][YELLOW] Enter what you would like to be called?", 0.1)
+                name_be_called = receive()
+                to_c(f"\n You entered: {name_be_called}")
+                to_c(f"\n🱫[COLOR THREAD][YELLOW] Is this correct (y/n)?", 0.1)
+                choice = receive()
+                if choice.lower() in ["yes", "y"]:
+                    break
+                else:
+                    to_c(f"🱫[MNINPTXT] {name_be_called}")
+            client_login = df_encrypt(f"[LOGIN] {hashed}{name_be_called}").encode()
+        else:
+            client_login = df_encrypt(f"[LOGIN] {hashed}").encode()
 
         to_c("🱫[MNINPLEN][4000] ")
 
-        @client.event
-        async def on_ready():
-            to_c("\n🱫[COLOR THREAD][GREEN] << Login success, Logged in as {0.user}".format(client))
-            keys.update_key(0, "bot_token", bot_token)
-            channel = client.get_channel(883425805756170283)
-            if not channel:
-                to_c("\n🱫[COLOR THREAD][RED] Could not post to channel. Token not yet activated"
-                     "\n Please wait for Scott to activate your token then try again (please close rdisc)")
-                while True:
-                    receive()
-            await channel.send(client_login())
-
-        @client.event
-        async def on_message(ctx):
-            if ctx.author.id in [509330868301594624, 425373518566260766]:
-                content = df_decrypt(ctx.content)  # todo time_key decrypt
-                try:
-                    content = tk_decrypt(content)
-                    to_c(f"\n{content}", 0.1)
-                    print(content)
-                except:
-                    print(content)
-                    if content.startswith("NOTREAL"):
-                        to_c("\n🱫[COLOR THREAD][RED] <> INVALID VERSION DETECTED, downloading replacements"
-                             " in 5 seconds")
-                        await client.close()
-                        time.sleep(5)
-                        should_exit.change(0, "FQU")
-                    if content.startswith("INVALID-"):
-                        to_c(f"\n <> Updating rdisc {content[8:]} in 5 seconds")
-                        await client.close()
-                        time.sleep(5)
-                        should_exit.change(0, "FQU")
-                        auth_txt_write(bot_token, content[8:].split('->')[0])
-
-                    if content.startswith("ACC_ALR_EXT"):
-                        to_c("\n🱫[COLOR THREAD][RED] THIS ACCOUNT ALREADY EXISTS. Ask developer for support")
-
-                    if content.startswith("ACC_CRT_NTA"):
-                        to_c("\n🱫[COLOR THREAD][RED] ACCOUNT CREATION NOT ALLOWED. Ask developer for support")
-
-                    if content.startswith("NO_ACC_FND"):
-                        to_c("\n🱫[COLOR THREAD][RED] YOU DO NOT HAVE AN ACCOUNT. Ask developer for support")
-
-                    if content.startswith("VALID-"):
-                        verified_version = content[6:].split('-')[0]
-                        to_c(f"\n << RESPONSE FROM AUTH RECEIVED\n << {verified_version}")
-                        to_c(f"Verified version is {verified_version} (VERIFIED)")
-                        if (content[6:].split('Ō')[1])[10:11] == " ":
-                            time_key, auth_token = content[6:].split('Ō')[1].split("Ǘ")
-                            if "NO TIME KEY" in time_key:
-                                to_c("\n🱫[COLOR THREAD][RED] NO TIME KEY RECEIVED. Please restart rdisc and retry", 0.1)
-                                while True:
-                                    receive()
-                            auth_txt_write(bot_token, content[6:].split('-')[0], time_key, auth_token)
-                            keys.update_key(0, "time_key", time_key)
-                            keys.update_key(0, "AUTH_TOKEN", auth_token)
-                        else:
-                            current_server_tme_key_hash = content[6:].split('Ō')[1]
-                            current_server_tme_key_tme = enc.round_tme()
-                            try:
-                                current_kt, current_key = pa_decrypt(df_decrypt(enc_time_key)).split("=")
-                            except zlib.error:
-                                to_c("\n🱫[COLOR THREAD][RED] Invalid time_key loaded.")  # todo time_key change fail_code
-                                while True:
-                                    receive()
-
-                            date_format_str = '%Y-%m-%d %H:%M:%S'
-                            current_kt = datetime.datetime.strptime(str(current_kt), date_format_str)
-                            curr_tme_fmt = datetime.datetime.strptime(str(current_kt), date_format_str)
-                            diff = datetime.datetime.strptime(str(current_server_tme_key_tme), date_format_str)-curr_tme_fmt
-                            iterations = int(diff.total_seconds()) / 30
-
-                            if iterations > 0:
-                                to_c(f"\n Updating time_key from {curr_tme_fmt}-->{current_server_tme_key_tme}"
-                                     f" via an estimated {int(iterations)} iterations")
-
-                            last_update = time.time()
-                            tk_loop = 0
-                            while sha256(str(current_key).encode()).hexdigest() != current_server_tme_key_hash:
-                                tk_loop += 1
-                                current_key = enc.pass_to_seed(str(current_key))
-                                curr_tme_fmt += datetime.timedelta(seconds=30)
-                                try:
-                                    if time.time() - last_update > 0.1:
-                                        to_c(f"🱫[TMKYT]{str(curr_tme_fmt).split(' ')[1]}"
-                                             f"\n{round((iterations-tk_loop)/122.33,2)}s")
-                                        last_update = time.time()
-                                except ZeroDivisionError:
-                                    print("Division error in key_update on load")
-                            auth_txt_write(bot_token, verified_version,
-                                           f"{current_server_tme_key_tme}={current_key}", keys.get_key(0, "AUTH_TOKEN"))
-
-                            keys.update_key(0, "time_key", f"{current_server_tme_key_tme}={current_key}")
-                            to_c(f"🱫[TMKYT]{str(current_server_tme_key_tme).split(' ')[1]}", 0.1)
-                            to_c("\n🱫[COLOR THREAD][GREEN] Key upto-date!")
-
-                        def time_key_update():
-                            while True:
-                                try:
-                                    current_kt, old_key = keys.get_key(0, "time_key").split("=")
-                                    current_kt = datetime.datetime.strptime(str(current_kt), '%Y-%m-%d %H:%M:%S')
-
-                                    current_key = old_key
-                                    while current_kt != enc.round_tme():
-                                        current_key = enc.pass_to_seed(str(old_key))
-                                        current_kt += datetime.timedelta(seconds=30)
-
-                                    if str(current_key) != str(old_key):
-                                        to_c(f"🱫[TMKYT]{str(current_kt).split(' ')[1]}")
-                                        auth_txt_write(bot_token, verified_version,
-                                                       f"{current_kt}={current_key}", keys.get_key(0, "AUTH_TOKEN"))
-                                        keys.update_key(0, "time_key", f"{current_kt}={current_key}")
-                                except Exception as e:
-                                    print(e)
-                                time.sleep(2)
-
-                        t = Thread(target=time_key_update)
-                        t.daemon = True
-                        t.start()
-                        launch_client_state.change(0, "TRUE")
+        server_host = "26.111.108.30"
+        server_port = 8080
+        s = socket.socket()
         try:
-            client.run(bot_token)
-        except discord.errors.LoginFailure:
-            to_c("🱫[INPUT SHOW]\n🱫[COLOR THREAD][RED] Loaded token is invalid")
-            to_c("\n FOLLOW THE STEPS BELOW TO FIX"
-                 "\n 1 - Click this link --> https://discord.com/developers/applications"
-                 "\n 2 - Click on your rdisc app"
-                 "\n 3 - Inside the settings for the rdisc app, on the left panel click bot"
-                 "\n 4 - Click the copy button under reveal token")
+            s.connect((server_host, server_port))
+        except:
+            to_c("\n Could not connect to host")
+            input()
+
+        s.send(client_login)
+        print("loop")
+        content = df_decrypt(s.recv(1024).decode())
+
+        # failed login auth key
+
+        #to_c("🱫[INPUT SHOW]\n🱫[COLOR THREAD][RED] Loaded token is invalid")
+        #to_c("\n FOLLOW THE STEPS BELOW TO FIX"
+        #     "\n 1 - Click this link --> https://discord.com/developers/applications"
+        #     "\n 2 - Click on your rdisc app"
+        #     "\n 3 - Inside the settings for the rdisc app, on the left panel click bot"
+        #     "\n 4 - Click the copy button under reveal token")
+        #while True:
+        #    to_c("🱫[MNINPLEN][59] ", 0.1)
+        #    to_c("\n🱫[COLOR THREAD][YELLOW] Paste the copied token below", 0.1)
+        #    bot_token = receive()
+        #    if len(bot_token) < 59:
+        #        to_c("\n🱫[COLOR THREAD][RED] Token is to short (should be 59 chars)")
+        #    if len(bot_token) == 59:
+        #        to_c("🱫[INPUT HIDE]\n Restarting")
+        #        break
+        #current_kt, current_key = pa_decrypt(df_decrypt(enc_time_key)).split("=")
+        #auth_txt_write(bot_token, unverified_version,
+        #               f"{current_kt}={current_key}", keys.get_key(0, "AUTH_TOKEN"))
+        #to_c("🱫[QUIT]")
+        #should_exit.change(0, "FQR")
+
+        if content.startswith("NOTREAL"):  # todo fix
+            to_c("\n🱫[COLOR THREAD][RED] <> INVALID VERSION DETECTED, downloading replacements"
+                 " in 5 seconds")
+            time.sleep(5)
+            should_exit.change(0, "FQU")
+
+        if content.startswith("INVALID-"):
+            to_c(f"\n <> Updating rdisc {content[8:]} in 5 seconds")
+            time.sleep(5)
+            should_exit.change(0, "FQU")
+            auth_txt_write(bot_token, content[8:].split('->')[0])
             while True:
-                to_c("🱫[MNINPLEN][59] ", 0.1)
-                to_c("\n🱫[COLOR THREAD][YELLOW] Paste the copied token below", 0.1)
-                bot_token = receive()
-                if len(bot_token) < 59:
-                    to_c("\n🱫[COLOR THREAD][RED] Token is to short (should be 59 chars)")
-                if len(bot_token) == 59:
-                    to_c("🱫[INPUT HIDE]\n Restarting")
-                    break
-            current_kt, current_key = pa_decrypt(df_decrypt(enc_time_key)).split("=")
-            auth_txt_write(bot_token, unverified_version,
-                           f"{current_kt}={current_key}", keys.get_key(0, "AUTH_TOKEN"))
-            to_c("🱫[QUIT]")
-            should_exit.change(0, "FQR")
+                receive()
+
+        if content.startswith("ACC_ALR_EXT"):
+            to_c("\n🱫[COLOR THREAD][RED] THIS ACCOUNT ALREADY EXISTS. Ask developer for support")
+
+        if content.startswith("ACC_CRT_NTA"):
+            to_c("\n🱫[COLOR THREAD][RED] ACCOUNT CREATION NOT ALLOWED. Ask developer for support")
+
+        if content.startswith("NO_ACC_FND"):
+            to_c("\n🱫[COLOR THREAD][RED] YOU DO NOT HAVE AN ACCOUNT. Ask developer for support")
+
+        if content.startswith("VALID-"):
+            to_c("\n🱫[COLOR THREAD][GREEN] << Login success, Logged in as {0.user}")
+            # keys.update_key(0, "bot_token", bot_token)
+
+            verified_version = content[6:].split('-')[0]
+            to_c(f"\n << RESPONSE FROM AUTH RECEIVED\n << {verified_version}")
+            to_c(f"Verified version is {verified_version} (VERIFIED)")
+            if (content[6:].split('Ō')[1])[10:11] == " ":
+                time_key, auth_token = content[6:].split('Ō')[1].split("Ǘ")
+                if "NO TIME KEY" in time_key:
+                    to_c("\n🱫[COLOR THREAD][RED] NO TIME KEY RECEIVED. Please restart rdisc and retry", 0.1)
+                    while True:
+                        receive()
+                auth_txt_write(bot_token, content[6:].split('-')[0], time_key, auth_token)
+                keys.update_key(0, "time_key", time_key)
+                keys.update_key(0, "AUTH_TOKEN", auth_token)
+            else:
+                current_server_tme_key_hash = content[6:].split('Ō')[1]
+                current_server_tme_key_tme = enc.round_tme()
+                try:
+                    current_kt, current_key = pa_decrypt(df_decrypt(enc_time_key)).split("=")
+                except zlib.error:
+                    to_c("\n🱫[COLOR THREAD][RED] Invalid time_key loaded.")  # todo time_key change fail_code
+                    while True:
+                        receive()
+
+                date_format_str = '%Y-%m-%d %H:%M:%S'
+                current_kt = datetime.datetime.strptime(str(current_kt), date_format_str)
+                curr_tme_fmt = datetime.datetime.strptime(str(current_kt), date_format_str)
+                diff = datetime.datetime.strptime(str(current_server_tme_key_tme), date_format_str) - curr_tme_fmt
+                iterations = int(diff.total_seconds()) / 30
+
+                if iterations > 0:
+                    to_c(f"\n Updating time_key from {curr_tme_fmt}-->{current_server_tme_key_tme}"
+                         f" via an estimated {int(iterations)} iterations")
+
+                last_update = time.time()
+                tk_loop = 0
+                while sha256(str(current_key).encode()).hexdigest() != current_server_tme_key_hash:
+                    tk_loop += 1
+                    current_key = enc.pass_to_seed(str(current_key))
+                    curr_tme_fmt += datetime.timedelta(seconds=30)
+                    try:
+                        if time.time() - last_update > 0.1:
+                            to_c(f"🱫[TMKYT]{str(curr_tme_fmt).split(' ')[1]}"
+                                 f"\n{round((iterations - tk_loop) / 122.33, 2)}s")
+                            last_update = time.time()
+                    except ZeroDivisionError:
+                        print("Division error in key_update on load")
+                auth_txt_write(bot_token, verified_version,
+                               f"{current_server_tme_key_tme}={current_key}", keys.get_key(0, "AUTH_TOKEN"))
+
+                keys.update_key(0, "time_key", f"{current_server_tme_key_tme}={current_key}")
+                to_c(f"🱫[TMKYT]{str(current_server_tme_key_tme).split(' ')[1]}", 0.1)
+                to_c("\n🱫[COLOR THREAD][GREEN] Key upto-date!")
+
+            def time_key_update():
+                while True:
+                    try:
+                        current_kt, old_key = keys.get_key(0, "time_key").split("=")
+                        current_kt = datetime.datetime.strptime(str(current_kt), '%Y-%m-%d %H:%M:%S')
+
+                        current_key = old_key
+                        while current_kt != enc.round_tme():
+                            current_key = enc.pass_to_seed(str(old_key))
+                            current_kt += datetime.timedelta(seconds=30)
+
+                        if str(current_key) != str(old_key):
+                            to_c(f"🱫[TMKYT]{str(current_kt).split(' ')[1]}")
+                            auth_txt_write(bot_token, verified_version,
+                                           f"{current_kt}={current_key}", keys.get_key(0, "AUTH_TOKEN"))
+                            keys.update_key(0, "time_key", f"{current_kt}={current_key}")
+                    except Exception as e:
+                        print(e)
+                    time.sleep(2)
+
+            t = Thread(target=time_key_update)
+            t.daemon = True
+            t.start()
+            launch_client_state.change(0, "TRUE")
 
 
 loop = asyncio.new_event_loop()

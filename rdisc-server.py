@@ -1,4 +1,4 @@
-import discum, datetime, os, time
+import discum, datetime, os, time, socket
 from hashlib import sha512, sha256
 from threading import Thread
 import enclib as enc
@@ -135,7 +135,7 @@ def update_server_time_key():
         time.sleep(1)
 
 
-def version_info(hashed, bot_id=None, sign_up_name=None):
+def version_info(hashed, user_id=None, sign_up_name=None):
     real_version = False
     with open("sha.txt", encoding="utf-8") as f:
         lines = f.readlines()
@@ -162,18 +162,18 @@ def version_info(hashed, bot_id=None, sign_up_name=None):
         else:
             if sign_up_name:
                 print("AUTH SYSTEM WIP")
-                print(sign_up_name, bot_id)
-                if users.get(0, bot_id):
-                    user_checks = users.get(0, bot_id)
+                print(sign_up_name, user_id)
+                if users.get(0, user_id):
+                    user_checks = users.get(0, user_id)
                     if user_checks.startswith("NEW_ACCOUNT"):
                         print("allowed")
                         auth_token = enc.hex_gens(32)
-                        print("VALID BOT ACCOUNT", bot_id, sign_up_name, auth_token)
+                        print("VALID BOT ACCOUNT", user_id, sign_up_name, auth_token)
                         lines = []
                         with open("users.txt", encoding="utf-8") as f:
                             for line in f.readlines():
-                                if line.startswith(str(bot_id)):
-                                    lines.append(f"{bot_id}, {sign_up_name}, {auth_token}")
+                                if line.startswith(str(user_id)):
+                                    lines.append(f"{user_id}, {sign_up_name}, {auth_token}")
                                 else:
                                     lines.append(line)
                         with open("users.txt", "w", encoding="utf-8") as f:
@@ -193,7 +193,7 @@ def version_info(hashed, bot_id=None, sign_up_name=None):
                 else:
                     return "ACC_CRT_NTA"
             else:
-                if users.get(0, bot_id):
+                if users.get(0, user_id):
                     time_key_hashed = sha256(valid_time_keys['CURRENT'].encode()).hexdigest()
                     return f"VALID-{version}-{tme}-{bld_num}-{run_num}Ō{time_key_hashed}"
                 else:
@@ -204,85 +204,62 @@ t = Thread(target=update_server_time_key)
 t.daemon = True
 t.start()
 
+SERVER_PORT = 8080
+client_sockets = set()
+s = socket.socket()
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(('', SERVER_PORT))
+s.listen(5)
+print(f"[*] Listening as 0.0.0.0:{SERVER_PORT}")
 
-@bot.gateway.command
-def processing(resp):
-    m = resp.event.response
-    if not str(m) == "{'t': None, 's': None, 'op': 11, 'd': None}":
-        print(m)
 
-    if resp.event.ready_supplemental:  # ready_supplemental is sent after ready
-        user = bot.gateway.session.user
-        print(f"logged in as {user['username']}#{user['discriminator']}")
-        print("---")
+def client_connection(cs):
+    ip = str(cs).split("raddr=")[1]
+    print("Waiting for login data", ip)
+    content = cs.recv(1024).decode()
 
-    if resp.event.message:
-        m = resp.parsed.auto()
-        guildID = m['guild_id'] if 'guild_id' in m else "DM"  # because DMs are technically channels too
-        channelID = m['channel_id']
-        username = m['author']['username']
-        discriminator = m['author']['discriminator']
-        content = m['content']
-
-        type = m['type']
-        tts = m['tts']
-        time_created = m['timestamp']
+    actual_message = False
+    try:
+        content = enc.decrypt(content, valid_time_keys['CURRENT'])
+        actual_message = True
+    except:
         try:
-            reply = m['referenced_message']
+            content = enc.decrypt(content, default_key)
+            print("login", content)
+            if content[136:] == "":
+                version_response = version_info(content[8:136], ip)
+            else:
+                version_response = version_info(content[8:136], ip, content[136:])
+            cs.send(enc.encrypt(version_response, default_key).encode())
         except:
-            reply = "Null"
-        mentions = m['mentions']
-        mention_roles = m['mention_roles']
-        mention_everyone = m['mention_everyone']
-
-        id = m['id']
-        bot_id = m['author']['id']
-        embeds = m['embeds']
-        attachments = m['attachments']
-
-        print(time_created, content)
-        if channelID == "883425805756170283":
-            if username+"#"+discriminator != "HELLOTHERE#9406":
-                print(m)
-                actual_message = False
+            try:
+                content = enc.decrypt(content, valid_time_keys['OLD'])
+                actual_message = True
+            except:
                 try:
-                    content = enc.decrypt(content, valid_time_keys['CURRENT'])
+                    content = enc.decrypt(content, valid_time_keys['NEW'])
                     actual_message = True
-                except:
-                    try:
-                        content = enc.decrypt(content, default_key)
-                        print("login", content)
-                        if content[136:] == "":
-                            version_response = version_info(content[8:136], bot_id)
-                        else:
-                            version_response = version_info(content[8:136], bot_id, content[136:])
-                        bot.sendMessage(channelID="883425805756170283",
-                                        message=enc.encrypt(version_response, default_key))
-                    except:
-                        try:
-                            content = enc.decrypt(content, valid_time_keys['OLD'])
-                            actual_message = True
-                        except:
-                            try:
-                                content = enc.decrypt(content, valid_time_keys['NEW'])
-                                actual_message = True
-                            except Exception as e:
-                                print("Could not decrypt", e)
+                except Exception as e:
+                    print("Could not decrypt", e)
 
-                if actual_message:
-                    print("actual message", content)
-                    print(bot_id)
-                    account_state, account_name, account_auth = users.get(0, bot_id).split("-")
-                    print(user_data)
-                    try:
-                        content = enc.decrypt(content, account_auth)
-                        content = f"{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')} " \
-                                  f"{account_name}: {content[3:]}"
-                        bot.sendMessage(channelID="883425805756170283",
-                                        message=enc.encrypt(enc.encrypt(content,
-                                                            valid_time_keys['CURRENT']), default_key))
-                    except:
-                        print("auth decrypt error")
+    if actual_message:
+        print("actual message", ip, content)
+        account_state, account_name, account_auth = users.get(0, ip).split("-")
+        print(user_data)
+        try:
+            content = enc.decrypt(content, account_auth)
+            content = f"{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')} " \
+                      f"{account_name}: {content[3:]}"
+            cs.send(enc.encrypt(enc.encrypt(content, valid_time_keys['CURRENT']), default_key))
+        except:
+            print("auth decrypt error")
 
 
-bot.gateway.run(auto_reconnect=True)
+while True:
+    client_socket, client_address = s.accept()
+    print("NEW CLIENT:", client_socket, client_address)
+    global new_socket
+    new_socket = client_socket
+    t = Thread(target=client_connection, args=(client_socket,))
+    t.daemon = True
+    t.start()

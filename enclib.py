@@ -3,7 +3,7 @@ from hashlib import sha512
 from mega import Mega
 
 # enclib V0.1.0
-# integrated enc 6.4.0+ files
+# integrated enc 6.4.0+ files, this is upto enc 6.4.2
 alphaset = "`1234567890-=¬!\"£$%^&*()_+qwertyuiop[]QWERTYUIOP{}asdfghjkl;'#ASDFGHJKL:@~\zxcvbnm,.|ZXCVBNM<>?/"
 
 
