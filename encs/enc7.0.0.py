@@ -93,16 +93,16 @@ def shifter(plaintext, new_num_, num2_, alphabet, forwards):
     output_enc = ""
     counter = 0
     for msg in plaintext:
-        counter = counter + 2
+        counter += 2
         if msg in alphabet:
-            key = int(new_num_[counter:counter + 2])
+            key = int(new_num_[counter:counter+2])
             if key > 96:
                 key = int(str(num2_)[:2])
             if not forwards:
                 key = key * (-1)
             if key == 0:
                 new_alphabet = alphabet
-            new_alphabet = alphabet[key:] + alphabet[:key]
+            new_alphabet = alphabet[key:]+alphabet[:key]
             encrypted = ""
             for message_index in range(0, len(msg)):
                 if msg[message_index] == " ":
@@ -121,19 +121,19 @@ def shifter_log(plaintext, new_num_, num2_, alphabet, forwards):
     counter = 0
     last_update = time.time()
     for msg in plaintext:
+        counter += 2
         if time.time() - last_update > 0.25:
-            print(f"Shifting {round((counter//2)/len(plaintext)*100, 2)}%")
+            print(f"Shifted {counter//2} {round((counter//2)/len(plaintext)*100, 2)}%")
             last_update = time.time()
-        counter = counter + 2
         if msg in alphabet:
-            key = int(new_num_[counter:counter + 2])
+            key = int(new_num_[counter:counter+2])
             if key > 96:
                 key = int(str(num2_)[:2])
             if not forwards:
-                key = key * (-1)
+                key = key*(-1)
             if key == 0:
                 new_alphabet = alphabet
-            new_alphabet = alphabet[key:] + alphabet[:key]
+            new_alphabet = alphabet[key:]+alphabet[:key]
             encrypted = ""
             for message_index in range(0, len(msg)):
                 if msg[message_index] == " ":
@@ -144,7 +144,7 @@ def shifter_log(plaintext, new_num_, num2_, alphabet, forwards):
             output_enc += encrypted
         else:
             output_enc += msg
-    print(f"Shifting 100%")
+    print(f"Shifted 100%")
     return output_enc
 
 
@@ -227,7 +227,10 @@ def encrypt_file(file_to_enc, alpha1, alpha2, num2, seed3, file_output=None):
                 print(f"Generating shifter {round(len(str(new_num))/(len(plaintext)*3+100)*100, 2)}% {time.time()-timer}")
                 last_update = time.time()
         print(f"Generating shifter 100%")
-        e_text = shifter_log(plaintext, str(new_num), num2, alpha1, True)
+        for i in range(1):
+            timer = time.time()
+            e_text = shifter_log(plaintext, str(new_num), num2, alpha1, True)
+            print(time.time()-timer)
         b = str(fib_iter_log(e_text, num2))
         e_data = shifter_log(e_text, b, num2, alpha2, True)
         print(time.time() - start)

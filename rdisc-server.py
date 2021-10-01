@@ -25,13 +25,13 @@ default_key = hash_.hexdigest()
 
 def get_server_key_from_file():
     with open("server_time_key.txt", encoding="utf-8") as f:
-        cur_ky_tm, old_ky = enc.decrypt(f.read(), default_key).split("=")
+        cur_ky_tm, old_ky = enc.decrypt_key(f.read(), default_key).split("=")
     return cur_ky_tm, old_ky, old_ky
 
 
 def write_server_key_to_file(sver_key_tme, sver_tme_key):
     with open("server_time_key.txt", "w", encoding="utf-8") as f:
-        f.write(enc.encrypt(f"{sver_key_tme}={sver_tme_key}", default_key))
+        f.write(enc.encrypt_key(f"{sver_key_tme}={sver_tme_key}", default_key))
 
 
 if os.path.exists("server_time_key.txt"):
@@ -59,8 +59,8 @@ if os.path.exists("server_time_key.txt"):
     print("Key upto-date!")
 else:
     time_key_entry = input("Time_key entry point: ")
-    current_key_time = enc.round_tme()()
-    print(f"Entry point: {time_key_entry}={current_key_time}")
+    current_key_time = enc.round_tme()
+    print(f"Entry point (SAVE THIS): {time_key_entry}={current_key_time}")
     current_key = enc.pass_to_seed(time_key_entry)
     current_key_time += datetime.timedelta(seconds=30)
     print(f"Entry point 2: {current_key_time}={current_key}")
@@ -127,7 +127,7 @@ def update_server_time_key():
                 current_key_time += datetime.timedelta(seconds=30)
 
             if str(current_key) != str(old_key):
-                print(f"{current_key_time}={current_key}")
+                #print(f"{current_key_time}={current_key}")
                 write_server_key_to_file(current_key_time, current_key)
                 time_keys.add(0, current_key)
         except Exception as e:
@@ -135,7 +135,8 @@ def update_server_time_key():
         time.sleep(1)
 
 
-def version_info(hashed, user_id=None, sign_up_name=None):
+def version_info(hashed, user_id=None):
+    print(hashed, user_id)
     real_version = False
     with open("sha.txt", encoding="utf-8") as f:
         lines = f.readlines()
@@ -160,44 +161,42 @@ def version_info(hashed, user_id=None, sign_up_name=None):
         if not valid_version:
             return f"INVALID-{version}->{min_version}"
         else:
-            if sign_up_name:
-                print("AUTH SYSTEM WIP")
-                print(sign_up_name, user_id)
-                if users.get(0, user_id):
-                    user_checks = users.get(0, user_id)
-                    if user_checks.startswith("NEW_ACCOUNT"):
-                        print("allowed")
-                        auth_token = enc.hex_gens(32)
-                        print("VALID BOT ACCOUNT", user_id, sign_up_name, auth_token)
-                        lines = []
-                        with open("users.txt", encoding="utf-8") as f:
-                            for line in f.readlines():
-                                if line.startswith(str(user_id)):
-                                    lines.append(f"{user_id}, {sign_up_name}, {auth_token}")
-                                else:
-                                    lines.append(line)
-                        with open("users.txt", "w", encoding="utf-8") as f:
-                            to_write = ""
-                            for item in lines:
-                                to_write += item.replace("\n", "") + "\n"
-                            f.write(to_write)
-
-                        current_kt, current_key, old_key = get_server_key_from_file()
-                        current_kt = datetime.datetime.strptime(str(current_kt), date_format_str)
-                        users.reload(0)
-                        return f"VALID-{version}-{tme}-{bld_num}-{run_num}Ō" \
-                               f"{current_kt - datetime.timedelta(seconds=30)}={valid_time_keys['CURRENT']}" \
-                               f"Ǘ{auth_token}"
-                    else:
-                        return "ACC_ALR_EXT"
-                else:
-                    return "ACC_CRT_NTA"
+            #    print(sign_up_name, user_id)
+            #    if users.get(0, user_id):
+            #        user_checks = users.get(0, user_id)
+            #        if user_checks.startswith("NEW_ACCOUNT"):
+            #            print("allowed")
+            #            auth_token = enc.hex_gens(32)
+            #            print("VALID BOT ACCOUNT", user_id, sign_up_name, auth_token)
+            #            lines = []
+            #            with open("users.txt", encoding="utf-8") as f:
+            #                for line in f.readlines():
+            #                    if line.startswith(str(user_id)):
+            #                        lines.append(f"{user_id}, {sign_up_name}, {auth_token}")
+            #                    else:
+            #                        lines.append(line)
+            #            with open("users.txt", "w", encoding="utf-8") as f:
+            #                to_write = ""
+            #                for item in lines:
+            #                    to_write += item.replace("\n", "") + "\n"
+            #                f.write(to_write)
+            #
+            #            current_kt, current_key, old_key = get_server_key_from_file()
+            #            current_kt = datetime.datetime.strptime(str(current_kt), date_format_str)
+            #            users.reload(0)
+            #            return f"VALID-{version}-{tme}-{bld_num}-{run_num}Ō" \
+            #                   f"{current_kt - datetime.timedelta(seconds=30)}={valid_time_keys['CURRENT']}" \
+            #                   f"Ǘ{auth_token}"
+            #        else:
+            #            return "ACC_ALR_EXT"
+            #    else:
+            #        return "ACC_CRT_NTA"
+            #else:
+            if users.get(0, user_id):
+                time_key_hashed = sha256(valid_time_keys['CURRENT'].encode()).hexdigest()
+                return f"VALID-{version}-{tme}-{bld_num}-{run_num}Ō{time_key_hashed}"
             else:
-                if users.get(0, user_id):
-                    time_key_hashed = sha256(valid_time_keys['CURRENT'].encode()).hexdigest()
-                    return f"VALID-{version}-{tme}-{bld_num}-{run_num}Ō{time_key_hashed}"
-                else:
-                    return f"NO_ACC_FND"
+                return f"NO_ACC_FND"
 
 
 t = Thread(target=update_server_time_key)
@@ -217,42 +216,41 @@ def client_connection(cs):
     ip = str(cs).split("raddr=")[1]
     print("Waiting for login data", ip)
     content = cs.recv(1024).decode()
+    print("CONT", content)
 
     actual_message = False
     try:
-        content = enc.decrypt(content, valid_time_keys['CURRENT'])
+        content = enc.decrypt_key(content, valid_time_keys['CURRENT'])
         actual_message = True
     except:
         try:
-            content = enc.decrypt(content, default_key)
+            content = enc.decrypt_key(content, default_key)
             print("login", content)
-            if content[136:] == "":
-                version_response = version_info(content[8:136], ip)
-            else:
-                version_response = version_info(content[8:136], ip, content[136:])
-            cs.send(enc.encrypt(version_response, default_key).encode())
+            version_response = version_info(content[8:136], content[136:])
+            print("sending")
+            cs.send(enc.encrypt_key(version_response, default_key).encode())
         except:
             try:
-                content = enc.decrypt(content, valid_time_keys['OLD'])
+                content = enc.decrypt_key(content, valid_time_keys['OLD'])
                 actual_message = True
             except:
                 try:
-                    content = enc.decrypt(content, valid_time_keys['NEW'])
+                    content = enc.decrypt_key(content, valid_time_keys['NEW'])
                     actual_message = True
                 except Exception as e:
-                    print("Could not decrypt", e)
+                    print("Could not decrypt_key", e)
 
     if actual_message:
         print("actual message", ip, content)
         account_state, account_name, account_auth = users.get(0, ip).split("-")
         print(user_data)
         try:
-            content = enc.decrypt(content, account_auth)
+            content = enc.decrypt_key(content, account_auth)
             content = f"{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')} " \
                       f"{account_name}: {content[3:]}"
-            cs.send(enc.encrypt(enc.encrypt(content, valid_time_keys['CURRENT']), default_key))
+            cs.send(enc.encrypt_key(enc.encrypt_key(content, valid_time_keys['CURRENT']), default_key))
         except:
-            print("auth decrypt error")
+            print("auth decrypt_key_key error")
 
 
 while True:
