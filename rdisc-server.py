@@ -94,7 +94,8 @@ class users():
                     account_id, account_name, account_auth = line.split(", ")
                     user_data.update({account_id: f"ACCOUNT-{account_name}-{account_auth}"})
                 else:
-                    user_data.update({line.split(', ')[0]: "NEW_ACCOUNT"})
+                    ac_dt = line.split(', ')[0]
+                    user_data.update({ac_dt[:64]: f"{ac_dt[64:]}-NEW_ACCOUNT"})
         print("reload", user_data)
 
     def get(self, userid):
@@ -127,7 +128,7 @@ def update_server_time_key():
                 current_key_time += datetime.timedelta(seconds=30)
 
             if str(current_key) != str(old_key):
-                #print(f"{current_key_time}={current_key}")
+                print(f"{current_key_time}={current_key}")
                 write_server_key_to_file(current_key_time, current_key)
                 time_keys.add(0, current_key)
         except Exception as e:
@@ -192,8 +193,9 @@ def version_info(hashed, user_id=None):
             #    else:
             #        return "ACC_CRT_NTA"
             #else:
-            if users.get(0, user_id):
-                time_key_hashed = sha256(valid_time_keys['CURRENT'].encode()).hexdigest()
+            if users.get(0, user_id[:64]):
+                if enc.decrypt_key(user_id[64:], users.get(0, user_id[:64])[:32]) == "at_ck":
+                    time_key_hashed = sha256(valid_time_keys['CURRENT'].encode()).hexdigest()
                 return f"VALID-{version}-{tme}-{bld_num}-{run_num}Ō{time_key_hashed}"
             else:
                 return f"NO_ACC_FND"
@@ -217,18 +219,19 @@ def client_connection(cs):
     print("Waiting for login data", ip)
     content = cs.recv(1024).decode()
     print("CONT", content)
+    content = enc.decrypt_key(content, default_key)
+    print("login", content)
+    version_response = version_info(content[8:136], content[136:])
+    cs.send(enc.encrypt_key(version_response, default_key).encode())
 
-    actual_message = False
-    try:
-        content = enc.decrypt_key(content, valid_time_keys['CURRENT'])
-        actual_message = True
-    except:
+    while True:
+        content = cs.recv(1024).decode()
+        print("CONT", content)
+
+        actual_message = False
         try:
-            content = enc.decrypt_key(content, default_key)
-            print("login", content)
-            version_response = version_info(content[8:136], content[136:])
-            print("sending")
-            cs.send(enc.encrypt_key(version_response, default_key).encode())
+            content = enc.decrypt_key(content, valid_time_keys['CURRENT'])
+            actual_message = True
         except:
             try:
                 content = enc.decrypt_key(content, valid_time_keys['OLD'])
@@ -240,17 +243,17 @@ def client_connection(cs):
                 except Exception as e:
                     print("Could not decrypt_key", e)
 
-    if actual_message:
-        print("actual message", ip, content)
-        account_state, account_name, account_auth = users.get(0, ip).split("-")
-        print(user_data)
-        try:
-            content = enc.decrypt_key(content, account_auth)
+        if actual_message:
+            print("actual message", ip, content)
+            print(content)
+            if users.get(0, content[:64]):
+                content = enc.decrypt_key(content[64:], users.get(0, content[:64])[:32])
+            else:
+                print("invalid message post attempted")
             content = f"{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')} " \
-                      f"{account_name}: {content[3:]}"
-            cs.send(enc.encrypt_key(enc.encrypt_key(content, valid_time_keys['CURRENT']), default_key))
-        except:
-            print("auth decrypt_key_key error")
+                      f"PLACEHOLDER: {content[3:]}"
+                      #f"{account_name}: {content[3:]}"
+            cs.send(enc.encrypt_key(enc.encrypt_key(content, valid_time_keys['CURRENT']), default_key).encode())
 
 
 while True:
