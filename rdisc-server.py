@@ -1,21 +1,18 @@
-import discum, datetime, os, time, socket
+import datetime, os, time, socket
 from hashlib import sha512, sha256
 from threading import Thread
 import enclib as enc
 
-bot = discum.Client(token="mfa.ZiR5m0U02bkR3mo_WkRdRbcVX-1zYxo1eGOdQI78"
-                          "jiZFW1pHpY4M3nZUjpOgSF_aFYG43f9xtnR56wnrPdDo", log=False)
-
-# V0.3.7.0 the first version with auto update
-# V0.3.8.0 broke the first auto updater as the server system changed
-# V0.3.10.0 is first version with working auto update
-# V0.5.0.0 the first version with time_key and the standard_key
-min_version = "V0.11.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
-
+min_version = "V0.14.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
 
 block_size = 65536
 hash_ = sha512()
-with open("df_key.txt", 'rb') as hash_file:
+
+if not os.path.exists("df.key"):
+    with open("df.key", "w", encoding="utf-8") as f:
+        for i in range(10):
+            f.write(f"{enc.hex_gens(50)}\n")
+with open("df.key", 'rb') as hash_file:
     buf = hash_file.read(block_size)
     while len(buf) > 0:
         hash_.update(buf)
@@ -58,18 +55,19 @@ if os.path.exists("server_time_key.txt"):
     write_server_key_to_file(current_key_time, current_key)
     print("Key upto-date!")
 else:
-    time_key_entry = input("Time_key entry point: ")
     current_key_time = enc.round_tme()
-    print(f"Entry point (SAVE THIS): {time_key_entry}={current_key_time}")
-    current_key = enc.pass_to_seed(time_key_entry)
+    current_key = enc.pass_to_seed(enc.hex_gens(64))
     current_key_time += datetime.timedelta(seconds=30)
     print(f"Entry point 2: {current_key_time}={current_key}")
     write_server_key_to_file(current_key_time, current_key)
 
 
-valid_time_keys = {"OLD": "NO TIME KEY", "CURRENT": "NO TIME KEY", "NEW": "NO TIME KEY"}
+valid_time_keys = {"OLD": f"{current_key_time}={current_key}",
+                   "CURRENT": f"{current_key_time}={current_key}",
+                   "NEW": f"{current_key_time}={current_key}"}
 print(valid_time_keys)
 date_format_str = '%Y-%m-%d %H:%M:%S'
+print()
 
 
 class time_keys():
@@ -90,12 +88,8 @@ class users():
         with open("users.txt", encoding="utf-8") as f:
             for line in f.readlines():
                 line = line.replace("\n", "")
-                if len(line.split(", ")) == 3:
-                    account_id, account_name, account_auth = line.split(", ")
-                    user_data.update({account_id: f"ACCOUNT-{account_name}-{account_auth}"})
-                else:
-                    ac_dt = line.split(', ')[0]
-                    user_data.update({ac_dt[:64]: f"{ac_dt[64:]}-NEW_ACCOUNT"})
+                ac_dt, account_name = line.split(', ')
+                user_data.update({ac_dt[:64]: f"{ac_dt[64:]}-{account_name}"})
         print("reload", user_data)
 
     def get(self, userid):
@@ -136,7 +130,7 @@ def update_server_time_key():
         time.sleep(1)
 
 
-def version_info(hashed, user_id=None):
+def version_info(hashed, user_id, cs):
     print(hashed, user_id)
     real_version = False
     with open("sha.txt", encoding="utf-8") as f:
@@ -196,6 +190,8 @@ def version_info(hashed, user_id=None):
             if users.get(0, user_id[:64]):
                 if enc.decrypt_key(user_id[64:], users.get(0, user_id[:64])[:32]) == "at_ck":
                     time_key_hashed = sha256(valid_time_keys['CURRENT'].encode()).hexdigest()
+                client_sockets.add(cs)
+                print("Updated cs", client_sockets)
                 return f"VALID-{version}-{tme}-{bld_num}-{run_num}Ō{time_key_hashed}"
             else:
                 return f"NO_ACC_FND"
@@ -221,7 +217,7 @@ def client_connection(cs):
     print("CONT", content)
     content = enc.decrypt_key(content, default_key)
     print("login", content)
-    version_response = version_info(content[8:136], content[136:])
+    version_response = version_info(content[8:136], content[136:], cs)
     cs.send(enc.encrypt_key(version_response, default_key).encode())
 
     while True:
@@ -247,20 +243,32 @@ def client_connection(cs):
             print("actual message", ip, content)
             print(content)
             if users.get(0, content[:64]):
-                content = enc.decrypt_key(content[64:], users.get(0, content[:64])[:32])
+                print(users.get(0, content[:64]))
+                account_data = users.get(0, content[:64])
+                content = enc.decrypt_key(content[64:], account_data[:32])
+                account_name = account_data[33:]
             else:
                 print("invalid message post attempted")
-            content = f"{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')} " \
-                      f"PLACEHOLDER: {content[3:]}"
-                      #f"{account_name}: {content[3:]}"
-            cs.send(enc.encrypt_key(enc.encrypt_key(content, valid_time_keys['CURRENT']), default_key).encode())
+
+            send = True
+            process_code = content[:3]
+            content = content[3:]
+            if process_code == "MSG":  # message post
+                content = f"{datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} " \
+                          f"{account_name}: {content}"
+                send = enc.encrypt_key(content, valid_time_keys['CURRENT'])
+                print(client_sockets)
+            if process_code == "CAN":  # change account name
+                print("change name here")
+
+            if send:
+                for client_socket in client_sockets:
+                    client_socket.send(enc.encrypt_key(send, default_key).encode())
 
 
 while True:
     client_socket, client_address = s.accept()
     print("NEW CLIENT:", client_socket, client_address)
-    global new_socket
-    new_socket = client_socket
     t = Thread(target=client_connection, args=(client_socket,))
     t.daemon = True
     t.start()

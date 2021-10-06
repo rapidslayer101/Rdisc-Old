@@ -24,10 +24,10 @@ def hex_gens(num):
 
 
 def pass_to_seed(password):
-    if not os.path.exists("user_agents.zip"):
+    if not os.path.exists("rdisc.salt"):
         print("salt file missing")
         exit()
-    salt = hash_a_file("user_agents.zip")
+    salt = hash_a_file("rdisc.salt")
     inp = f"{salt[:64]}{password}{salt[64:]}"
     sha = sha512(sha512(base64.b85encode(inp.encode())).hexdigest().encode()).hexdigest()
     return sha

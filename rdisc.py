@@ -1,12 +1,9 @@
-import socket, os, time, zlib, asyncio, datetime
+import socket, os, time, zlib, datetime, psutil
+import enclib as enc
 from hashlib import sha256
 from threading import Thread
-
-import discord
 from colorama import Fore, Back, Style, init
 init()
-
-import enclib as enc
 
 #todo add encrypt_keyed text size output for sending messages
 
@@ -68,53 +65,54 @@ client_sockets.add(client_socket)
 print(f" Connected to ui.exe via socket {client_address}")
 to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
 
-# implemented code:
-# rchat 0.7.119.14 (process build 119, rchat GUI build 14)
-# enc 6.4.0
+try:
+    addresses = psutil.net_if_addrs()["Radmin VPN"]
+except KeyError:
+    to_c("\n🱫[COLOR THREAD][RED] Radmin is not installed on this machine")
+    exit()
+print(f"Radmin detected: {addresses}")
 
-# 0.1 code rewrite and code foundations/framework
+
+# 0.1 code rewrite and code foundations/framework from rchat 0.7.119.14 (process build 119, rchat GUI build 14)
 # 0.2 enc 6.4.0 implemented and seed key switching added
 # 0.3 the auth server framework, sha versioning and updating
 # 0.4 the client setup, server version checks, some UI elements updated
 # 0.5 time_key server syncing
 # 0.6 dynamic key shifting and major auth.txt storage and load rewrites
 # 0.7 df_key.txt added, auth_key system, first time login, removed exiter.txt, removed git pushes of password files
-# 0.8 most encrypt_keyion stuff moved into enclib.py library, some login checks, some minor UI changes
+# 0.8 most encryption stuff moved into enclib.py library, some login checks, some minor UI changes
 # 0.9 UI overhaul part 1, some work done towards resizable forms and message processing stuff
 # 0.10 server connections and basic message sending system
 # 0.11 message formatting, authorisation, naming
 # 0.12 message post fixes, cooldown + changes. ui.exe now usable as launcher, restart.bat removed
 # 0.13 upgrade to enc 7.0.0, massive rewrite to sockets instead of discord slight login changes (half complete)
 # 0.14 first functioning socket version
+# 0.15 file cleanup and load changes, code cleanup, names, multi user support (so actually functional)
 
-# 0.15 downloading, saving, names
-# 0.16 logout system and storing data
+# 0.16 downloading, saving, name changes, load req files from a first time setup file
+# 0.17 logout system and storing data
 
 
-# ports localhost:8079
+# ports localhost:8079, localhost:8080
 # Made by rapidslayer101, Main tester: James Judge
 
-encrypt_keyion_keys = {}
+encryption_keys = {}
 
 
 class keys():
     def get_key(self, key_name):
-        return encrypt_keyion_keys[key_name]
+        return encryption_keys[key_name]
 
     def update_key(self, key_name, key):
-        encrypt_keyion_keys.update({key_name: key})
+        encryption_keys.update({key_name: key})
 
 
-if not os.path.isfile("installer.exe"):
-    to_c("\n🱫[COLOR THREAD][YELLOW] IMPORTANT FILE installer.exe MISSING", 0.1)
-
-
-if not os.path.isfile("df_key.txt"):
-    to_c("\n🱫[COLOR THREAD][RED] CRITICAL FILE df_key.txt MISSING", 0.1)
+if not os.path.isfile("df.key"):
+    to_c("\n🱫[COLOR THREAD][RED] CRITICAL FILE df.key MISSING", 0.1)
     to_c("\n🱫[COLOR THREAD][YELLOW] Tell the developer that you require df_key and he will help you", 0.1)
     while True:
         input()
-keys.update_key(0, "default_key", enc.hash_a_file("df_key.txt"))
+keys.update_key(0, "default_key", enc.hash_a_file("df.key"))
 
 
 def df_encrypt_key(text):
@@ -157,8 +155,8 @@ def auth_txt_write(token=None, version_data=None, time_key=None):
         auth_to_write += "\n"+df_encrypt_key(version_data)
     if time_key:
         auth_to_write += "\n"+df_encrypt_key(pa_encrypt_key(time_key))
-    with open("auth.txt", "w", encoding="utf-8") as f:
-        f.write(auth_to_write)
+    with open("auth.txt", "w", encoding="utf-8") as auth_txt:
+        auth_txt.write(auth_to_write)
 
 
 if not os.path.isfile("auth.txt"):
@@ -182,40 +180,26 @@ else:
 
 
 print(f"loaded {load} auth values")
-
-
-launch_client = {"LAUNCH": "FALSE"}
-
-
-class launch_client_state:
-    def get(self):
-        return launch_client["LAUNCH"]
-
-    def change(self, to):
-        launch_client.update({"LAUNCH": to})
-
-
-cooldown_data = {"x": (str(datetime.datetime.utcnow())), "msg_counter": 0}
+cool_down_data = {"x": (str(datetime.datetime.utcnow())), "msg_counter": 0}
 
 
 class cooldown():
     def check(self):
-        last_msg_time = datetime.datetime.strptime(cooldown_data["x"], '%Y-%m-%d %H:%M:%S.%f')
+        last_msg_time = datetime.datetime.strptime(cool_down_data["x"], '%Y-%m-%d %H:%M:%S.%f')
         time_since_insertion = datetime.datetime.utcnow() - last_msg_time
-        if time_since_insertion.seconds < 1.5:  # time between messages before counter adds 1
-            cooldown_data.update({"msg_counter": cooldown_data["msg_counter"]+1})
+        if time_since_insertion.seconds < 1:  # time between messages before counter adds 1
+            cool_down_data.update({"msg_counter": cool_down_data["msg_counter"]+1})
         if time_since_insertion.seconds > 5:  # cooldown(s) when triggered
-            cooldown_data.update({"msg_counter": 0})
+            cool_down_data.update({"msg_counter": 0})
 
-        if cooldown_data["msg_counter"] > 3:  # total before counter triggers cooldown(s)
+        if cool_down_data["msg_counter"] > 10:  # total before counter triggers cooldown(s)
             return round(5-time_since_insertion.seconds, 2)
         else:
-            cooldown_data.update({"x": (str(datetime.datetime.utcnow()))})
+            cool_down_data.update({"x": (str(datetime.datetime.utcnow()))})
             return "True"
 
 
-def listen_for_server(cs, loop):
-    asyncio.set_event_loop(loop)
+def listen_for_server(cs):
 
     def receive():
         output = cs.recv(1024).decode(encoding="utf-16")
@@ -257,8 +241,7 @@ def listen_for_server(cs, loop):
         while True:
             try:
                 to_c("\n🱫[COLOR THREAD][YELLOW] Please enter your password", 0.1)
-                #password = receive()
-                password = "s"
+                password = receive()
                 keys.update_key(0, "pass_key", password)
                 account_token = df_decrypt_key(pa_decrypt_key(enc_account_token))
                 break
@@ -283,7 +266,7 @@ def listen_for_server(cs, loop):
 
     content = df_decrypt_key(s.recv(1024).decode())
     print(f"reached login checks - {content}")
-    if content.startswith("NOTREAL"):  # todo fix
+    if content.startswith("NOTREAL"):
         to_c("\n🱫[COLOR THREAD][RED] <> INVALID VERSION DETECTED, downloading replacements"
              " in 5 seconds")
         time.sleep(5)
@@ -315,7 +298,6 @@ def listen_for_server(cs, loop):
                     key_dta = receive().split("=")
                     current_kt = key_dta[1]
                     current_key = key_dta[0]
-                    print(current_kt, current_key)
                     date_format_str = '%Y-%m-%d %H:%M:%S'
                     current_kt = datetime.datetime.strptime(str(current_kt), date_format_str)
                     break
@@ -384,13 +366,12 @@ def listen_for_server(cs, loop):
         t = Thread(target=time_key_update)
         t.daemon = True
         t.start()
-        #launch_client_state.change(0, "TRUE")
 
         def receive():
             while True:
                 output = cs.recv(1024).decode(encoding="utf-16")
                 if output.lower() == '-restart':
-                    os.startfile("restart.bat")
+                    should_exit.change(0, "FQR")
 
                 if output.lower() == '-quit':
                     should_exit.change(0, "FQ")
@@ -411,9 +392,7 @@ def listen_for_server(cs, loop):
         def listen_for_messages():
             print("message listener launched")
             while True:
-                #to_c(f"\n{df_decrypt_key(tk_decrypt_key(s.recv(1024).decode()))}")
                 to_c(f"\n{tk_decrypt_key(df_decrypt_key(s.recv(1024).decode()))}")
-                #cs.send(enc.encrypt_key(enc.encrypt_key(content, valid_time_keys['CURRENT']), default_key).encode())
 
         t = Thread(target=listen_for_messages)
         t.daemon = True
@@ -423,25 +402,15 @@ def listen_for_server(cs, loop):
         while True:
             received = receive()
             client_send = f"MSG{received}"
-            print(f"{keys.get_key(0, 'account_token')[:64]}{at_encrypt_key(client_send)}")
             s.send(tk_encrypt_key(f"{keys.get_key(0, 'account_token')[:64]}{at_encrypt_key(client_send)}").encode())
-            print(tk_encrypt_key(f"{keys.get_key(0, 'account_token')[:64]}{at_encrypt_key(client_send)}").encode())
 
 
-loop = asyncio.new_event_loop()
-t = Thread(target=listen_for_server, args=(client_socket, loop,))
+t = Thread(target=listen_for_server, args=(client_socket,))
 t.daemon = True
 t.start()
 
 
 while True:
-    #if launch_client_state.get(0) == "TRUE":
-    #    launch_client_state.change(0, "FALSE")
-    #    #loop = asyncio.new_event_loop()
-    #    t = Thread(target=listen_for_cleint, args=(client_socket, s,))
-    #    t.daemon = True
-    #    t.start()
-
     if should_exit.check(0).startswith("FQ"):
         if should_exit.check(0) == "FQU":
             os.startfile("installer.exe")

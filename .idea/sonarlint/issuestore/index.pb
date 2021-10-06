@@ -11,17 +11,6 @@
 	README.md,8\e\8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d
 6
 mal.py,d\e\de39f312f515f9f18f6ab3e525b78b7521ad2136
-9
-	build.bat,2\8\282119df8cfcad4c8c8421ba30fdcdf8793f5f82
-D
-radmin_detectionm.py,b\d\bd4134dcd332f04a9e001c09db9f0605e9b521c1
-?
-port_scanner.py,7\1\719eff7e2b9be391b46a1b34888b130fc01c1930
-:
-
-process.py,d\9\d9f194464e6e6d1126b043f1275a9e41e7c57338
-7
-host.py,3\5\3502174b473d6de8ce55a28642e775ab491858de
 @
 encs/enc7.0.0.py,0\0\0005f5115a89e7dc8ad8dd36cb62728d17c6ea2b
 <
@@ -34,10 +23,7 @@ process.py,d\9\d9f194464e6e6d1126b043f1275a9e41e7c57338
 encs/enc3.py,3\3\334d3f60e0c88fabda216e2781143df919004947
 ;
 manga_dl.py,7\7\772e6df4b3993f4d432d1998095c5eb58d06ecb6
-9
-	enclib.py,3\e\3efbf33e429bd339b8cc2c5ad864cca5da3dbe02
-:
-
-.gitignore,a\5\a5cc2925ca8258af241be7e5b0381edf30266302
 B
 enc-test-ground.py,9\5\9570fe764374c764fee4f28497c06ea58932aa3e
+<
+jap_dict.txt,e\d\ed79f91518a7f8b6ad0978ec6c69c38e84bbe17e
