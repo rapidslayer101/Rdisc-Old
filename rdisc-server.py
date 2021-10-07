@@ -70,7 +70,7 @@ date_format_str = '%Y-%m-%d %H:%M:%S'
 print()
 
 
-class time_keys():
+class time_keys:
     def get(self):
         return valid_time_keys
 
@@ -83,7 +83,7 @@ class time_keys():
 user_data = {}
 
 
-class users():
+class users:
     def reload(self):
         with open("users.txt", encoding="utf-8") as f:
             for line in f.readlines():
@@ -92,11 +92,18 @@ class users():
                 user_data.update({ac_dt[:64]: f"{ac_dt[64:]}-{account_name}"})
         print("reload", user_data)
 
-    def get(self, userid):
+    def get(self, userid):  # todo this could be reworked to return split up account data
         try:
             return user_data[str(userid)]
         except:
             return False
+
+    def change_name(self, userid, filler, new_name):
+        user_data.update({userid: f"{filler}-{new_name}"})
+        with open("users.txt", "w", encoding="utf-8") as f:
+            for item in user_data:
+                item_p2, name = user_data[item].split("-")
+                f.write(f"{item}{item_p2}, {name}\n")
 
 
 users.reload(0)
@@ -115,9 +122,7 @@ def update_server_time_key():
             if iterations > 1:
                 print("CRITICAL ERROR THIS SHOULD NOT HAVE OCCURED")
 
-            loop = 0
             while current_key_time != desired_time:
-                loop += 1
                 current_key = enc.pass_to_seed(str(old_key))
                 current_key_time += datetime.timedelta(seconds=30)
 
@@ -156,37 +161,6 @@ def version_info(hashed, user_id, cs):
         if not valid_version:
             return f"INVALID-{version}->{min_version}"
         else:
-            #    print(sign_up_name, user_id)
-            #    if users.get(0, user_id):
-            #        user_checks = users.get(0, user_id)
-            #        if user_checks.startswith("NEW_ACCOUNT"):
-            #            print("allowed")
-            #            auth_token = enc.hex_gens(32)
-            #            print("VALID BOT ACCOUNT", user_id, sign_up_name, auth_token)
-            #            lines = []
-            #            with open("users.txt", encoding="utf-8") as f:
-            #                for line in f.readlines():
-            #                    if line.startswith(str(user_id)):
-            #                        lines.append(f"{user_id}, {sign_up_name}, {auth_token}")
-            #                    else:
-            #                        lines.append(line)
-            #            with open("users.txt", "w", encoding="utf-8") as f:
-            #                to_write = ""
-            #                for item in lines:
-            #                    to_write += item.replace("\n", "") + "\n"
-            #                f.write(to_write)
-            #
-            #            current_kt, current_key, old_key = get_server_key_from_file()
-            #            current_kt = datetime.datetime.strptime(str(current_kt), date_format_str)
-            #            users.reload(0)
-            #            return f"VALID-{version}-{tme}-{bld_num}-{run_num}Ō" \
-            #                   f"{current_kt - datetime.timedelta(seconds=30)}={valid_time_keys['CURRENT']}" \
-            #                   f"Ǘ{auth_token}"
-            #        else:
-            #            return "ACC_ALR_EXT"
-            #    else:
-            #        return "ACC_CRT_NTA"
-            #else:
             if users.get(0, user_id[:64]):
                 if enc.decrypt_key(user_id[64:], users.get(0, user_id[:64])[:32]) == "at_ck":
                     time_key_hashed = sha256(valid_time_keys['CURRENT'].encode()).hexdigest()
@@ -221,9 +195,12 @@ def client_connection(cs):
     cs.send(enc.encrypt_key(version_response, default_key).encode())
 
     while True:
-        content = cs.recv(1024).decode()
-        print("CONT", content)
-
+        try:
+            content = cs.recv(1024).decode()
+        except ConnectionResetError:
+            print(f"{cs} Disconnected")
+            client_sockets.remove(cs)
+            break
         actual_message = False
         try:
             content = enc.decrypt_key(content, valid_time_keys['CURRENT'])
@@ -240,26 +217,26 @@ def client_connection(cs):
                     print("Could not decrypt_key", e)
 
         if actual_message:
-            print("actual message", ip, content)
-            print(content)
             if users.get(0, content[:64]):
-                print(users.get(0, content[:64]))
                 account_data = users.get(0, content[:64])
-                content = enc.decrypt_key(content[64:], account_data[:32])
+                content_without_id = enc.decrypt_key(content[64:], account_data[:32])
                 account_name = account_data[33:]
             else:
                 print("invalid message post attempted")
 
             send = True
-            process_code = content[:3]
-            content = content[3:]
+            process_code = content_without_id[:3]
+            payload = content_without_id[3:]
+            print(ip, process_code, content)
+
             if process_code == "MSG":  # message post
-                content = f"{datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} " \
-                          f"{account_name}: {content}"
-                send = enc.encrypt_key(content, valid_time_keys['CURRENT'])
-                print(client_sockets)
-            if process_code == "CAN":  # change account name
-                print("change name here")
+                payload = f"{datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} " \
+                          f"{account_name}: {payload}"
+                send = enc.encrypt_key(payload, valid_time_keys['CURRENT'])
+
+            if process_code == "CAN":  # change account name  # todo dup checks and reject to long
+                users.change_name(0, content[:64], account_data[:32], payload)
+                send = enc.encrypt_key(f"'{account_name}' changed name to '{payload}'", valid_time_keys['CURRENT'])
 
             if send:
                 for client_socket in client_sockets:

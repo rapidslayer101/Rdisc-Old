@@ -5,6 +5,13 @@ from hashlib import sha512
 alphaset = "`1234567890-=¬!\"£$%^&*()_+qwertyuiop[]QWERTYUIOP{}asdfghjkl;'#ASDFGHJKL:@~\zxcvbnm,.|ZXCVBNM<>?/"
 
 
+def req_check():
+    if not os.path.exists("rdisc.salt"):
+        return "SALT_MISSING"
+    else:
+        return "GOOD"
+
+
 def hash_a_file(file):
     block_size = 65536
     hash_ = sha512()
@@ -24,9 +31,6 @@ def hex_gens(num):
 
 
 def pass_to_seed(password):
-    if not os.path.exists("rdisc.salt"):
-        print("salt file missing")
-        exit()
     salt = hash_a_file("rdisc.salt")
     inp = f"{salt[:64]}{password}{salt[64:]}"
     sha = sha512(sha512(base64.b85encode(inp.encode())).hexdigest().encode()).hexdigest()

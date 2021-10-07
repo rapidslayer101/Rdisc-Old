@@ -5,9 +5,6 @@ from threading import Thread
 from colorama import Fore, Back, Style, init
 init()
 
-#todo add encrypt_keyed text size output for sending messages
-
-
 try:
     hashed = enc.hash_a_file("rdisc.py")
     with open("sha.txt", "r", encoding="utf-8") as f:
@@ -28,21 +25,24 @@ except FileNotFoundError:
     hashed = enc.hash_a_file("rdisc.exe")
 
 
-exiter = {"QUIT": "--"}
+exit_state = {"QUIT": "--"}
 
 
-class should_exit():
+class should_exit:
     def check(self):
-        return exiter["QUIT"]
+        return exit_state["QUIT"]
 
     def change(self, change_to):
-        return exiter.update({"QUIT": change_to})
+        return exit_state.update({"QUIT": change_to})
 
 
 client_sockets = set()
 s = socket.socket()
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-s.bind(("127.0.0.1", 8079))
+if os.path.exists("rdisc.py"):
+    s.bind(("127.0.0.1", 8078))
+else:
+    s.bind(("127.0.0.1", 8079))
 
 print(" -> Launching ui.exe")
 if not os.path.isfile("ui.exe"):
@@ -88,9 +88,10 @@ print(f"Radmin detected: {addresses}")
 # 0.13 upgrade to enc 7.0.0, massive rewrite to sockets instead of discord slight login changes (half complete)
 # 0.14 first functioning socket version
 # 0.15 file cleanup and load changes, code cleanup, names, multi user support (so actually functional)
+# 0.16 socket close improvements, name changes, fixed restarts, password changes, len checks
 
-# 0.16 downloading, saving, name changes, load req files from a first time setup file
-# 0.17 logout system and storing data
+# 0.17 downloading, saving, load req files from a first time setup file
+# 0.18 logout system and storing data
 
 
 # ports localhost:8079, localhost:8080
@@ -99,13 +100,21 @@ print(f"Radmin detected: {addresses}")
 encryption_keys = {}
 
 
-class keys():
+class keys:
     def get_key(self, key_name):
         return encryption_keys[key_name]
 
     def update_key(self, key_name, key):
         encryption_keys.update({key_name: key})
 
+
+if enc.req_check() == "SALT_MISSING":
+    print("SALT MISISNG")
+    to_c("\n🱫[COLOR THREAD][YELLOW] Enter setup key")
+    to_c("🱫[INPUT SHOW]", 0.1)
+    output = client_socket.recv(1024).decode(encoding="utf-16")
+    print(output)
+    input()  # todo salt and df.key collection
 
 if not os.path.isfile("df.key"):
     to_c("\n🱫[COLOR THREAD][RED] CRITICAL FILE df.key MISSING", 0.1)
@@ -183,7 +192,7 @@ print(f"loaded {load} auth values")
 cool_down_data = {"x": (str(datetime.datetime.utcnow())), "msg_counter": 0}
 
 
-class cooldown():
+class cooldown:
     def check(self):
         last_msg_time = datetime.datetime.strptime(cool_down_data["x"], '%Y-%m-%d %H:%M:%S.%f')
         time_since_insertion = datetime.datetime.utcnow() - last_msg_time
@@ -217,13 +226,16 @@ def listen_for_server(cs):
         while True:
             to_c("\n🱫[COLOR THREAD][YELLOW] Please enter a password", 0.1)
             password_entry_1 = receive()
-            to_c(f"\n Entered ({len(password_entry_1)}chrs): "+"*"*len(password_entry_1))
-            to_c("\n🱫[COLOR THREAD][YELLOW] Please re-enter password", 0.1)
-            password_entry_2 = receive()
-            if password_entry_1 == password_entry_2:
-                break
+            if len(password_entry_1) < 8:
+                to_c("\n🱫[COLOR THREAD][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
             else:
-                to_c("\n🱫[COLOR THREAD][RED] PASSWORDS DO NOT MATCH!")
+                to_c(f"\n Entered ({len(password_entry_1)}chrs): "+"*"*len(password_entry_1))
+                to_c("\n🱫[COLOR THREAD][YELLOW] Please re-enter password", 0.1)
+                password_entry_2 = receive()
+                if password_entry_1 == password_entry_2:
+                    break
+                else:
+                    to_c("\n🱫[COLOR THREAD][RED] PASSWORDS DO NOT MATCH!")
         to_c("\n🱫[COLOR THREAD][GREEN] Passwords match")
         keys.update_key(0, "pass_key", password_entry_2)
 
@@ -315,7 +327,7 @@ def listen_for_server(cs):
         current_kt = datetime.datetime.strptime(str(current_kt), date_format_str)
         curr_tme_fmt = datetime.datetime.strptime(str(current_kt), date_format_str)
         diff = datetime.datetime.strptime(str(current_server_tme_key_tme), date_format_str) - curr_tme_fmt
-        iterations = int(diff.total_seconds()) / 30
+        iterations = int(diff.total_seconds())/30
 
         if iterations > 0:
             to_c(f"\n Updating time_key from {curr_tme_fmt}-->{current_server_tme_key_tme}"
@@ -330,14 +342,13 @@ def listen_for_server(cs):
             try:
                 if time.time() - last_update > 0.1:
                     to_c(f"🱫[TMKYT]{str(curr_tme_fmt).split(' ')[1]}"
-                         f"\n{round((iterations - tk_loop)/122.33, 2)}s")
+                         f"\n{round((iterations - tk_loop)/122.33, 2)}s", 0.1)
                     last_update = time.time()
             except ZeroDivisionError:
                 print("Division error in key_update on load")
 
         auth_txt_write(account_token, verified_version,
                        f"{current_server_tme_key_tme}={current_key}")
-        # todo got to here where auth token error
 
         keys.update_key(0, "time_key", f"{current_server_tme_key_tme}={current_key}")
         to_c(f"🱫[TMKYT]{str(current_server_tme_key_tme).split(' ')[1]}", 0.1)
@@ -355,7 +366,7 @@ def listen_for_server(cs):
                         current_kt += datetime.timedelta(seconds=30)
 
                     if str(current_key) != str(old_key):
-                        to_c(f"🱫[TMKYT]{str(current_kt).split(' ')[1]}")
+                        to_c(f"🱫[TMKYT]{str(current_kt).split(' ')[1]}", 0.1)
                         auth_txt_write(account_token, verified_version,
                                        f"{current_kt}={current_key}")
                         keys.update_key(0, "time_key", f"{current_kt}={current_key}")
@@ -367,26 +378,6 @@ def listen_for_server(cs):
         t.daemon = True
         t.start()
 
-        def receive():
-            while True:
-                output = cs.recv(1024).decode(encoding="utf-16")
-                if output.lower() == '-restart':
-                    should_exit.change(0, "FQR")
-
-                if output.lower() == '-quit':
-                    should_exit.change(0, "FQ")
-
-                while output.endswith("\n"):
-                    output = output[:-2]
-
-                checked = cooldown.check(0)  # todo maybe stop input until allowed, bring back what was entered
-                if checked == "True":
-                    break
-                else:
-                    to_c(f"\nYOU'RE SENDING MESSAGES TOO FAST! please wait {checked}s~")
-            return output
-
-        print("now in client loop")
         to_c("🱫[INPUT SHOW]\n🱫[COLOR THREAD][GREEN] << You are now logged in and can post messages", 0.1)
 
         def listen_for_messages():
@@ -400,9 +391,63 @@ def listen_for_server(cs):
 
         print("input handler launched")
         while True:
-            received = receive()
-            client_send = f"MSG{received}"
-            s.send(tk_encrypt_key(f"{keys.get_key(0, 'account_token')[:64]}{at_encrypt_key(client_send)}").encode())
+            received = cs.recv(1024).decode(encoding="utf-16")
+            received_l = received.lower()
+            client_send = None
+            send = True
+            print(received, received_l)
+
+            # internal
+            if received_l == '-restart':
+                should_exit.change(0, "FQR")
+                send = False
+
+            if received_l == '-quit':
+                should_exit.change(0, "FQ")
+                send = False
+
+            if received_l.startswith("-change password "):
+                send = False
+                if len(received[17:]) < 8:
+                    to_c("\n🱫[COLOR THREAD][RED] Password to short (must be 8-256 chars)")
+                    to_c(f"🱫[MNINPTXT] {received}", 0.1)
+                else:
+                    if len(received[13:]) > 256:
+                        to_c("\n🱫[COLOR THREAD][RED] Password to large (must be 8-256 chars)")
+                        to_c(f"🱫[MNINPTXT] {received}", 0.1)
+                    else:
+                        keys.update_key(0, "pass_key", received[17:])
+                        auth_txt_write(account_token, verified_version,
+                                       f"{current_kt}={current_key}")
+                        to_c(f"\n New password set ({len(received[17:])}chrs): " + "*" * len(received[17:]))
+
+            # external
+            if received_l.startswith("-change name "):
+                send = False
+                if len(received[13:]) < 4:
+                    to_c("\n🱫[COLOR THREAD][RED] Name to short (must be 4-32 chars)")
+                    to_c(f"🱫[MNINPTXT] {received}", 0.1)
+                else:
+                    if len(received[13:]) > 32:
+                        to_c("\n🱫[COLOR THREAD][RED] Name to large (must be 4-32 chars)")
+                        to_c(f"🱫[MNINPTXT] {received}", 0.1)
+                    else:
+                        client_send = f"CAN{received[13:]}"
+                        send = True
+
+            if send:
+                if not client_send:
+                    client_send = f"MSG{received}"
+
+                while received.endswith("\n"):
+                    received = received[:-2]
+
+                checked = cooldown.check(0)  # todo maybe stop input until allowed, bring back what was entered
+                if checked == "True":
+                    s.send(tk_encrypt_key(f"{keys.get_key(0, 'account_token')[:64]}"
+                                          f"{at_encrypt_key(client_send)}").encode())
+                else:
+                    to_c(f"\nYOU'RE SENDING MESSAGES TOO FAST! please wait {checked}s~")
 
 
 t = Thread(target=listen_for_server, args=(client_socket,))
