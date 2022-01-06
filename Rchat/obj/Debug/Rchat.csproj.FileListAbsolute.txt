@@ -1,0 +1,11 @@
+C:\Users\rapidslayer101\source\repos\Rchat\obj\Debug\Rchat.csproj.AssemblyReference.cache
+C:\Users\rapidslayer101\source\repos\Rchat\obj\Debug\Rchat.csproj.CoreCompileInputs.cache
+C:\Users\rapidslayer101\source\repos\Rchat\obj\Debug\Rchat.Rchat.resources
+C:\Users\rapidslayer101\source\repos\Rchat\obj\Debug\Rchat.csproj.GenerateResource.cache
+C:\Users\rapidslayer101\source\repos\Rchat\obj\Debug\Rchat.Properties.Resources.resources
+C:\Users\rapidslayer101\source\repos\Rchat\bin\Debug\ui.exe
+C:\Users\rapidslayer101\source\repos\Rchat\bin\Debug\ui.pdb
+C:\Users\rapidslayer101\source\repos\Rchat\obj\Debug\ui.exe
+C:\Users\rapidslayer101\source\repos\Rchat\obj\Debug\ui.pdb
+C:\Users\rapidslayer101\PycharmProjects\rdisc\ui.exe
+C:\Users\rapidslayer101\PycharmProjects\rdisc\ui.pdb
