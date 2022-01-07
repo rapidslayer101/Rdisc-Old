@@ -58,7 +58,7 @@ namespace Rchat
 				catch
 				{
 					MainOutput.SelectionColor = Color.Red;
-					MainOutput.AppendText("\n[!] RDISC could not initialize, you might have launched ui.exe instead of rdisc.exe, please relaunch rdisc.exe\n\n" + d);
+					MainOutput.AppendText("\n[!] RDISC could not initialize, ui.exe is likely missing\n\n" + d);
 				}
 			}
 			MI_MaxChars.Visible = false;

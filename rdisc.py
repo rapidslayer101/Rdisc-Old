@@ -2,13 +2,11 @@ import socket, os, time, zlib, datetime, psutil
 import enclib as enc
 from hashlib import sha256
 from threading import Thread
-from colorama import Fore, Back, Style, init
-init()
 
 try:
     hashed = enc.hash_a_file("rdisc.py")
     with open("sha.txt", "r", encoding="utf-8") as f:
-        latest_sha, type, version, tme, bld_num, run_num = f.readlines()[-1].split(" ")
+        latest_sha, type, version, tme, bld_num, run_num = f.readlines()[-1].split("§")
         print("prev", latest_sha, type, version, tme, bld_num, run_num)
         release_major, major, build, run = version.replace("V", "").split(".")
 
@@ -16,10 +14,10 @@ try:
         run = int(run) + 1
         with open("sha.txt", "a+", encoding="utf-8") as f:
             tme = str(datetime.datetime.now()).replace(" ", "_")
-            print(f"crnt {hashed} RUN V{release_major}.{major}.{build}.{run} TME-{tme}"
-                  f" BLD_NM-{bld_num[7:]} RUN_NM-{int(run_num[7:])+1}")
-            f.write(f"\n{hashed} RUN V{release_major}.{major}.{build}.{run} TME-{tme}"
-                    f" BLD_NM-{bld_num[7:]} RUN_NM-{int(run_num[7:])+1}")
+            print(f"crnt {hashed}§RUN§V{release_major}.{major}.{build}.{run}§TME-{tme}"
+                  f"§BLD_NM-{bld_num[7:]}§RUN_NM-{int(run_num[7:])+1}")
+            f.write(f"\n{hashed}§RUN§V{release_major}.{major}.{build}.{run}§TME-{tme}"
+                    f"§BLD_NM-{bld_num[7:]}§RUN_NM-{int(run_num[7:])+1}")
         print(f"Running rdisc V{release_major}.{major}.{build}.{run}")
 except FileNotFoundError:
     hashed = enc.hash_a_file("rdisc.exe")
@@ -46,10 +44,10 @@ else:
 
 print(" -> Launching ui.exe")
 if not os.path.isfile("ui.exe"):
-    print(Fore.RED, "[!] CRITICAL FILE ui.exe MISSING", Fore.RESET)
+    print("[!] CRITICAL FILE ui.exe MISSING")
 else:
     os.startfile("ui.exe")
-print(Fore.GREEN, "<- ui.exe launched", Fore.RESET)
+print("<- ui.exe launched")
 s.listen(10)
 
 
@@ -95,7 +93,7 @@ print(f"Radmin detected: {addresses}")
 
 
 # ports localhost:8079, localhost:8080
-# Made by rapidslayer101, Main tester: James Judge
+# Made by rapidslayer101 (Scott Bree), Main tester: James Judge
 
 encryption_keys = {}
 
@@ -108,14 +106,6 @@ class keys:
         encryption_keys.update({key_name: key})
 
 
-if enc.req_check() == "SALT_MISSING":
-    print("SALT MISISNG")
-    to_c("\n🱫[COLOR THREAD][YELLOW] Enter setup key")
-    to_c("🱫[INPUT SHOW]", 0.1)
-    output = client_socket.recv(1024).decode(encoding="utf-16")
-    print(output)
-    input()  # todo salt and df.key collection
-
 if not os.path.isfile("df.key"):
     to_c("\n🱫[COLOR THREAD][RED] CRITICAL FILE df.key MISSING", 0.1)
     to_c("\n🱫[COLOR THREAD][YELLOW] Tell the developer that you require df_key and he will help you", 0.1)
@@ -125,35 +115,35 @@ keys.update_key(0, "default_key", enc.hash_a_file("df.key"))
 
 
 def df_encrypt_key(text):
-    return enc.encrypt_key(text, keys.get_key(0, "default_key"))
+    return enc.encrypt_key(text, keys.get_key(0, "default_key"), "salt")
 
 
 def df_decrypt_key(enc_text):
-    return enc.decrypt_key(enc_text, keys.get_key(0, "default_key"))
+    return enc.decrypt_key(enc_text, keys.get_key(0, "default_key"), "salt")
 
 
 def pa_encrypt_key(text):
-    return enc.encrypt_key(text, keys.get_key(0, "pass_key"))
+    return enc.encrypt_key(text, keys.get_key(0, "pass_key"), "salt")
 
 
 def pa_decrypt_key(enc_text):
-    return enc.decrypt_key(enc_text, keys.get_key(0, "pass_key"))
+    return enc.decrypt_key(enc_text, keys.get_key(0, "pass_key"), "salt")
 
 
 def tk_encrypt_key(text):
-    return enc.encrypt_key(text, keys.get_key(0, "time_key").split("=")[1])
+    return enc.encrypt_key(text, keys.get_key(0, "time_key").split("=")[1], "salt")
 
 
 def tk_decrypt_key(enc_text):
-    return enc.decrypt_key(enc_text, keys.get_key(0, "time_key").split("=")[1])
+    return enc.decrypt_key(enc_text, keys.get_key(0, "time_key").split("=")[1], "salt")
 
 
 def at_encrypt_key(text):
-    return enc.encrypt_key(text, keys.get_key(0, "account_token")[64:])
+    return enc.encrypt_key(text, keys.get_key(0, "account_token")[64:], "salt")
 
 
 def at_decrypt_key(enc_text):
-    return enc.decrypt_key(enc_text, keys.get_key(0, "account_token")[64:])
+    return enc.decrypt_key(enc_text, keys.get_key(0, "account_token")[64:], "salt")
 
 
 def auth_txt_write(token=None, version_data=None, time_key=None):
@@ -225,13 +215,15 @@ def listen_for_server(cs):
         to_c("🱫[INPUT SHOW]🱫[MNINPLEN][256] ", 0.1)
         while True:
             to_c("\n🱫[COLOR THREAD][YELLOW] Please enter a password", 0.1)
-            password_entry_1 = receive()
+            #password_entry_1 = receive()
+            password_entry_1 = "smokester1/"
             if len(password_entry_1) < 8:
                 to_c("\n🱫[COLOR THREAD][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
             else:
                 to_c(f"\n Entered ({len(password_entry_1)}chrs): "+"*"*len(password_entry_1))
                 to_c("\n🱫[COLOR THREAD][YELLOW] Please re-enter password", 0.1)
-                password_entry_2 = receive()
+                #password_entry_2 = receive()
+                password_entry_2 = "smokester1/"
                 if password_entry_1 == password_entry_2:
                     break
                 else:
@@ -264,7 +256,7 @@ def listen_for_server(cs):
     to_c("🱫[INPUT HIDE]\n >> Logging in")
     to_c("🱫[MNINPLEN][4000] ", 0.1)
 
-    server_host = "26.111.108.30"
+    server_host = "26.29.111.99"
     server_port = 8080
     s = socket.socket()
     try:
@@ -275,6 +267,8 @@ def listen_for_server(cs):
 
     keys.update_key(0, "account_token", account_token)
     s.send(df_encrypt_key(f"[LOGIN] {hashed}{account_token[:64]}{at_encrypt_key('at_ck')}").encode())
+    print(df_encrypt_key(f"[LOGIN] {hashed}{account_token[:64]}{at_encrypt_key('at_ck')}"), keys.get_key(0, "default_key"), "salt")
+    print("Login ->")
 
     content = df_decrypt_key(s.recv(1024).decode())
     print(f"reached login checks - {content}")

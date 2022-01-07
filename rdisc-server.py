@@ -12,23 +12,23 @@ if not os.path.exists("df.key"):
     with open("df.key", "w", encoding="utf-8") as f:
         for i in range(10):
             f.write(f"{enc.hex_gens(50)}\n")
-with open("df.key", 'rb') as hash_file:
-    buf = hash_file.read(block_size)
-    while len(buf) > 0:
-        hash_.update(buf)
-        buf = hash_file.read(block_size)
-default_key = hash_.hexdigest()
+#with open("df.key", 'rb') as hash_file:
+#    buf = hash_file.read(block_size)
+#    while len(buf) > 0:
+#        hash_.update(buf)
+#        buf = hash_file.read(block_size)
+default_key = enc.hash_a_file("df.key")
 
 
 def get_server_key_from_file():
     with open("server_time_key.txt", encoding="utf-8") as f:
-        cur_ky_tm, old_ky = enc.decrypt_key(f.read(), default_key).split("=")
+        cur_ky_tm, old_ky = enc.decrypt_key(f.read(), default_key, "salt").split("§")
     return cur_ky_tm, old_ky, old_ky
 
 
 def write_server_key_to_file(sver_key_tme, sver_tme_key):
     with open("server_time_key.txt", "w", encoding="utf-8") as f:
-        f.write(enc.encrypt_key(f"{sver_key_tme}={sver_tme_key}", default_key))
+        f.write(enc.encrypt_key(f"{sver_key_tme}§{sver_tme_key}", default_key, "salt"))
 
 
 if os.path.exists("server_time_key.txt"):
@@ -47,7 +47,7 @@ if os.path.exists("server_time_key.txt"):
     loop = 0
     while current_key_time != desired_time:
         loop += 1
-        current_key = enc.pass_to_seed(str(current_key))
+        current_key = enc.pass_to_seed(str(current_key), str(current_key))
         current_key_time += datetime.timedelta(seconds=30)
         if loop % 20 == 0:
             print(loop, current_key_time, current_key)
@@ -56,7 +56,7 @@ if os.path.exists("server_time_key.txt"):
     print("Key upto-date!")
 else:
     current_key_time = enc.round_tme()
-    current_key = enc.pass_to_seed(enc.hex_gens(64))
+    current_key = enc.pass_to_seed(enc.hex_gens(64), enc.hex_gens(64))
     current_key_time += datetime.timedelta(seconds=30)
     print(f"Entry point 2: {current_key_time}={current_key}")
     write_server_key_to_file(current_key_time, current_key)
@@ -123,7 +123,7 @@ def update_server_time_key():
                 print("CRITICAL ERROR THIS SHOULD NOT HAVE OCCURED")
 
             while current_key_time != desired_time:
-                current_key = enc.pass_to_seed(str(old_key))
+                current_key = enc.pass_to_seed(str(old_key), str(old_key))
                 current_key_time += datetime.timedelta(seconds=30)
 
             if str(current_key) != str(old_key):
@@ -147,10 +147,12 @@ def version_info(hashed, user_id, cs):
     if not real_version:
         return "NOTREAL"
     else:
-        latest_sha, type, version, tme, bld_num, run_num = version_data.split(" ")
+        latest_sha, type, version, tme, bld_num, run_num = version_data.split("§")
         print(latest_sha, type, version, tme, bld_num, run_num)
         release_major, major, build, run = version.replace("V", "").split(".")
         req_release_major, req_major, req_build, req_run = min_version.replace("V", "").split(".")
+        print(req_release_major, req_major, req_build, req_run)
+        input()
         valid_version = False
         if int(release_major) > int(req_release_major) - 1:
             if int(major) > int(req_major) - 1:
@@ -162,7 +164,7 @@ def version_info(hashed, user_id, cs):
             return f"INVALID-{version}->{min_version}"
         else:
             if users.get(0, user_id[:64]):
-                if enc.decrypt_key(user_id[64:], users.get(0, user_id[:64])[:32]) == "at_ck":
+                if enc.decrypt_key(user_id[64:], users.get(0, user_id[:64])[:32], "salt") == "at_ck":
                     time_key_hashed = sha256(valid_time_keys['CURRENT'].encode()).hexdigest()
                 client_sockets.add(cs)
                 print("Updated cs", client_sockets)
@@ -189,10 +191,11 @@ def client_connection(cs):
     print("Waiting for login data", ip)
     content = cs.recv(1024).decode()
     print("CONT", content)
-    content = enc.decrypt_key(content, default_key)
+    print(content, default_key, "salt")
+    content = enc.decrypt_key(content, default_key, "salt")
     print("login", content)
     version_response = version_info(content[8:136], content[136:], cs)
-    cs.send(enc.encrypt_key(version_response, default_key).encode())
+    cs.send(enc.encrypt_key(version_response, default_key, "salt").encode())
 
     while True:
         try:
@@ -203,15 +206,15 @@ def client_connection(cs):
             break
         actual_message = False
         try:
-            content = enc.decrypt_key(content, valid_time_keys['CURRENT'])
+            content = enc.decrypt_key(content, valid_time_keys['CURRENT'], "salt")
             actual_message = True
         except:
             try:
-                content = enc.decrypt_key(content, valid_time_keys['OLD'])
+                content = enc.decrypt_key(content, valid_time_keys['OLD'], "salt")
                 actual_message = True
             except:
                 try:
-                    content = enc.decrypt_key(content, valid_time_keys['NEW'])
+                    content = enc.decrypt_key(content, valid_time_keys['NEW'], "salt")
                     actual_message = True
                 except Exception as e:
                     print("Could not decrypt_key", e)
@@ -219,7 +222,7 @@ def client_connection(cs):
         if actual_message:
             if users.get(0, content[:64]):
                 account_data = users.get(0, content[:64])
-                content_without_id = enc.decrypt_key(content[64:], account_data[:32])
+                content_without_id = enc.decrypt_key(content[64:], account_data[:32], "salt")
                 account_name = account_data[33:]
             else:
                 print("invalid message post attempted")

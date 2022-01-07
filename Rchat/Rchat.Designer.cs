@@ -43,6 +43,7 @@
             this.fontCommandToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.changeNameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.changePasswordToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.MainInput_pic = new System.Windows.Forms.PictureBox();
             this.MainOutput_backing_pic = new System.Windows.Forms.PictureBox();
             this.Background = new System.Windows.Forms.Panel();
@@ -52,7 +53,6 @@
             this.MainOutput = new System.Windows.Forms.RichTextBox();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.timer1 = new System.Windows.Forms.Timer(this.components);
-            this.changePasswordToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.panel1.SuspendLayout();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.MainInput_pic)).BeginInit();
@@ -65,7 +65,7 @@
             this.Send.FlatAppearance.BorderSize = 0;
             this.Send.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.Send.Image = ((System.Drawing.Image)(resources.GetObject("Send.Image")));
-            this.Send.Location = new System.Drawing.Point(1186, 559);
+            this.Send.Location = new System.Drawing.Point(1201, 565);
             this.Send.Name = "Send";
             this.Send.Size = new System.Drawing.Size(50, 50);
             this.Send.TabIndex = 5;
@@ -81,11 +81,11 @@
             this.MainInput.EnableAutoDragDrop = true;
             this.MainInput.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.MainInput.ForeColor = System.Drawing.Color.White;
-            this.MainInput.Location = new System.Drawing.Point(30, 595);
+            this.MainInput.Location = new System.Drawing.Point(18, 602);
             this.MainInput.MaxLength = 4000;
             this.MainInput.Name = "MainInput";
             this.MainInput.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
-            this.MainInput.Size = new System.Drawing.Size(1082, 35);
+            this.MainInput.Size = new System.Drawing.Size(1109, 35);
             this.MainInput.TabIndex = 6;
             this.MainInput.Text = "";
             this.MainInput.LinkClicked += new System.Windows.Forms.LinkClickedEventHandler(this.MainInput_LinkClicked);
@@ -109,7 +109,7 @@
             this.MI_MaxChars.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.MI_MaxChars.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
             this.MI_MaxChars.ForeColor = System.Drawing.Color.Coral;
-            this.MI_MaxChars.Location = new System.Drawing.Point(1139, 613);
+            this.MI_MaxChars.Location = new System.Drawing.Point(1154, 620);
             this.MI_MaxChars.Name = "MI_MaxChars";
             this.MI_MaxChars.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.MI_MaxChars.Size = new System.Drawing.Size(42, 13);
@@ -140,7 +140,7 @@
             this.Exit.Image = ((System.Drawing.Image)(resources.GetObject("Exit.Image")));
             this.Exit.Location = new System.Drawing.Point(1231, 15);
             this.Exit.Name = "Exit";
-            this.Exit.Size = new System.Drawing.Size(23, 23);
+            this.Exit.Size = new System.Drawing.Size(29, 23);
             this.Exit.TabIndex = 8;
             this.Exit.UseVisualStyleBackColor = false;
             this.Exit.Click += new System.EventHandler(this.Exit_Click);
@@ -339,9 +339,18 @@
             this.changeNameToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
             this.changeNameToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.changeNameToolStripMenuItem.Name = "changeNameToolStripMenuItem";
-            this.changeNameToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.changeNameToolStripMenuItem.Size = new System.Drawing.Size(168, 22);
             this.changeNameToolStripMenuItem.Text = "Change name";
             this.changeNameToolStripMenuItem.Click += new System.EventHandler(this.changeNameToolStripMenuItem_Click);
+            // 
+            // changePasswordToolStripMenuItem
+            // 
+            this.changePasswordToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
+            this.changePasswordToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
+            this.changePasswordToolStripMenuItem.Name = "changePasswordToolStripMenuItem";
+            this.changePasswordToolStripMenuItem.Size = new System.Drawing.Size(168, 22);
+            this.changePasswordToolStripMenuItem.Text = "Change password";
+            this.changePasswordToolStripMenuItem.Click += new System.EventHandler(this.changePasswordToolStripMenuItem_Click);
             // 
             // MainInput_pic
             // 
@@ -370,9 +379,9 @@
             this.Background.Controls.Add(this.tmkyt);
             this.Background.Controls.Add(this.Mninp_Bk);
             this.Background.Controls.Add(this.Send);
-            this.Background.Location = new System.Drawing.Point(5, 29);
+            this.Background.Location = new System.Drawing.Point(7, 29);
             this.Background.Name = "Background";
-            this.Background.Size = new System.Drawing.Size(1257, 615);
+            this.Background.Size = new System.Drawing.Size(1254, 626);
             this.Background.TabIndex = 17;
             // 
             // clock
@@ -400,9 +409,9 @@
             // Mninp_Bk
             // 
             this.Mninp_Bk.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
-            this.Mninp_Bk.Location = new System.Drawing.Point(12, 559);
+            this.Mninp_Bk.Location = new System.Drawing.Point(4, 566);
             this.Mninp_Bk.Name = "Mninp_Bk";
-            this.Mninp_Bk.Size = new System.Drawing.Size(1169, 50);
+            this.Mninp_Bk.Size = new System.Drawing.Size(1192, 50);
             this.Mninp_Bk.TabIndex = 0;
             // 
             // MainOutput
@@ -412,10 +421,10 @@
             this.MainOutput.Cursor = System.Windows.Forms.Cursors.Default;
             this.MainOutput.Font = new System.Drawing.Font("Lucida Sans Unicode", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.MainOutput.ForeColor = System.Drawing.Color.White;
-            this.MainOutput.Location = new System.Drawing.Point(15, 36);
+            this.MainOutput.Location = new System.Drawing.Point(18, 36);
             this.MainOutput.Name = "MainOutput";
             this.MainOutput.ReadOnly = true;
-            this.MainOutput.Size = new System.Drawing.Size(1138, 525);
+            this.MainOutput.Size = new System.Drawing.Size(1135, 525);
             this.MainOutput.TabIndex = 4;
             this.MainOutput.TabStop = false;
             this.MainOutput.Text = "";
@@ -431,15 +440,6 @@
             // 
             this.timer1.Enabled = true;
             this.timer1.Tick += new System.EventHandler(this.timer1_Tick_1);
-            // 
-            // changePasswordToolStripMenuItem
-            // 
-            this.changePasswordToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
-            this.changePasswordToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
-            this.changePasswordToolStripMenuItem.Name = "changePasswordToolStripMenuItem";
-            this.changePasswordToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.changePasswordToolStripMenuItem.Text = "Change password";
-            this.changePasswordToolStripMenuItem.Click += new System.EventHandler(this.changePasswordToolStripMenuItem_Click);
             // 
             // Rchat
             // 
