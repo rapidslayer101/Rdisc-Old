@@ -21,13 +21,13 @@ default_key = enc.hash_a_file("df.key")
 
 
 def get_server_key_from_file():
-    with open("server_time_key.txt", encoding="utf-8") as f:
+    with open("server_time_key.txt", "rb") as f:
         cur_ky_tm, old_ky = enc.decrypt_key(f.read(), default_key, "salt").split("§")
     return cur_ky_tm, old_ky, old_ky
 
 
 def write_server_key_to_file(sver_key_tme, sver_tme_key):
-    with open("server_time_key.txt", "w", encoding="utf-8") as f:
+    with open("server_time_key.txt", "wb") as f:
         f.write(enc.encrypt_key(f"{sver_key_tme}§{sver_tme_key}", default_key, "salt"))
 
 
@@ -189,17 +189,16 @@ print(f"[*] Listening as 0.0.0.0:{SERVER_PORT}")
 def client_connection(cs):
     ip = str(cs).split("raddr=")[1]
     print("Waiting for login data", ip)
-    content = cs.recv(1024).decode()
-    print("CONT", content)
-    print(content, default_key, "salt")
+    content = cs.recv(1024)
+    print("CONT", content.decode(), default_key, "salt")
     content = enc.decrypt_key(content, default_key, "salt")
     print("login", content)
     version_response = version_info(content[8:136], content[136:], cs)
-    cs.send(enc.encrypt_key(version_response, default_key, "salt").encode())
+    cs.send(enc.encrypt_key(version_response, default_key, "salt"))
 
     while True:
         try:
-            content = cs.recv(1024).decode()
+            content = cs.recv(1024)
         except ConnectionResetError:
             print(f"{cs} Disconnected")
             client_sockets.remove(cs)

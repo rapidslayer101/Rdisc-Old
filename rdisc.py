@@ -88,8 +88,10 @@ print(f"Radmin detected: {addresses}")
 # 0.15 file cleanup and load changes, code cleanup, names, multi user support (so actually functional)
 # 0.16 socket close improvements, name changes, fixed restarts, password changes, len checks
 
-# 0.17 downloading, saving, load req files from a first time setup file
-# 0.18 logout system and storing data
+# 0.17 rdisc-rc3 rewrites, enc 9.4.2 implemented, changed from strings to bytes
+
+# 0.18 downloading, saving, load req files from a first time setup file
+# 0.19 logout system and storing data
 
 
 # ports localhost:8079, localhost:8080
@@ -216,14 +218,14 @@ def listen_for_server(cs):
         while True:
             to_c("\n🱫[COLOR THREAD][YELLOW] Please enter a password", 0.1)
             #password_entry_1 = receive()
-            password_entry_1 = "smokester1/"
+            password_entry_1 = "f839056vgnq5"
             if len(password_entry_1) < 8:
                 to_c("\n🱫[COLOR THREAD][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
             else:
                 to_c(f"\n Entered ({len(password_entry_1)}chrs): "+"*"*len(password_entry_1))
                 to_c("\n🱫[COLOR THREAD][YELLOW] Please re-enter password", 0.1)
                 #password_entry_2 = receive()
-                password_entry_2 = "smokester1/"
+                password_entry_2 = "f839056vgnq5"
                 if password_entry_1 == password_entry_2:
                     break
                 else:
@@ -234,7 +236,8 @@ def listen_for_server(cs):
         to_c("🱫[MNINPLEN][96]")
         to_c("\n🱫[COLOR THREAD][YELLOW] Enter your 96 char account token", 0.1)
         while True:
-            account_token = receive()
+            #account_token = receive()
+            account_token = """AYrJ*Gq_M0P"|bfkkX"57"wYE;m71U$>=jaw5£!*<2UE);[mq#]:\[,3*tl(k'r@l1927bfc5141fa69c2ab5b204e3d5224"""
             if len(account_token) < 96:
                 to_c("\n🱫[COLOR THREAD][RED] Token is to short (should be 96 chars)")
             if len(account_token) == 96:
@@ -266,11 +269,11 @@ def listen_for_server(cs):
         input()
 
     keys.update_key(0, "account_token", account_token)
-    s.send(df_encrypt_key(f"[LOGIN] {hashed}{account_token[:64]}{at_encrypt_key('at_ck')}").encode())
+    s.send(df_encrypt_key(f"[LOGIN] {hashed}{account_token[:64]}{at_encrypt_key('at_ck')}"))
     print(df_encrypt_key(f"[LOGIN] {hashed}{account_token[:64]}{at_encrypt_key('at_ck')}"), keys.get_key(0, "default_key"), "salt")
     print("Login ->")
 
-    content = df_decrypt_key(s.recv(1024).decode())
+    content = df_decrypt_key(s.recv(1024))
     print(f"reached login checks - {content}")
     if content.startswith("NOTREAL"):
         to_c("\n🱫[COLOR THREAD][RED] <> INVALID VERSION DETECTED, downloading replacements"
