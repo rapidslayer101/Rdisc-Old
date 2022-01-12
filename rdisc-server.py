@@ -151,21 +151,21 @@ def version_info(hashed, user_id, cs):
         print(latest_sha, type, version, tme, bld_num, run_num)
         release_major, major, build, run = version.replace("V", "").split(".")
         req_release_major, req_major, req_build, req_run = min_version.replace("V", "").split(".")
-        print(req_release_major, req_major, req_build, req_run)
-        input()
         valid_version = False
-        if int(release_major) > int(req_release_major) - 1:
-            if int(major) > int(req_major) - 1:
-                if int(build) > int(req_build) - 1:
-                    if int(run) > int(req_run) - 1:
+        if int(release_major) > int(req_release_major)-1:
+            if int(major) > int(req_major)-1:
+                if int(build) > int(req_build)-1:
+                    if int(run) > int(req_run)-1:
                         valid_version = True
                         print(f"{version} is valid for the {min_version} requirement")
         if not valid_version:
             return f"INVALID-{version}->{min_version}"
         else:
             if users.get(0, user_id[:64]):
-                if enc.decrypt_key(user_id[64:], users.get(0, user_id[:64])[:32], "salt") == "at_ck":
-                    time_key_hashed = sha256(valid_time_keys['CURRENT'].encode()).hexdigest()
+                print(user_id[64:])
+                #if enc.decrypt_key(user_id[64:], users.get(0, user_id[:64])[:32], "salt") == "at_ck":
+                #if user_id[64:] == "at_ck":
+                time_key_hashed = sha256(valid_time_keys['CURRENT'].encode()).hexdigest()
                 client_sockets.add(cs)
                 print("Updated cs", client_sockets)
                 return f"VALID-{version}-{tme}-{bld_num}-{run_num}Ō{time_key_hashed}"
@@ -190,10 +190,10 @@ def client_connection(cs):
     ip = str(cs).split("raddr=")[1]
     print("Waiting for login data", ip)
     content = cs.recv(1024)
-    print("CONT", content.decode(), default_key, "salt")
+    print("CONT", content, default_key, "salt")
     content = enc.decrypt_key(content, default_key, "salt")
     print("login", content)
-    version_response = version_info(content[8:136], content[136:], cs)
+    version_response = version_info(content.split("🱫")[0][8:], content.split("🱫")[1], cs)
     cs.send(enc.encrypt_key(version_response, default_key, "salt"))
 
     while True:

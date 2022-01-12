@@ -88,7 +88,7 @@ print(f"Radmin detected: {addresses}")
 # 0.15 file cleanup and load changes, code cleanup, names, multi user support (so actually functional)
 # 0.16 socket close improvements, name changes, fixed restarts, password changes, len checks
 
-# 0.17 rdisc-rc3 rewrites, enc 9.4.2 implemented, changed from strings to bytes
+# 0.17 rdisc-rc3 rewrites, enc 9.5.0 implemented, changed from strings to bytes
 
 # 0.18 downloading, saving, load req files from a first time setup file
 # 0.19 logout system and storing data
@@ -269,8 +269,9 @@ def listen_for_server(cs):
         input()
 
     keys.update_key(0, "account_token", account_token)
-    s.send(df_encrypt_key(f"[LOGIN] {hashed}{account_token[:64]}{at_encrypt_key('at_ck')}"))
-    print(df_encrypt_key(f"[LOGIN] {hashed}{account_token[:64]}{at_encrypt_key('at_ck')}"), keys.get_key(0, "default_key"), "salt")
+    #s.send(df_encrypt_key(f"[LOGIN] {hashed}🱫{account_token[:64]}{at_encrypt_key('at_ck')}"))
+    s.send(df_encrypt_key(f"[LOGIN] {hashed}🱫{account_token[:64]}{keys.get_key(0, 'account_token')[64:]}"))
+    print(df_encrypt_key(f"[LOGIN] {hashed}🱫{account_token[:64]}{keys.get_key(0, 'account_token')[64:]}"))
     print("Login ->")
 
     content = df_decrypt_key(s.recv(1024))
@@ -334,7 +335,7 @@ def listen_for_server(cs):
         tk_loop = 0
         while sha256(str(current_key).encode()).hexdigest() != current_server_tme_key_hash:
             tk_loop += 1
-            current_key = enc.pass_to_seed(str(current_key))
+            current_key = enc.pass_to_seed(str(current_key), "salt")
             curr_tme_fmt += datetime.timedelta(seconds=30)
             try:
                 if time.time() - last_update > 0.1:
