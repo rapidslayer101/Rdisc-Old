@@ -1,5 +1,5 @@
-import datetime, os, time, socket
-from hashlib import sha512, sha256
+import datetime, os, socket
+from hashlib import sha512
 from threading import Thread
 import enclib as enc
 
@@ -12,72 +12,7 @@ if not os.path.exists("df.key"):
     with open("df.key", "w", encoding="utf-8") as f:
         for i in range(10):
             f.write(f"{enc.hex_gens(50)}\n")
-#with open("df.key", 'rb') as hash_file:
-#    buf = hash_file.read(block_size)
-#    while len(buf) > 0:
-#        hash_.update(buf)
-#        buf = hash_file.read(block_size)
 default_key = enc.hash_a_file("df.key")
-
-
-def get_server_key_from_file():
-    with open("server_time_key.txt", "rb") as f:
-        cur_ky_tm, old_ky = enc.decrypt_key(f.read(), default_key, "salt").split("§")
-    return cur_ky_tm, old_ky, old_ky
-
-
-def write_server_key_to_file(sver_key_tme, sver_tme_key):
-    with open("server_time_key.txt", "wb") as f:
-        f.write(enc.encrypt_key(f"{sver_key_tme}§{sver_tme_key}", default_key, "salt"))
-
-
-if os.path.exists("server_time_key.txt"):
-    date_format_str = '%Y-%m-%d %H:%M:%S'
-    current_key_time, current_key, old_key = get_server_key_from_file()
-    current_key_time = datetime.datetime.strptime(str(current_key_time), date_format_str)
-
-    desired_time = enc.round_tme()+datetime.timedelta(seconds=30)
-    curr_tme_fmt = datetime.datetime.strptime(str(current_key_time), date_format_str)
-    diff = datetime.datetime.strptime(str(desired_time), date_format_str) - curr_tme_fmt
-    iterations = int(diff.total_seconds()) / 30
-
-    if iterations > 0:
-        print(f"Updating time_key from {curr_tme_fmt}-->{desired_time} via {iterations} iterations")
-
-    loop = 0
-    while current_key_time != desired_time:
-        loop += 1
-        current_key = enc.pass_to_seed(str(current_key), str(current_key))
-        current_key_time += datetime.timedelta(seconds=30)
-        if loop % 20 == 0:
-            print(loop, current_key_time, current_key)
-
-    write_server_key_to_file(current_key_time, current_key)
-    print("Key upto-date!")
-else:
-    current_key_time = enc.round_tme()
-    current_key = enc.pass_to_seed(enc.hex_gens(64), enc.hex_gens(64))
-    current_key_time += datetime.timedelta(seconds=30)
-    print(f"Entry point 2: {current_key_time}={current_key}")
-    write_server_key_to_file(current_key_time, current_key)
-
-
-valid_time_keys = {"OLD": f"{current_key_time}={current_key}",
-                   "CURRENT": f"{current_key_time}={current_key}",
-                   "NEW": f"{current_key_time}={current_key}"}
-print(valid_time_keys)
-date_format_str = '%Y-%m-%d %H:%M:%S'
-print()
-
-
-class time_keys:
-    def get(self):
-        return valid_time_keys
-
-    def add(self, time_key):
-        valid_time_keys.update({"OLD": f"{valid_time_keys['CURRENT']}"})
-        valid_time_keys.update({"CURRENT": f"{valid_time_keys['NEW']}"})
-        valid_time_keys.update({"NEW": f"{time_key}"})
 
 
 user_data = {}
@@ -109,32 +44,6 @@ class users:
 users.reload(0)
 
 
-def update_server_time_key():
-    while True:
-        current_key_time, current_key, old_key = get_server_key_from_file()
-        try:
-            current_key_time = datetime.datetime.strptime(str(current_key_time), date_format_str)
-            desired_time = enc.round_tme()+datetime.timedelta(seconds=30)
-            curr_tme_fmt = datetime.datetime.strptime(str(current_key_time), date_format_str)
-            diff = datetime.datetime.strptime(str(desired_time), date_format_str) - curr_tme_fmt
-            iterations = int(diff.total_seconds()) / 30
-
-            if iterations > 1:
-                print("CRITICAL ERROR THIS SHOULD NOT HAVE OCCURED")
-
-            while current_key_time != desired_time:
-                current_key = enc.pass_to_seed(str(old_key), str(old_key))
-                current_key_time += datetime.timedelta(seconds=30)
-
-            if str(current_key) != str(old_key):
-                print(f"{current_key_time}={current_key}")
-                write_server_key_to_file(current_key_time, current_key)
-                time_keys.add(0, current_key)
-        except Exception as e:
-            print("error", e)
-        time.sleep(1)
-
-
 def version_info(hashed, user_id, cs):
     print(hashed, user_id)
     real_version = False
@@ -162,20 +71,14 @@ def version_info(hashed, user_id, cs):
             return f"INVALID-{version}->{min_version}"
         else:
             if users.get(0, user_id[:64]):
-                print(user_id[64:])
                 #if enc.decrypt_key(user_id[64:], users.get(0, user_id[:64])[:32], "salt") == "at_ck":
                 #if user_id[64:] == "at_ck":
-                time_key_hashed = sha256(valid_time_keys['CURRENT'].encode()).hexdigest()
                 client_sockets.add(cs)
                 print("Updated cs", client_sockets)
-                return f"VALID-{version}-{tme}-{bld_num}-{run_num}Ō{time_key_hashed}"
+                return f"VALID-{version}-{tme}-{bld_num}-{run_num}"
             else:
                 return f"NO_ACC_FND"
 
-
-t = Thread(target=update_server_time_key)
-t.daemon = True
-t.start()
 
 SERVER_PORT = 8080
 client_sockets = set()
@@ -187,7 +90,7 @@ print(f"[*] Listening as 0.0.0.0:{SERVER_PORT}")
 
 
 def client_connection(cs):
-    ip = str(cs).split("raddr=")[1]
+    ip, port = str(cs).split("raddr=")[1][2:-2].split("', ")
     print("Waiting for login data", ip)
     content = cs.recv(1024)
     print("CONT", content, default_key, "salt")
@@ -205,44 +108,42 @@ def client_connection(cs):
             break
         actual_message = False
         try:
-            content = enc.decrypt_key(content, valid_time_keys['CURRENT'], "salt")
+            print(content)
+            content = enc.decrypt_key(content, default_key, "salt")
             actual_message = True
-        except:
-            try:
-                content = enc.decrypt_key(content, valid_time_keys['OLD'], "salt")
-                actual_message = True
-            except:
-                try:
-                    content = enc.decrypt_key(content, valid_time_keys['NEW'], "salt")
-                    actual_message = True
-                except Exception as e:
-                    print("Could not decrypt_key", e)
+        except Exception as e:
+            print("Could not decrypt_key", e)
+            client_socket.close()
 
         if actual_message:
-            if users.get(0, content[:64]):
-                account_data = users.get(0, content[:64])
-                content_without_id = enc.decrypt_key(content[64:], account_data[:32], "salt")
-                account_name = account_data[33:]
-            else:
-                print("invalid message post attempted")
+            #if users.get(0, content[:64]):
+            #    account_data = users.get(0, content[:64])
+            #    print(account_data[:32])
+            #    override = b'R`*3\xd3\xff\xef\xbe\x1f\x17\xa4\xc8\x8dV\xb3\xcf<\xf3\xcf<'
+                #content_without_id = enc.decrypt_key(content[64:].encode(), account_data[:32].encode(), "salt")
+            #    content_without_id = enc.decrypt_key(content[64:].encode(), override, "salt")
+            #    account_name = account_data[33:]
+            #else:
+            #    print("invalid message post attempted")
 
-            send = True
-            process_code = content_without_id[:3]
-            payload = content_without_id[3:]
-            print(ip, process_code, content)
+            #send = True
+            process_code = content[:3]
+            payload = content[3:]
+            print(ip, port, process_code, payload)
 
             if process_code == "MSG":  # message post
-                payload = f"{datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} " \
-                          f"{account_name}: {payload}"
-                send = enc.encrypt_key(payload, valid_time_keys['CURRENT'])
+                send = f"{datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} " \
+                          f"{ip}:{port}: {payload}"
+                          #f"{account_name}: {payload}"
+                #send = enc.encrypt_key(payload, default_key, "salt")
 
-            if process_code == "CAN":  # change account name  # todo dup checks and reject to long
-                users.change_name(0, content[:64], account_data[:32], payload)
-                send = enc.encrypt_key(f"'{account_name}' changed name to '{payload}'", valid_time_keys['CURRENT'])
+            #if process_code == "CAN":  # change account name  # todo dup checks and reject to long
+            #    users.change_name(0, content[:64], account_data[:32], payload)
+            #    send = enc.encrypt_key(f"'{account_name}' changed name to '{payload}'", default_key)
 
-            if send:
-                for client_socket in client_sockets:
-                    client_socket.send(enc.encrypt_key(send, default_key).encode())
+            #if send:
+            for client_socket in client_sockets:
+                client_socket.send(enc.encrypt_key(send, default_key, "salt"))
 
 
 while True:

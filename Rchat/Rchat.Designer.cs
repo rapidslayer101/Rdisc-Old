@@ -379,7 +379,7 @@
             this.Background.Controls.Add(this.tmkyt);
             this.Background.Controls.Add(this.Mninp_Bk);
             this.Background.Controls.Add(this.Send);
-            this.Background.Location = new System.Drawing.Point(7, 29);
+            this.Background.Location = new System.Drawing.Point(6, 29);
             this.Background.Name = "Background";
             this.Background.Size = new System.Drawing.Size(1254, 626);
             this.Background.TabIndex = 17;

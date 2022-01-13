@@ -1,6 +1,5 @@
-import socket, os, time, zlib, datetime, psutil
+import socket, os, time, datetime, psutil
 import enclib as enc
-from hashlib import sha256
 from threading import Thread
 
 try:
@@ -88,10 +87,11 @@ print(f"Radmin detected: {addresses}")
 # 0.15 file cleanup and load changes, code cleanup, names, multi user support (so actually functional)
 # 0.16 socket close improvements, name changes, fixed restarts, password changes, len checks
 
-# 0.17 rdisc-rc3 rewrites, enc 9.5.0 implemented, changed from strings to bytes
+# 0.17 rdisc-rc3 rewrites, enc 9.5.0 implemented, changed mostly from str to bytes, removal of entire time_key system
 
-# 0.18 downloading, saving, load req files from a first time setup file
-# 0.19 logout system and storing data
+# 0.18 new encryption format, brand new hash system
+# 0.19 downloading, saving, load req files from a first time setup file
+# 0.20 logout system and storing data
 
 
 # ports localhost:8079, localhost:8080
@@ -113,15 +113,15 @@ if not os.path.isfile("df.key"):
     to_c("\n🱫[COLOR THREAD][YELLOW] Tell the developer that you require df_key and he will help you", 0.1)
     while True:
         input()
-keys.update_key(0, "default_key", enc.hash_a_file("df.key"))
+keys.update_key(0, "df_key", enc.hash_a_file("df.key"))
 
 
 def df_encrypt_key(text):
-    return enc.encrypt_key(text, keys.get_key(0, "default_key"), "salt")
+    return enc.encrypt_key(text, keys.get_key(0, "df_key"), "salt")
 
 
 def df_decrypt_key(enc_text):
-    return enc.decrypt_key(enc_text, keys.get_key(0, "default_key"), "salt")
+    return enc.decrypt_key(enc_text, keys.get_key(0, "df_key"), "salt")
 
 
 def pa_encrypt_key(text):
@@ -130,14 +130,6 @@ def pa_encrypt_key(text):
 
 def pa_decrypt_key(enc_text):
     return enc.decrypt_key(enc_text, keys.get_key(0, "pass_key"), "salt")
-
-
-def tk_encrypt_key(text):
-    return enc.encrypt_key(text, keys.get_key(0, "time_key").split("=")[1], "salt")
-
-
-def tk_decrypt_key(enc_text):
-    return enc.decrypt_key(enc_text, keys.get_key(0, "time_key").split("=")[1], "salt")
 
 
 def at_encrypt_key(text):
@@ -149,29 +141,30 @@ def at_decrypt_key(enc_text):
 
 
 def auth_txt_write(token=None, version_data=None, time_key=None):
-    auth_to_write = ""
+    auth_to_write = b""
     if token:
         auth_to_write += pa_encrypt_key(df_encrypt_key(token))
     if version_data:
-        auth_to_write += "\n"+df_encrypt_key(version_data)
+        auth_to_write += b"\\D\\"+df_encrypt_key(version_data)
     if time_key:
-        auth_to_write += "\n"+df_encrypt_key(pa_encrypt_key(time_key))
-    with open("auth.txt", "w", encoding="utf-8") as auth_txt:
+        auth_to_write += b"\\D\\"+df_encrypt_key(pa_encrypt_key(time_key))
+    with open("auth.txt", "wb") as auth_txt:
         auth_txt.write(auth_to_write)
 
 
 if not os.path.isfile("auth.txt"):
     load = 0
 else:
-    with open("auth.txt", encoding="utf-8") as f:
-        auth_data = f.read().split("\n")
+    with open("auth.txt", "rb") as f:
+        auth_data = f.read().split(b"\\D\\")
         if len(auth_data) > 0:
-            if auth_data[0] == "":
+            if auth_data[0] == b"":
                 load = 0
             else:
                 enc_account_token = auth_data[0]
                 load = 1
         if len(auth_data) > 1:
+            print(auth_data[1])
             unverified_version = df_decrypt_key(auth_data[1])
             to_c(f"Loaded version is {unverified_version} (UNVERIFIED)")
             load = 2
@@ -248,8 +241,9 @@ def listen_for_server(cs):
         while True:
             try:
                 to_c("\n🱫[COLOR THREAD][YELLOW] Please enter your password", 0.1)
-                password = receive()
-                keys.update_key(0, "pass_key", password)
+                #password = receive()
+                password = "f839056vgnq5"
+                keys.update_key(0, "pass_key", password.replace("\n", ""))
                 account_token = df_decrypt_key(pa_decrypt_key(enc_account_token))
                 break
             except ValueError:
@@ -298,90 +292,14 @@ def listen_for_server(cs):
         verified_version = content[6:].split('-')[0]
         to_c(f"\n << RESPONSE FROM AUTH RECEIVED\n << {verified_version}")
         to_c(f"Verified version is {verified_version} (VERIFIED)", 0.1)
-        current_server_tme_key_hash = content[6:].split('Ō')[1]
-        current_server_tme_key_tme = enc.round_tme()
-        if load in [0, 1]:
-            while True:
-                to_c("🱫[INPUT SHOW]🱫[MNINPLEN][256] ", 0.1)
-                to_c("\n🱫[COLOR THREAD][YELLOW] Please input your tm_dynm_ky: ", 0.1)
-                try:
-                    key_dta = receive().split("=")
-                    current_kt = key_dta[1]
-                    current_key = key_dta[0]
-                    date_format_str = '%Y-%m-%d %H:%M:%S'
-                    current_kt = datetime.datetime.strptime(str(current_kt), date_format_str)
-                    break
-                except Exception as e:
-                    to_c(f"\n🱫[COLOR THREAD][RED] {e}")
-        else:
-            try:
-                current_kt, current_key = pa_decrypt_key(df_decrypt_key(enc_time_key)).split("=")
-            except zlib.error:
-                to_c("\n🱫[COLOR THREAD][RED] Invalid time_key loaded.")  # todo time_key change fail_code
-                while True:
-                    receive()
 
-        date_format_str = '%Y-%m-%d %H:%M:%S'
-        current_kt = datetime.datetime.strptime(str(current_kt), date_format_str)
-        curr_tme_fmt = datetime.datetime.strptime(str(current_kt), date_format_str)
-        diff = datetime.datetime.strptime(str(current_server_tme_key_tme), date_format_str) - curr_tme_fmt
-        iterations = int(diff.total_seconds())/30
-
-        if iterations > 0:
-            to_c(f"\n Updating time_key from {curr_tme_fmt}-->{current_server_tme_key_tme}"
-                 f" via an estimated {int(iterations)} iterations")
-
-        last_update = time.time()
-        tk_loop = 0
-        while sha256(str(current_key).encode()).hexdigest() != current_server_tme_key_hash:
-            tk_loop += 1
-            current_key = enc.pass_to_seed(str(current_key), "salt")
-            curr_tme_fmt += datetime.timedelta(seconds=30)
-            try:
-                if time.time() - last_update > 0.1:
-                    to_c(f"🱫[TMKYT]{str(curr_tme_fmt).split(' ')[1]}"
-                         f"\n{round((iterations - tk_loop)/122.33, 2)}s", 0.1)
-                    last_update = time.time()
-            except ZeroDivisionError:
-                print("Division error in key_update on load")
-
-        auth_txt_write(account_token, verified_version,
-                       f"{current_server_tme_key_tme}={current_key}")
-
-        keys.update_key(0, "time_key", f"{current_server_tme_key_tme}={current_key}")
-        to_c(f"🱫[TMKYT]{str(current_server_tme_key_tme).split(' ')[1]}", 0.1)
-        to_c("\n🱫[COLOR THREAD][GREEN] Key upto-date!")
-
-        def time_key_update():
-            while True:
-                try:
-                    current_kt, old_key = keys.get_key(0, "time_key").split("=")
-                    current_kt = datetime.datetime.strptime(str(current_kt), '%Y-%m-%d %H:%M:%S')
-
-                    current_key = old_key
-                    while current_kt != enc.round_tme():
-                        current_key = enc.pass_to_seed(str(old_key))
-                        current_kt += datetime.timedelta(seconds=30)
-
-                    if str(current_key) != str(old_key):
-                        to_c(f"🱫[TMKYT]{str(current_kt).split(' ')[1]}", 0.1)
-                        auth_txt_write(account_token, verified_version,
-                                       f"{current_kt}={current_key}")
-                        keys.update_key(0, "time_key", f"{current_kt}={current_key}")
-                except Exception as e:
-                    print(e)
-                time.sleep(2)
-
-        t = Thread(target=time_key_update)
-        t.daemon = True
-        t.start()
-
+        auth_txt_write(account_token, verified_version)  # 1 more key supported
         to_c("🱫[INPUT SHOW]\n🱫[COLOR THREAD][GREEN] << You are now logged in and can post messages", 0.1)
 
         def listen_for_messages():
             print("message listener launched")
             while True:
-                to_c(f"\n{tk_decrypt_key(df_decrypt_key(s.recv(1024).decode()))}")
+                to_c(f"\n{df_decrypt_key(s.recv(1024))}")
 
         t = Thread(target=listen_for_messages)
         t.daemon = True
@@ -415,8 +333,7 @@ def listen_for_server(cs):
                         to_c(f"🱫[MNINPTXT] {received}", 0.1)
                     else:
                         keys.update_key(0, "pass_key", received[17:])
-                        auth_txt_write(account_token, verified_version,
-                                       f"{current_kt}={current_key}")
+                        auth_txt_write(account_token, verified_version)
                         to_c(f"\n New password set ({len(received[17:])}chrs): " + "*" * len(received[17:]))
 
             # external
@@ -442,8 +359,8 @@ def listen_for_server(cs):
 
                 checked = cooldown.check(0)  # todo maybe stop input until allowed, bring back what was entered
                 if checked == "True":
-                    s.send(tk_encrypt_key(f"{keys.get_key(0, 'account_token')[:64]}"
-                                          f"{at_encrypt_key(client_send)}").encode())
+                    #s.send(f"{keys.get_key(0, 'account_token')[:64]}{at_encrypt_key(client_send)}".encode())
+                    s.send(enc.encrypt_key(client_send, keys.get_key(0, "df_key"), "salt"))
                 else:
                     to_c(f"\nYOU'RE SENDING MESSAGES TOO FAST! please wait {checked}s~")
 
