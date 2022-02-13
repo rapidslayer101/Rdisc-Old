@@ -10,7 +10,7 @@ using System.Windows.Forms;
 
 namespace Rchat
 {
-	public partial class Rchat : Form
+	public partial class Rchat
 	{
 		[DllImport("user32.dll")]
 		public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
@@ -58,13 +58,13 @@ namespace Rchat
 				catch
 				{
 					MainOutput.SelectionColor = Color.Red;
-					MainOutput.AppendText("\n[!] RDISC could not initialize, ui.exe is likely missing\n\n" + d);
+					MainOutput.AppendText("\n[!] RDISC could not initialize, rdisc.exe is likely missing\n\n" + d);
 				}
 			}
-			MI_MaxChars.Visible = false;
-			Send.Visible = false;
-			Mninp_Bk.Visible = false;
-			MainInput.Visible = false;
+			MI_MaxChars.Visible = Send.Visible = Mninp_Bk.Visible = MainInput.Visible = false;
+			//Send.Visible = false;
+			//Mninp_Bk.Visible = false;
+			//MainInput.Visible = false;
 		}
 
 		private void getMessage()
@@ -172,20 +172,14 @@ namespace Rchat
 
 			if (readData.StartsWith("﻿🱫[INPUT SHOW]"))
 			{
-				MI_MaxChars.Visible = true;
-				Send.Visible = true;
-				Mninp_Bk.Visible = true;
-				MainInput.Visible = true;
+				MI_MaxChars.Visible = Send.Visible = Mninp_Bk.Visible = MainInput.Visible = true;
 				MainInput.Select();
 				readData = readData.Replace("🱫[INPUT SHOW]", "");
 			}
 
 			if (readData.StartsWith("﻿🱫[INPUT HIDE]"))
             {
-				MI_MaxChars.Visible = false;
-				Send.Visible = false;
-				Mninp_Bk.Visible = false;
-				MainInput.Visible = false;
+				MI_MaxChars.Visible = Send.Visible = Mninp_Bk.Visible = MainInput.Visible = false;
 				readData = readData.Replace("🱫[INPUT HIDE]", "");
 			}
 
@@ -263,22 +257,22 @@ namespace Rchat
 		private void MainInput_KeyDown(object sender, KeyEventArgs e)
 		{
 
-			if (e.KeyCode == Keys.Enter && e.Shift)
+			//if (e.KeyCode == Keys.Enter && e.Shift)
+			//{
+			//	MainInput.AppendText("");
+			//}
+			//else
+            //{
+			if (e.KeyCode == Keys.Return)
 			{
-				MainInput.AppendText("");
+				e.Handled = true;
+				e.SuppressKeyPress = true;
+				byte[] bytes = Encoding.Unicode.GetBytes(MainInput.Text);
+				MainInput.Text = "";
+				serverStream.Write(bytes, 0, bytes.Length);
+				serverStream.Flush();
 			}
-			else
-            {
-				if (e.KeyCode == Keys.Return)
-				{
-					e.Handled = true;
-					e.SuppressKeyPress = true;
-					byte[] bytes = Encoding.Unicode.GetBytes(MainInput.Text);
-					MainInput.Text = "";
-					serverStream.Write(bytes, 0, bytes.Length);
-					serverStream.Flush();
-				}
-			}
+			//}
 			if (e.KeyCode == Keys.Back && MainInput.Text.Length == 0)
 			{
 				e.Handled = true;
@@ -367,7 +361,9 @@ namespace Rchat
 
 		private void MainInput_TextChanged(object sender, EventArgs e)
 		{
-			MI_MaxChars.Text = (MainInput.MaxLength - MainInput.Text.Length).ToString();
+			MainInput.Text = MainInput.Text.Replace("\n", "");
+			MainInput.SelectionStart = MainInput.Text.Length;
+			MI_MaxChars.Text = (MainInput.MaxLength-MainInput.Text.Length).ToString();
 		}
 
 		private void quitToolStripMenuItem_Click_1(object sender, EventArgs e)

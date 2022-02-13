@@ -5,18 +5,20 @@ from threading import Thread
 try:
     hashed = enc.hash_a_file("rdisc.py")
     with open("sha.txt", "r", encoding="utf-8") as f:
-        latest_sha, type, version, tme, bld_num, run_num = f.readlines()[-1].split("§")
-        print("prev", latest_sha, type, version, tme, bld_num, run_num)
-        release_major, major, build, run = version.replace("V", "").split(".")
+        latest_sha, run_type, version, tme, bld_num, run_num = f.readlines()[-1].split("§")
+    print("prev", run_type, version, tme, bld_num, run_num)
+    release_major, major, build, run = version.replace("V", "").split(".")
 
     if latest_sha != hashed:
         run = int(run) + 1
         with open("sha.txt", "a+", encoding="utf-8") as f:
-            tme = str(datetime.datetime.now()).replace(" ", "_")
-            print(f"crnt {hashed}§RUN§V{release_major}.{major}.{build}.{run}§TME-{tme}"
-                  f"§BLD_NM-{bld_num[7:]}§RUN_NM-{int(run_num[7:])+1}")
-            f.write(f"\n{hashed}§RUN§V{release_major}.{major}.{build}.{run}§TME-{tme}"
-                    f"§BLD_NM-{bld_num[7:]}§RUN_NM-{int(run_num[7:])+1}")
+            write = f"\n{hashed}§RUN§V{release_major}.{major}.{build}.{run}" \
+                    f"§TME-{str(datetime.datetime.now())[:-4].replace(' ', '_')}" \
+                    f"§BLD_NM-{bld_num[7:]}§RUN_NM-{int(run_num[7:])+1}"
+            print(f"crnt RUN V{release_major}.{major}.{build}.{run} "
+                  f"TME-{str(datetime.datetime.now())[:-4].replace(' ', '_')} "
+                  f"BLD_NM-{bld_num[7:]} RUN_NM-{int(run_num[7:])+1}")
+            f.write(write)
         print(f"Running rdisc V{release_major}.{major}.{build}.{run}")
 except FileNotFoundError:
     hashed = enc.hash_a_file("rdisc.exe")
@@ -46,15 +48,14 @@ if not os.path.isfile("ui.exe"):
     print("[!] CRITICAL FILE ui.exe MISSING")
 else:
     os.startfile("ui.exe")
-print("<- ui.exe launched")
+print(" <- ui.exe launched")
 s.listen(10)
 
 
 def to_c(text, delay=None):
     if delay:
         time.sleep(delay)
-    for client_sock in client_sockets:
-        client_sock.send(str(text).encode(encoding="utf-16"))
+    [sock.send(str(text).encode(encoding="utf-16")) for sock in client_sockets]
 
 
 client_socket, client_address = s.accept()
@@ -65,7 +66,8 @@ to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
 try:
     addresses = psutil.net_if_addrs()["Radmin VPN"]
 except KeyError:
-    to_c("\n🱫[COLOR THREAD][RED] Radmin is not installed on this machine")
+    to_c("\n🱫[COLOR THREAD][RED] Radmin is not installed on this machine"
+         "\n Download it here: https://www.radmin-vpn.com/")
     exit()
 print(f"Radmin detected: {addresses}")
 
@@ -84,12 +86,12 @@ print(f"Radmin detected: {addresses}")
 # 0.12 message post fixes, cooldown + changes. ui.exe now usable as launcher, restart.bat removed
 # 0.13 upgrade to enc 7.0.0, massive rewrite to sockets instead of discord slight login changes (half complete)
 # 0.14 first functioning socket version
-# 0.15 file cleanup and load changes, code cleanup, names, multi user support (so actually functional)
+# 0.15 file cleanup and load changes, code cleanup, names, multi-user support (so actually functional)
 # 0.16 socket close improvements, name changes, fixed restarts, password changes, len checks
-
 # 0.17 rdisc-rc3 rewrites, enc 9.5.0 implemented, changed mostly from str to bytes, removal of entire time_key system
 
-# 0.18 new encryption format, brand new hash system
+# 0.18 new encryption formatting, new login and account system, enc 10.0.1 implemented
+
 # 0.19 downloading, saving, load req files from a first time setup file
 # 0.20 logout system and storing data
 
@@ -140,14 +142,12 @@ def at_decrypt_key(enc_text):
     return enc.decrypt_key(enc_text, keys.get_key(0, "account_token")[64:], "salt")
 
 
-def auth_txt_write(token=None, version_data=None, time_key=None):
+def auth_txt_write(token=None, version_data=None):
     auth_to_write = b""
     if token:
         auth_to_write += pa_encrypt_key(df_encrypt_key(token))
     if version_data:
         auth_to_write += b"\\D\\"+df_encrypt_key(version_data)
-    if time_key:
-        auth_to_write += b"\\D\\"+df_encrypt_key(pa_encrypt_key(time_key))
     with open("auth.txt", "wb") as auth_txt:
         auth_txt.write(auth_to_write)
 
@@ -168,9 +168,6 @@ else:
             unverified_version = df_decrypt_key(auth_data[1])
             to_c(f"Loaded version is {unverified_version} (UNVERIFIED)")
             load = 2
-        if len(auth_data) > 2:
-            enc_time_key = auth_data[2]
-            load = 3
 
 
 print(f"loaded {load} auth values")
@@ -202,40 +199,45 @@ def listen_for_server(cs):
 
         if output.lower() == '-quit':
             should_exit.change(0, "FQ")
-
         return output
 
     if load == 0:
-        to_c("\n You have not yet setup this device")
+        to_c("\n [STEP1] Setting a password (for seed_key)")
         to_c("🱫[INPUT SHOW]🱫[MNINPLEN][256] ", 0.1)
         while True:
             to_c("\n🱫[COLOR THREAD][YELLOW] Please enter a password", 0.1)
-            #password_entry_1 = receive()
-            password_entry_1 = "f839056vgnq5"
+            password_entry_1 = receive()
+            #password_entry_1 = "f839056vgnq5"
             if len(password_entry_1) < 8:
                 to_c("\n🱫[COLOR THREAD][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
             else:
                 to_c(f"\n Entered ({len(password_entry_1)}chrs): "+"*"*len(password_entry_1))
                 to_c("\n🱫[COLOR THREAD][YELLOW] Please re-enter password", 0.1)
-                #password_entry_2 = receive()
-                password_entry_2 = "f839056vgnq5"
+                password_entry_2 = receive()
+                #password_entry_2 = "f839056vgnq5"
                 if password_entry_1 == password_entry_2:
                     break
                 else:
                     to_c("\n🱫[COLOR THREAD][RED] PASSWORDS DO NOT MATCH!")
         to_c("\n🱫[COLOR THREAD][GREEN] Passwords match")
         keys.update_key(0, "pass_key", password_entry_2)
-
-        to_c("🱫[MNINPLEN][96]")
-        to_c("\n🱫[COLOR THREAD][YELLOW] Enter your 96 char account token", 0.1)
+        to_c("\n [STEP2] Setting up and generating seed key:", 0.1)
         while True:
-            #account_token = receive()
-            account_token = """AYrJ*Gq_M0P"|bfkkX"57"wYE;m71U$>=jaw5£!*<2UE);[mq#]:\[,3*tl(k'r@l1927bfc5141fa69c2ab5b204e3d5224"""
-            if len(account_token) < 96:
-                to_c("\n🱫[COLOR THREAD][RED] Token is to short (should be 96 chars)")
-            if len(account_token) == 96:
-                to_c("🱫[INPUT HIDE]\n >> Verifying token")
+            to_c("\n🱫[COLOR THREAD][YELLOW] Please type one of the following numbers:"
+                 f"\n 1: Auto generate random key"
+                 f"\n 2: Enter a key manually", 0.1)
+            while True:
+                choice = receive().lower()
+                if choice in ["1", "2"]:
+                    break
+            if choice == "1":
+                seed_key_unsalted = enc.hex_gens(128)
                 break
+            if choice == "2":
+                print("5")  # todo enter key manually here
+        to_c(f"\n {seed_key_unsalted}")
+        print(seed_key_unsalted)
+        #input()
     else:
         to_c("🱫[INPUT SHOW]🱫[MNINPLEN][256] ", 0.1)
         while True:
@@ -253,17 +255,20 @@ def listen_for_server(cs):
     to_c("🱫[INPUT HIDE]\n >> Logging in")
     to_c("🱫[MNINPLEN][4000] ", 0.1)
 
-    server_host = "26.29.111.99"
-    server_port = 8080
+    #server_host = "26.29.111.99"
+    server_host = "92.28.131.176"
+    server_port = 8079
     s = socket.socket()
     try:
         s.connect((server_host, server_port))
     except:
         to_c("\n Could not connect to host")
         input()
-
+    print(s)
+    print("connected")
+    s.send("helo there".encode())
+    input()
     keys.update_key(0, "account_token", account_token)
-    #s.send(df_encrypt_key(f"[LOGIN] {hashed}🱫{account_token[:64]}{at_encrypt_key('at_ck')}"))
     s.send(df_encrypt_key(f"[LOGIN] {hashed}🱫{account_token[:64]}{keys.get_key(0, 'account_token')[64:]}"))
     print(df_encrypt_key(f"[LOGIN] {hashed}🱫{account_token[:64]}{keys.get_key(0, 'account_token')[64:]}"))
     print("Login ->")
@@ -359,7 +364,6 @@ def listen_for_server(cs):
 
                 checked = cooldown.check(0)  # todo maybe stop input until allowed, bring back what was entered
                 if checked == "True":
-                    #s.send(f"{keys.get_key(0, 'account_token')[:64]}{at_encrypt_key(client_send)}".encode())
                     s.send(enc.encrypt_key(client_send, keys.get_key(0, "df_key"), "salt"))
                 else:
                     to_c(f"\nYOU'RE SENDING MESSAGES TOO FAST! please wait {checked}s~")

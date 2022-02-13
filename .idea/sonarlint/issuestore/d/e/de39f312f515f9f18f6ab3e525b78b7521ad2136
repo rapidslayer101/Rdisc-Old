@@ -1,15 +1,0 @@
-
-lpython:S1192­"NDefine a constant instead of duplicating this literal "&quot;,&quot;" 3 times.(³•°üýÿÿÿÿ
-apython:S1192¥"HDefine a constant instead of duplicating this literal ",&quot;" 5 times.(¹¹ºé
-epython:S1192Œ"GDefine a constant instead of duplicating this literal "</div>" 4 times.(èÅ±ùÿÿÿÿÿ
-epython:S1192"HDefine a constant instead of duplicating this literal "</span>" 4 times.(§íù»ÿÿÿÿÿ
-Gpython:S1066m"/Merge this if statement with the enclosing one.(º¸¤‰
-Gpython:S1066p"/Merge this if statement with the enclosing one.(º¸¤‰
-Tpython:S5754 "<Specify an exception class to catch or reraise the exception(ˆÊÉ·
-Cpython:S58068"+Rename this variable; it shadows a builtin.(”“¹
-lpython:S3776?"TRefactor this function to reduce its Cognitive Complexity from 42 to the 15 allowed.(£Šúô
-7python:S125é"Remove this commented out code.(¨Èö§
-Upython:S5754‚"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
-Upython:S5754™"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
-Upython:S5754±"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
-Upython:S5754à"<Specify an exception class to catch or reraise the exception(ˆÊÉ·

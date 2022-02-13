@@ -2,36 +2,22 @@ import datetime, re
 from time import time
 from os import path
 from random import choice
-from base64 import b85encode, b64encode, b64decode
+from base64 import b85encode, b64encode as b64enc, b64decode as b64dec
 from hashlib import sha512
 from zlib import compress, decompress
 from multiprocessing import Pool, cpu_count
 from binascii import a2b_base64, b2a_base64
 
-# enc 9.5.0 - CREATED BY RAPIDSLAYER101 (Scott Bree)
-ascii_set = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"  # base64
-block_size = 2000000  # todo smart block size allocation
+# enc 10.0.1 - CREATED BY RAPIDSLAYER101 (Scott Bree)
+block_size = 1000000  # modifies the chunking size
+b64set = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+b96set = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/¬`!\"£$%^&*()- =[{]};:'@#~\\|,<.>?"
+conv_dict = {v: k for v, k in zip(range(96), b96set)}
+conv_dict_back = {v: k for k, v in conv_dict.items()}
 
 
 def hex_gens(num):
-    hex_gens_ = ""
-    while len(hex_gens_) != int(num):
-        hex_gens_ += choice(ascii_set)
-    return hex_gens_
-
-
-conv_dict = {0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: 'a',
-             11: 'b', 12: 'c', 13: 'd', 14: 'e', 15: 'f', 16: "g", 17: "h", 18: "i", 19: "j", 20: "k",
-             21: "l", 22: "m", 23: "n", 24: "o", 25: "p", 26: "q", 27: "r", 28: "s", 29: "t", 30: "u",
-             31: "v", 32: "w", 33: "x", 34: "y", 35: "z", 36: "A", 37: 'B', 38: 'C', 39: 'D', 40: 'E',
-             41: 'F', 42: "G", 43: "H", 44: "I", 45: "J", 46: "K", 47: "L", 48: "M", 49: "N", 50: "O",
-             51: "P", 52: "Q", 53: "R", 54: "S", 55: "T", 56: "U", 57: "V", 58: "W", 59: "X", 60: "Y",
-             61: "Z", 62: "¬", 63: "`", 64: "!", 65: "\"", 66: "£", 67: "$", 68: "%", 69: "^", 70: "&",
-             71: "*", 72: "(", 73: ")", 74: "-", 75: " ", 76: "=", 77: "+", 78: "[", 79: "{", 80: "]",
-             81: "}", 82: ";", 83: ":", 84: "'", 85: "@", 86: "#", 87: "~", 88: "\\", 89: "|", 90: ",",
-             91: "<", 92: ".", 93: ">", 94: "/", 95: "?"}
-
-conv_dict_back = {v: k for k, v in conv_dict.items()}
+    return "".join([choice(b96set) for x in range(int(num))])
 
 
 def to_hex(base_fr, base_to, hex_to_convert):
@@ -48,10 +34,7 @@ def to_hex(base_fr, base_to, hex_to_convert):
 
 
 def to_number(hex_to_convert):
-    decimal = ""
-    for digit in hex_to_convert:
-        decimal += str(conv_dict_back[digit])
-    return decimal
+    return "".join([str(conv_dict_back[x]) for x in hex_to_convert])
 
 
 def get_hex_base(hex_to_check):  # this is only a guess
@@ -67,9 +50,8 @@ def pass_to_seed(password, salt):
 
 
 def seed_to_alpha(seed):  # this function requires 129 numbers
-    alpha_gen = ascii_set
-    counter = 0
-    alpha = ""
+    alpha_gen = b64set
+    counter, alpha = [0, ""]
     while len(alpha_gen) > 0:
         counter += 2
         value = int(str(seed)[counter:counter+2]) << 1
@@ -89,27 +71,28 @@ def seed_to_data(seed):
     return seed_to_alpha(int(to_hex(96, 16, seed), 36)), to_hex(10, 96, str(int(to_hex(96, 16, seed), 36)))
 
 
-def b64echeck(master_key):
+def b64pad(master_key):
     while len(master_key) % 4 != 0:
         master_key += "="
     return master_key
 
 
-def shifter(plaintext, shift_num, alphabet, forwards):
-    alphabet2 = alphabet*3
-    output_enc = ""
-    counter = 0
+def shift_gen(amount, shift_num):
+    shift_value = ""
+    while len(shift_value) < amount:
+        shift_num1 = sha512(shift_num.encode()).digest()
+        shift_num = b64enc(shift_num1).decode()[:-2]
+        shift_value += shift_num+b64enc(shift_num1[::-1]).decode()[:-2]
+    return shift_value
+
+
+def shifter(plaintext, shift_num, al, forwards):
+    alx3 = [x for x in al*3]
+    pln_txt = plaintext.replace("=", "")
     if forwards:
-        for char in plaintext:
-            counter += 2
-            output_enc += alphabet2[alphabet.index(char)+int(shift_num[counter:counter+2])]
-        output_enc += "zzzzzzzz"
-        return a2b_base64(b64echeck(output_enc))
+        return a2b_base64(b64pad("".join([alx3[al.index(x)+ord(y)] for x, y in zip(pln_txt, shift_num)])+"z"*8))
     else:
-        for char in plaintext.replace("=", ""):
-            counter += 2
-            output_enc += alphabet2[alphabet.index(char)-int(shift_num[counter:counter+2])]
-    return output_enc
+        return decompress(b64dec(b64pad("".join([alx3[al.index(x)-ord(y)] for x, y in zip(pln_txt, shift_num)]))))
 
 
 def get_file_size(file):
@@ -124,82 +107,65 @@ def get_file_size(file):
         return f"{round(file_size_kb,2)}KB"
 
 
-def encrypt_block(enc, data, block_num, alpha, block_seed, send_end=None):
-    print(f"Block {block_num} launched")
-    shift_num = str(int(to_hex(96, 10, str(block_seed)), 36))
-    while len(str(shift_num)) < block_size*3:
-        shift_num += f"{int(str(shift_num)[-512:], 24)}"
+def encrypt_block(enc, data, alpha, block_seed, send_end=None):
+    shift_num = shift_gen(int(block_size*1.4), str(int(to_hex(96, 10, str(block_seed)), 36)))
     if enc.lower() in ["e", "en", "enc", "encrypt"]:
-        if type(data) == bytes:
-            block = shifter(b64encode(compress(data, 9)).decode('utf-8').replace("=", ""), str(shift_num), alpha, True)
-        else:
-            block = shifter(b64encode(compress(data.encode('utf-8'), 9)).decode('utf-8').replace("=", ""),
-                            str(shift_num), alpha, True)
+        if type(data) != bytes:
+            data = data.encode()
+        block = shifter(b64enc(compress(data, 9)).decode(), shift_num, alpha, True)
     else:
-        block = decompress(b64decode(b64echeck(shifter(data, str(shift_num), alpha, False))))
+        block = shifter(data, shift_num, alpha, False)
         try:
-            block = block.decode('utf-8')
+            block = block.decode()
         except UnicodeDecodeError:
             pass
-    print(f"Block {block_num} complete")
     if send_end:
         send_end.send(block)
     else:
         return block
 
 
-def encrypt(enc, text, alpha, shift_num, salt, join_dec=None):
+def block_process(blk):
+    blk = b64pad(b2a_base64(blk).decode())
+    return blk[:-12]+blk[-12:].replace("zzzzzzzw", "z"*8).replace("\n", "")
+
+
+def encrypt(enc, text, alpha, shift_seed, salt, join_dec=None):
     if enc.lower() in ["e", "en", "enc", "encrypt", "d", "de", "dec", "decrypt"]:
         if enc.lower() in ["e", "en", "enc", "encrypt"]:
             e_chunks = [text[i:i+block_size] for i in range(0, len(text), block_size)]
         else:
             if type(text) == list:
-                e_chunks = []
-                for block in text:
-                    block = b64echeck(b2a_base64(block).decode("utf-8"))
-                    block = block[:-12]+block[-12:].replace("zzzzzzzw", "z"*8).replace("\n", "").replace("=", "")
-                    e_chunks.append(block)
+                e_chunks = [block_process(block) for block in text]
             else:
-                try:
-                    text = b64echeck(b2a_base64(text).decode("utf-8"))
-                except TypeError:
-                    text = b64echeck(b2a_base64(text))
-                text = text[:-16]+text[-16:].replace("zzzzzzzw", "z"*8).replace("\n", "")
+                text = block_process(text)
                 if type(text) == bytes:
-                    e_chunks = text.split(b"\\BLOCK\\")
+                    e_chunks = text.split(b"  ")
                 if type(text) == str:
-                    e_chunks = text.split("\\BLOCK\\")
+                    e_chunks = text.split("  ")
 
         if len(e_chunks) == 1:
-            shift_num = str(int(to_hex(96, 10, str(shift_num)), 36))
+            shift_seed = str(int(to_hex(96, 10, str(shift_seed)), 36))
             if enc.lower() in ["e", "en", "enc", "encrypt"]:
-                if type(text) == bytes:
-                    plaintext = b64encode(compress(text, 9)).decode('utf-8').replace("=", "")
-                else:
-                    plaintext = b64encode(compress(text.encode('utf-8'), 9)).decode('utf-8').replace("=", "")
-                while len(str(shift_num)) < len(plaintext) << 1:
-                    shift_num += f"{int(str(shift_num)[-512:], 24)}"
-                return shifter(plaintext, str(shift_num), alpha, True)
+                if type(text) != bytes:
+                    text = text.encode()
+                plaintext = b64enc(compress(text, 9)).decode()
+                return shifter(plaintext, shift_gen(len(plaintext), shift_seed), alpha, True)
             else:
-                while len(str(shift_num)) < len(text) << 1:
-                    shift_num += f"{int(str(shift_num)[-512:], 24)}"
-                output_end = shifter(text, str(shift_num), alpha, False)
-                output_end = decompress(b64decode(b64echeck(output_end)))
+                output_end = shifter(text, shift_gen(len(text), shift_seed), alpha, False)
                 try:
-                    output_end = output_end.decode('utf-8')
+                    return output_end.decode()
                 except UnicodeDecodeError:
-                    pass
-                return output_end
+                    return output_end
         else:
             print(f"Launching {len(e_chunks)} threads")
             block_seeds = []
             for i in range(len(e_chunks)+1):
-                block_seed = pass_to_seed(shift_num, salt)
-                block_seeds.append(block_seed)
-                shift_num = block_seed
+                shift_seed = pass_to_seed(shift_seed, salt)
+                block_seeds.append(shift_seed)
             pool = Pool(cpu_count())
-            result_objects = [pool.apply_async(encrypt_block, args=(enc, e_chunks[x-1], x, alpha, block_seeds[x-1]))
-                              for x in range(1, len(e_chunks)+1)]
+            result_objects = [pool.apply_async(encrypt_block, args=(enc, e_chunks[x], alpha, block_seeds[x]))
+                              for x in range(0, len(e_chunks))]
             pool.close()
             if join_dec:
                 d_data = b""
@@ -227,23 +193,20 @@ def encrypt_file(enc, file, key, salt, file_output):
     start = time()
     if enc.lower() in ["e", "en", "enc", "encrypt", "d", "de", "dec", "decrypt"]:
         if path.exists(file):
-            file_name, file_type = file.split("/")[-1].split(".")
-            print(f"{file_name} is {get_file_size(file)}")
+            file_name = file.split("/")[-1].split(".")[:-1]  # file_type = file.split("/")[-1].split(".")[-1:]
+            print(f"{file_name} is {get_file_size(file)}, should take {round(path.getsize(file)/32345903.7288, 2)}s")
             alpha, shift_num = seed_to_data(pass_to_seed(key, salt))
             if enc.lower() in ["e", "en", "enc", "encrypt"]:
                 with open(file, 'rb') as hash_file:
-                    data_chunks = hash_file.read()
-                result_list = encrypt(enc, data_chunks, alpha, shift_num, salt)
+                    result_list = encrypt(enc, hash_file.read(), alpha, shift_num, salt)
                 with open(file_output, "wb") as f:
                     for e_block in result_list:
-                        f.write(b"\\BLOCK\\")
+                        f.write(b"  ")
                         f.write(e_block)
-                print(f"ENCRYPTION COMPLETE OF {get_file_size(file)} ({block_size}*{len(result_list)})"
-                      f" IN {round(time()-start, 2)}s")  # todo show new "compressed" size
+                print(f"ENCRYPTION COMPLETE OF {get_file_size(file)} IN {round(time()-start, 2)}s")
             else:
                 with open(file, "rb") as hash_file:
-                    e_text = hash_file.read().split(b"\\BLOCK\\")
-                d_data = encrypt(enc, e_text[1:], alpha, shift_num, salt)
+                    d_data = encrypt(enc, hash_file.read().split(b"  ")[1:], alpha, shift_num, salt)
                 if type(d_data[0]) == bytes:
                     with open(f"{file_output}", "wb") as f:
                         for block in d_data:
@@ -252,10 +215,9 @@ def encrypt_file(enc, file, key, salt, file_output):
                     with open(f"{file_output}", "w", encoding="utf-8") as f:
                         for block in d_data:
                             f.write(block.replace("\r", ""))
-                print(f"DECRYPTION COMPLETE OF {get_file_size(file)} ({block_size}*{len(e_text)-1})"
-                      f" IN {round(time()-start, 2)}s")  # todo show new "compressed" size
+                print(f"DECRYPTION COMPLETE OF {get_file_size(file)} IN {round(time()-start, 2)}s")
         else:
-            return "File not found"  # todo smart find alternative
+            return "File not found"
     else:
         print("ENCRYPTION CANCELLED! Enc type not in 'e', 'en', 'enc', 'encrypt', 'd', 'de', 'dec', 'decrypt'")
 
