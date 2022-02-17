@@ -1,43 +1,9 @@
-import datetime, os, socket
-from hashlib import sha512
+import datetime, os, socket, rsa, uuid
 from threading import Thread
 import enclib as enc
 
+
 min_version = "V0.17.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
-
-if not os.path.exists("df.key"):
-    with open("df.key", "w", encoding="utf-8") as f:
-        [f.write(f"{enc.hex_gens(50)}\n") for x in range(10)]
-default_key = enc.hash_a_file("df.key")
-
-
-user_data = {}
-
-
-class users:
-    def reload(self):
-        with open("users.txt", encoding="utf-8") as f:
-            for line in f.readlines():
-                line = line.replace("\n", "")
-                ac_dt, account_name = line.split(', ')
-                user_data.update({ac_dt[:64]: f"{ac_dt[64:]}-{account_name}"})
-        print("reload", user_data)
-
-    def get(self, userid):  # todo this could be reworked to return split up account data
-        try:
-            return user_data[str(userid)]
-        except:
-            return False
-
-    def change_name(self, userid, filler, new_name):
-        user_data.update({userid: f"{filler}-{new_name}"})
-        with open("users.txt", "w", encoding="utf-8") as f:
-            for item in user_data:
-                item_p2, name = user_data[item].split("-")
-                f.write(f"{item}{item_p2}, {name}\n")
-
-
-users.reload(0)
 
 
 def version_info(hashed, user_id, cs):
@@ -63,7 +29,7 @@ def version_info(hashed, user_id, cs):
     if not valid_version:
         return f"INVALID-{version}->{min_version}"
     else:
-        if users.get(0, user_id[:64]):
+        if users.get(0, user_id[:64]):  # todo redo
             client_sockets.add(cs)
             print("Updated cs", client_sockets)
             return f"VALID-{version}-{tme}-{bld_num}-{run_num}"
@@ -71,10 +37,8 @@ def version_info(hashed, user_id, cs):
             return f"NO_ACC_FND"
 
 
-#server_port = 8080
 server_port = 8080
 client_sockets = set()
-#s = socket.socket()
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 s.bind(('', server_port))
@@ -84,7 +48,33 @@ print(f"[*] Listening as 0.0.0.0:{server_port}")
 
 def client_connection(cs):
     ip, port = str(cs).split("raddr=")[1][2:-2].split("', ")
-    print("Waiting for login data", ip, port)
+    print("Waiting for pub key from", ip, port)
+    pub_key_cli = rsa.PublicKey.load_pkcs1(cs.recv(1024))
+    enc_seed = enc.hex_gens(78)
+    enc_salt = enc.hex_gens(32)
+    cs.send(rsa.encrypt(enc_seed.encode(), pub_key_cli))
+    cs.send(rsa.encrypt(enc_salt.encode(), pub_key_cli))
+    alpha, shift_seed = enc.seed_to_data(enc_seed)
+    while True:
+        login_request = enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt, "join_dec")
+
+        # check for login, signup or session
+        if login_request.startswith("NEWAC:"):
+            email, password = login_request[6:].split("<|>")
+            print(email, password)
+            with open("users.txt", encoding="utf-8") as f:
+                email_valid = True
+                for user in f.readlines():
+                    if email == user.split("🱫")[2]:
+                        email_valid = False
+            if email_valid:
+                print("make account")
+            else:
+                print("flag email usage")
+
+
+        input()
+    # old code
     content = enc.decrypt_key(cs.recv(1024), default_key, "salt")
     print(content)
     cs.send(enc.encrypt_key(version_info(content.split("🱫")[0][8:], content.split("🱫")[1], cs), default_key, "salt"))

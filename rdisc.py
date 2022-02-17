@@ -1,6 +1,7 @@
-import socket, os, time, datetime, psutil
-import enclib as enc
+import socket, os, time, datetime, rsa, uuid
 from threading import Thread
+import enclib as enc
+
 
 try:
     hashed = enc.hash_a_file("rdisc.py")
@@ -35,7 +36,6 @@ class should_exit:
         return exit_state.update({"QUIT": change_to})
 
 
-client_sockets = set()
 s = socket.socket()
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 if os.path.exists("rdisc.py"):
@@ -51,25 +51,18 @@ else:
 print(" <- ui.exe launched")
 s.listen(10)
 
+cs, client_address = s.accept()
+
 
 def to_c(text, delay=None):
     if delay:
         time.sleep(delay)
-    [sock.send(str(text).encode(encoding="utf-16")) for sock in client_sockets]
+    cs.send(str(text).encode(encoding="utf-16"))
 
 
-client_socket, client_address = s.accept()
-client_sockets.add(client_socket)
 print(f" Connected to ui.exe via socket {client_address}")
 to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
 
-try:
-    addresses = psutil.net_if_addrs()["Radmin VPN"]
-except KeyError:
-    to_c("\n🱫[COLOR THREAD][RED] Radmin is not installed on this machine"
-         "\n Download it here: https://www.radmin-vpn.com/")
-    exit()
-print(f"Radmin detected: {addresses}")
 
 
 # 0.1 code rewrite and code foundations/framework from rchat 0.7.119.14 (process build 119, rchat GUI build 14)
@@ -90,10 +83,11 @@ print(f"Radmin detected: {addresses}")
 # 0.16 socket close improvements, name changes, fixed restarts, password changes, len checks
 # 0.17 rdisc-rc3 rewrites, enc 9.5.0 implemented, changed mostly from str to bytes, removal of entire time_key system
 
-# 0.18 new encryption formatting, new login and account system, enc 10.0.1 implemented
+# 0.18 start connect via RSA verify system fallback to enc 10.0.1 (implemented) after, ip linked auth tokens
 
-# 0.19 downloading, saving, load req files from a first time setup file
-# 0.20 logout system and storing data
+# 0.19 chat functionality
+# 0.20 downloading, saving, load req files from a first time setup file, on setup know what version is installed
+# 0.21 logout system and storing data
 
 
 # ports localhost:8079, localhost:8080
@@ -110,22 +104,6 @@ class keys:
         encryption_keys.update({key_name: key})
 
 
-if not os.path.isfile("df.key"):
-    to_c("\n🱫[COLOR THREAD][RED] CRITICAL FILE df.key MISSING", 0.1)
-    to_c("\n🱫[COLOR THREAD][YELLOW] Tell the developer that you require df_key and he will help you", 0.1)
-    while True:
-        input()
-keys.update_key(0, "df_key", enc.hash_a_file("df.key"))
-
-
-def df_encrypt_key(text):
-    return enc.encrypt_key(text, keys.get_key(0, "df_key"), "salt")
-
-
-def df_decrypt_key(enc_text):
-    return enc.decrypt_key(enc_text, keys.get_key(0, "df_key"), "salt")
-
-
 def pa_encrypt_key(text):
     return enc.encrypt_key(text, keys.get_key(0, "pass_key"), "salt")
 
@@ -135,19 +113,19 @@ def pa_decrypt_key(enc_text):
 
 
 def at_encrypt_key(text):
-    return enc.encrypt_key(text, keys.get_key(0, "account_token")[64:], "salt")
+    return enc.encrypt_key(text, keys.get_key(0, "session_key")[64:], "salt")
 
 
 def at_decrypt_key(enc_text):
-    return enc.decrypt_key(enc_text, keys.get_key(0, "account_token")[64:], "salt")
+    return enc.decrypt_key(enc_text, keys.get_key(0, "session_key")[64:], "salt")
 
 
 def auth_txt_write(token=None, version_data=None):
     auth_to_write = b""
     if token:
-        auth_to_write += pa_encrypt_key(df_encrypt_key(token))
+        auth_to_write += pa_encrypt_key(pa_encrypt_key(token))
     if version_data:
-        auth_to_write += b"\\D\\"+df_encrypt_key(version_data)
+        auth_to_write += b"\\D\\"+pa_encrypt_key(version_data)
     with open("auth.txt", "wb") as auth_txt:
         auth_txt.write(auth_to_write)
 
@@ -161,11 +139,11 @@ else:
             if auth_data[0] == b"":
                 load = 0
             else:
-                enc_account_token = auth_data[0]
+                enc_session_key = auth_data[0]
                 load = 1
         if len(auth_data) > 1:
             print(auth_data[1])
-            unverified_version = df_decrypt_key(auth_data[1])
+            unverified_version = pa_decrypt_key(auth_data[1])
             to_c(f"Loaded version is {unverified_version} (UNVERIFIED)")
             load = 2
 
@@ -177,17 +155,114 @@ cool_down_data = {"x": (str(datetime.datetime.utcnow())), "msg_counter": 0}
 class cooldown:
     def check(self):
         last_msg_time = datetime.datetime.strptime(cool_down_data["x"], '%Y-%m-%d %H:%M:%S.%f')
-        time_since_insertion = datetime.datetime.utcnow() - last_msg_time
-        if time_since_insertion.seconds < 1:  # time between messages before counter adds 1
+        time_since_last = datetime.datetime.utcnow() - last_msg_time
+        if time_since_last.seconds < 1:  # time between messages before counter adds 1
             cool_down_data.update({"msg_counter": cool_down_data["msg_counter"]+1})
-        if time_since_insertion.seconds > 5:  # cooldown(s) when triggered
+        if time_since_last.seconds > 5:  # cooldown(s) when triggered
             cool_down_data.update({"msg_counter": 0})
 
         if cool_down_data["msg_counter"] > 10:  # total before counter triggers cooldown(s)
-            return round(5-time_since_insertion.seconds, 2)
+            return round(5-time_since_last.seconds, 2)
         else:
             cool_down_data.update({"x": (str(datetime.datetime.utcnow()))})
             return "True"
+
+
+def receive():
+    output = cs.recv(1024).decode(encoding="utf-16")
+    if output.lower() == '-restart':
+        should_exit.change(0, "FQR")
+
+    if output.lower() == '-quit':
+        should_exit.change(0, "FQ")
+    return output
+
+
+# initiate server connection
+pub_key, pri_key = rsa.newkeys(1024)
+
+server_host = "26.29.111.99"
+server_port = 8080
+s = socket.socket()
+try:
+    s.connect((server_host, server_port))
+    to_c("\n🱫[COLOR THREAD][GREEN] Connected to server")
+except ConnectionRefusedError:
+    to_c("\n🱫[COLOR THREAD][RED] Could not connect to server")
+    input()
+print("Server connected ->", s)
+
+# server bootstrap
+s.send(rsa.PublicKey.save_pkcs1(pub_key))
+print(" >> Public RSA key sent")
+enc_seed = rsa.decrypt(s.recv(1024), pri_key).decode()
+enc_salt = rsa.decrypt(s.recv(1024), pri_key).decode()
+alpha, shift_seed = enc.seed_to_data(enc_seed)
+print(" << Client enc_seed and enc_salt received and loaded")
+to_c("\n🱫[COLOR THREAD][GREEN] RSA -> enc bootstrap complete")
+
+
+# todo grab version and updates here before login
+
+session_key = False
+
+if session_key:
+    print("immediate login")
+else:
+    device_key = False
+    if device_key:
+        print("provide session_key")
+    else:
+        to_c("🱫[INPUT SHOW]🱫[MNINPLEN][256] ", 0.1)  # todo set len to 7?
+        while True:
+            to_c("\n🱫[COLOR THREAD][YELLOW] Type 'login' or 'sign up'")
+            login_signup = receive().lower().replace(" ", "")
+            if login_signup in ["login", "signup"]:
+                break
+        if login_signup == "login":
+            print("login system")
+            request = "LOGIN:"
+        else:
+            while True:
+                to_c("\n🱫[COLOR THREAD][YELLOW] Please enter an email", 0.1)
+                email = receive().lower()
+                if "@" not in email:
+                    to_c("\n🱫[COLOR THREAD][RED] Email does not contain an '@'")
+                else:
+                    break
+
+            while True:
+                to_c("\n🱫[COLOR THREAD][YELLOW] Please enter a password", 0.1)
+                # password_entry_1 = receive()
+                password_entry_1 = "f839056vgnq5"
+                if len(password_entry_1) < 8:
+                    to_c("\n🱫[COLOR THREAD][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
+                else:
+                    to_c(f"\n Entered ({len(password_entry_1)}chrs): "+"*"*len(password_entry_1))
+                    to_c("\n🱫[COLOR THREAD][YELLOW] Please re-enter password", 0.1)
+                    # password_entry_2 = receive()
+                    password_entry_2 = "f839056vgnq5"
+                    if password_entry_1 == password_entry_2:
+                        break
+                    else:
+                        to_c("\n🱫[COLOR THREAD][RED] PASSWORDS DO NOT MATCH!")
+            pass_salt = """52gy"J$&)6%0}fgYfm/%ino}PbJk$w<5~j'|+R .bJcSZ.H&3z'A:gip/jtW$6A=
+                           G-;|&&rR81!BTElChN|+"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#."H4tq)p4"""
+            login_response = f"NEWAC:{email}<|>{enc.pass_to_seed(password_entry_1, pass_salt)}"
+
+        s.send(enc.encrypt("e", login_response, alpha, shift_seed, enc_salt))
+        print(f" >> Request send: {login_response}")
+        login_response = enc.encrypt("d", s.recv(1024), alpha, shift_seed, enc_salt)
+        print(login_response)  # todo check if email flagged, if success (use a loop)
+
+
+    input()
+    keys.update_key(0, "session_key", session_key)
+    s.send(pa_encrypt_key(f"[LOGIN] {hashed}🱫{session_key[:64]}{keys.get_key(0, 'session_key')[64:]}"))
+    print(pa_encrypt_key(f"[LOGIN] {hashed}🱫{session_key[:64]}{keys.get_key(0, 'session_key')[64:]}"))
+    print("Login ->")
+
+print(hex(uuid.getnode()))  # mac address
 
 
 def listen_for_server(cs):
@@ -201,79 +276,9 @@ def listen_for_server(cs):
             should_exit.change(0, "FQ")
         return output
 
-    if load == 0:
-        to_c("\n [STEP1] Setting a password (for seed_key)")
-        to_c("🱫[INPUT SHOW]🱫[MNINPLEN][256] ", 0.1)
-        while True:
-            to_c("\n🱫[COLOR THREAD][YELLOW] Please enter a password", 0.1)
-            password_entry_1 = receive()
-            #password_entry_1 = "f839056vgnq5"
-            if len(password_entry_1) < 8:
-                to_c("\n🱫[COLOR THREAD][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
-            else:
-                to_c(f"\n Entered ({len(password_entry_1)}chrs): "+"*"*len(password_entry_1))
-                to_c("\n🱫[COLOR THREAD][YELLOW] Please re-enter password", 0.1)
-                password_entry_2 = receive()
-                #password_entry_2 = "f839056vgnq5"
-                if password_entry_1 == password_entry_2:
-                    break
-                else:
-                    to_c("\n🱫[COLOR THREAD][RED] PASSWORDS DO NOT MATCH!")
-        to_c("\n🱫[COLOR THREAD][GREEN] Passwords match")
-        keys.update_key(0, "pass_key", password_entry_2)
-        to_c("\n [STEP2] Setting up and generating seed key:", 0.1)
-        while True:
-            to_c("\n🱫[COLOR THREAD][YELLOW] Please type one of the following numbers:"
-                 f"\n 1: Auto generate random key"
-                 f"\n 2: Enter a key manually", 0.1)
-            while True:
-                choice = receive().lower()
-                if choice in ["1", "2"]:
-                    break
-            if choice == "1":
-                seed_key_unsalted = enc.hex_gens(128)
-                break
-            if choice == "2":
-                print("5")  # todo enter key manually here
-        to_c(f"\n {seed_key_unsalted}")
-        print(seed_key_unsalted)
-        #input()
-    else:
-        to_c("🱫[INPUT SHOW]🱫[MNINPLEN][256] ", 0.1)
-        while True:
-            try:
-                to_c("\n🱫[COLOR THREAD][YELLOW] Please enter your password", 0.1)
-                #password = receive()
-                password = "f839056vgnq5"
-                keys.update_key(0, "pass_key", password.replace("\n", ""))
-                account_token = df_decrypt_key(pa_decrypt_key(enc_account_token))
-                break
-            except ValueError:
-                to_c("\n Incorrect password")
-        to_c("\n🱫[COLOR THREAD][GREEN] Correct password", 0.1)
+    # code removed
 
-    to_c("🱫[INPUT HIDE]\n >> Logging in")
-    to_c("🱫[MNINPLEN][4000] ", 0.1)
-
-    #server_host = "26.29.111.99"
-    server_host = "92.28.131.176"
-    server_port = 8079
-    s = socket.socket()
-    try:
-        s.connect((server_host, server_port))
-    except:
-        to_c("\n Could not connect to host")
-        input()
-    print(s)
-    print("connected")
-    s.send("helo there".encode())
-    input()
-    keys.update_key(0, "account_token", account_token)
-    s.send(df_encrypt_key(f"[LOGIN] {hashed}🱫{account_token[:64]}{keys.get_key(0, 'account_token')[64:]}"))
-    print(df_encrypt_key(f"[LOGIN] {hashed}🱫{account_token[:64]}{keys.get_key(0, 'account_token')[64:]}"))
-    print("Login ->")
-
-    content = df_decrypt_key(s.recv(1024))
+    content = pa_decrypt_key(s.recv(1024))
     print(f"reached login checks - {content}")
     if content.startswith("NOTREAL"):
         to_c("\n🱫[COLOR THREAD][RED] <> INVALID VERSION DETECTED, downloading replacements"
@@ -285,7 +290,7 @@ def listen_for_server(cs):
         to_c(f"\n <> Updating rdisc {content[8:]} in 5 seconds")
         time.sleep(5)
         should_exit.change(0, "FQU")
-        auth_txt_write(account_token, content[8:].split('->')[0])
+        auth_txt_write(session_key, content[8:].split('->')[0])
         while True:
             receive()
 
@@ -298,13 +303,13 @@ def listen_for_server(cs):
         to_c(f"\n << RESPONSE FROM AUTH RECEIVED\n << {verified_version}")
         to_c(f"Verified version is {verified_version} (VERIFIED)", 0.1)
 
-        auth_txt_write(account_token, verified_version)  # 1 more key supported
+        auth_txt_write(session_key, verified_version)  # 1 more key supported
         to_c("🱫[INPUT SHOW]\n🱫[COLOR THREAD][GREEN] << You are now logged in and can post messages", 0.1)
 
         def listen_for_messages():
             print("message listener launched")
             while True:
-                to_c(f"\n{df_decrypt_key(s.recv(1024))}")
+                to_c(f"\n{pa_decrypt_key(s.recv(1024))}")
 
         t = Thread(target=listen_for_messages)
         t.daemon = True
@@ -312,7 +317,7 @@ def listen_for_server(cs):
 
         print("input handler launched")
         while True:
-            received = cs.recv(1024).decode(encoding="utf-16")
+            received = s.recv(1024).decode(encoding="utf-16")
             received_l = received.lower()
             client_send = None
             send = True
@@ -338,7 +343,7 @@ def listen_for_server(cs):
                         to_c(f"🱫[MNINPTXT] {received}", 0.1)
                     else:
                         keys.update_key(0, "pass_key", received[17:])
-                        auth_txt_write(account_token, verified_version)
+                        auth_txt_write(session_key, verified_version)
                         to_c(f"\n New password set ({len(received[17:])}chrs): " + "*" * len(received[17:]))
 
             # external
@@ -376,8 +381,8 @@ t.start()
 
 while True:
     if should_exit.check(0).startswith("FQ"):
-        if should_exit.check(0) == "FQU":
-            os.startfile("installer.exe")
+        #if should_exit.check(0) == "FQU":
+        #    os.startfile("installer.exe")
         if should_exit.check(0) == "FQR":
             os.startfile("rdisc.exe")
         break
