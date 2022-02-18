@@ -82,12 +82,13 @@ to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
 # 0.15 file cleanup and load changes, code cleanup, names, multi-user support (so actually functional)
 # 0.16 socket close improvements, name changes, fixed restarts, password changes, len checks
 # 0.17 rdisc-rc3 rewrites, enc 9.5.0 implemented, changed mostly from str to bytes, removal of entire time_key system
+# 0.18 s<->c connect RSA falls back to enc 10.0.1 (implemented), signup complete (apart from key saving to auth)
 
-# 0.18 start connect via RSA verify system fallback to enc 10.0.1 (implemented) after, ip linked auth tokens
+# 0.19 saving auth tokens, logging back in via device_key and session_key or just email and pass
 
-# 0.19 chat functionality
-# 0.20 downloading, saving, load req files from a first time setup file, on setup know what version is installed
-# 0.21 logout system and storing data
+# 0.20 basic chat functionality, client to client connections and keys
+# 0.21 downloading, saving, load req files from a first time setup file, on setup know what version is installed
+# 0.22 logout system and storing data
 
 
 # ports localhost:8079, localhost:8080
@@ -223,46 +224,98 @@ else:
             print("login system")
             request = "LOGIN:"
         else:
+            password = None
             while True:
-                to_c("\n🱫[COLOR THREAD][YELLOW] Please enter an email", 0.1)
-                email = receive().lower()
-                if "@" not in email:
-                    to_c("\n🱫[COLOR THREAD][RED] Email does not contain an '@'")
+                while True:
+                    to_c("\n🱫[COLOR THREAD][YELLOW] Please enter an email", 0.1)
+                    email = receive().lower()
+                    if "@" not in email:
+                        to_c("\n🱫[COLOR THREAD][RED] Email does not contain an '@'")
+                    else:
+                        break
+
+                while password is None:
+                    to_c("\n🱫[COLOR THREAD][YELLOW] Please enter a password", 0.1)
+                    # password_entry_1 = receive()
+                    password_entry_1 = "f839056vgnq5"
+                    if len(password_entry_1) < 8:
+                        to_c("\n🱫[COLOR THREAD][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
+                    else:
+                        to_c(f"\n Entered ({len(password_entry_1)}chrs): "+"*"*len(password_entry_1))
+                        to_c("\n🱫[COLOR THREAD][YELLOW] Please re-enter password", 0.1)
+                        # password_entry_2 = receive()
+                        password_entry_2 = "f839056vgnq5"
+                        if password_entry_1 == password_entry_2:
+                            pass_salt = """52gy"J$&)6%0}fgYfm/%ino}PbJk$w<5~j'|+R .bJcSZ.H&3z'A:gip/jtW$6A=
+                                           G-;|&&rR81!BTElChN|+"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#."H4tq)p4"""
+                            password = enc.pass_to_seed(password_entry_1, pass_salt)
+                            break
+                        else:
+                            to_c("\n🱫[COLOR THREAD][RED] PASSWORDS DO NOT MATCH!")
+                            password = None
+                create_request = f"NEWAC:{email}<|>{password}"
+                s.send(enc.encrypt("e", create_request, alpha, shift_seed, enc_salt))
+                print(f" >> Request sent: {create_request}")
+                create_ac_response = enc.encrypt("d", s.recv(1024), alpha, shift_seed, enc_salt)
+                if create_ac_response == "INVALID_EMAIL":
+                    print(" << INVALID_EMAIL")
+                    to_c("\n🱫[COLOR THREAD][RED] Email was invalid, probably already taken")
                 else:
+                    print(" << VALID")
                     break
+            device_key = enc.hex_gens(128)
+            salted_device_key = enc.pass_to_seed(device_key, hex(uuid.getnode()))
+            to_c(f"\n🱫[COLOR THREAD][GREEN] A verification code has "
+                 f"been send to '{email}' (code valid for 15 minutes)")
+            # to_c("🱫[INPUT SHOW]🱫[MNINPLEN][16] ", 0.1)  # todo set limit?
 
             while True:
-                to_c("\n🱫[COLOR THREAD][YELLOW] Please enter a password", 0.1)
-                # password_entry_1 = receive()
-                password_entry_1 = "f839056vgnq5"
-                if len(password_entry_1) < 8:
-                    to_c("\n🱫[COLOR THREAD][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
+                to_c(f"\n🱫[COLOR THREAD][YELLOW] Enter 16 char code below", 0.1)
+                email_code = ""
+                while len(email_code) != 16:
+                    email_code = receive().replace("-", "")
+
+                create_request = f"{email_code}<|>{salted_device_key}"
+                s.send(enc.encrypt("e", create_request, alpha, shift_seed, enc_salt))
+                print(f" >> Request sent: {create_request}")
+                verify_dk_response = enc.encrypt("d", s.recv(1024), alpha, shift_seed, enc_salt)
+                if verify_dk_response == "VALID":
+                    print(" << VALID")
+                    break
                 else:
-                    to_c(f"\n Entered ({len(password_entry_1)}chrs): "+"*"*len(password_entry_1))
-                    to_c("\n🱫[COLOR THREAD][YELLOW] Please re-enter password", 0.1)
-                    # password_entry_2 = receive()
-                    password_entry_2 = "f839056vgnq5"
-                    if password_entry_1 == password_entry_2:
+                    print(" << INVALID_CODE")
+                    to_c("\n🱫[COLOR THREAD][RED] Invalid email code")
+
+            while True:
+                to_c(f"\n🱫[COLOR THREAD][YELLOW] Enter a username (upto 32 chars)", 0.1)
+                while True:
+                    username = receive().replace("#", "")
+                    if 2 < len(username) < 33:
                         break
                     else:
-                        to_c("\n🱫[COLOR THREAD][RED] PASSWORDS DO NOT MATCH!")
-            pass_salt = """52gy"J$&)6%0}fgYfm/%ino}PbJk$w<5~j'|+R .bJcSZ.H&3z'A:gip/jtW$6A=
-                           G-;|&&rR81!BTElChN|+"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#."H4tq)p4"""
-            login_response = f"NEWAC:{email}<|>{enc.pass_to_seed(password_entry_1, pass_salt)}"
+                        to_c(f"\n🱫[COLOR THREAD][RED] Username must be 3-32 chars", 0.1)
 
-        s.send(enc.encrypt("e", login_response, alpha, shift_seed, enc_salt))
-        print(f" >> Request send: {login_response}")
-        login_response = enc.encrypt("d", s.recv(1024), alpha, shift_seed, enc_salt)
-        print(login_response)  # todo check if email flagged, if success (use a loop)
+                s.send(enc.encrypt("e", username, alpha, shift_seed, enc_salt))
+                print(f" >> Request sent: {username}")
+                verify_dk_response = enc.encrypt("d", s.recv(1024), alpha, shift_seed, enc_salt)
+                if verify_dk_response == "INVALID_NAME":
+                    print(" << INVALID_NAME")
+                    to_c("\n🱫[COLOR THREAD][RED] Username already taken")
+                else:
+                    print(f" << VALID:{verify_dk_response}")
+                    session_key = verify_dk_response
+                    break
 
+            print("Username accepted, account setup complete")
+            print(salted_device_key, session_key)
+            to_c("\n🱫[COLOR THREAD][GREEN] Account setup complete, keys received")
 
+    print("END1")
     input()
     keys.update_key(0, "session_key", session_key)
     s.send(pa_encrypt_key(f"[LOGIN] {hashed}🱫{session_key[:64]}{keys.get_key(0, 'session_key')[64:]}"))
     print(pa_encrypt_key(f"[LOGIN] {hashed}🱫{session_key[:64]}{keys.get_key(0, 'session_key')[64:]}"))
     print("Login ->")
-
-print(hex(uuid.getnode()))  # mac address
 
 
 def listen_for_server(cs):

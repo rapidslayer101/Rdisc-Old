@@ -1,9 +1,13 @@
 import datetime, os, socket, rsa, uuid
 from threading import Thread
+from random import choice, randint
 import enclib as enc
 
 
 min_version = "V0.17.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
+
+default_salt = """TO$X-YkP#XGl>>Nw@tt ~$c[{N-uF&#~+h#<84@W3 57dkX.V'1el~1JcyMTuRwjG
+                  DxnI,ufxSNzdgJyQn<-Qj--.PN+y=Gk.F/(B'Fq+D@,$*9&[`Bt.W3i;0{UN7K="""
 
 
 def version_info(hashed, user_id, cs):
@@ -61,21 +65,76 @@ def client_connection(cs):
         # check for login, signup or session
         if login_request.startswith("NEWAC:"):
             email, password = login_request[6:].split("<|>")
-            print(email, password)
             with open("users.txt", encoding="utf-8") as f:
                 email_valid = True
                 for user in f.readlines():
                     if email == user.split("🱫")[2]:
                         email_valid = False
-            if email_valid:
-                print("make account")
+
+            if not email_valid:
+                cs.send(enc.encrypt("e", "INVALID_EMAIL", alpha, shift_seed, enc_salt))
             else:
-                print("flag email usage")
+                # email code and username still required
+                # submit username after device_key and code
+
+                # email code sending code will be below
+                # add error return code for if email code sending fails
+                email_code = "".join([choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") for x in range(int(16))])
+                email_code_send = f"{email_code[:4]}-{email_code[4:8]}-{email_code[8:12]}-{email_code[12:]}"
+                print(email_code_send)
+                #
+                #code_valid_until = datetime.datetime.now()+datetime.timedelta(minutes=15)
+                cs.send(enc.encrypt("e", f"VALID", alpha, shift_seed, enc_salt))
+                while True:
+                    create_verify = enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt, "join_dec")
+                    email_code_cli, device_key = create_verify.split("<|>")
+                    print(create_verify)
+                    if email_code == email_code_cli:
+                        cs.send(enc.encrypt("e", f"VALID", alpha, shift_seed, enc_salt))
+                        break
+                    else:
+                        cs.send(enc.encrypt("e", f"INVALID_CODE", alpha, shift_seed, enc_salt))
+
+                while True:
+                    username = enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt, "join_dec")
+                    user_valid = True
+                    if len(username) > 32 or "#" in username:
+                        print("reject")  # todo this will not be possible without client modification, flag
+                        user_valid = False
+                    # todo other char checks
+                    else:
+                        # todo proper all tag check, currently only allowing one user the ability to be called something
+                        with open("users.txt", encoding="utf-8") as f:
+                            for user in f.readlines():
+                                username_, tag = user.split("🱫")[1].split("#")
+                                if username_ == username:
+                                    user_valid = False
+                    if not user_valid:
+                        cs.send(enc.encrypt("e", "INVALID_NAME", alpha, shift_seed, enc_salt))
+                    else:
+                        session_key = enc.pass_to_seed(enc.hex_gens(128), default_salt)
+                        cs.send(enc.encrypt("e", session_key, alpha, shift_seed, enc_salt))
+                        break
+                print("create user account")
+                while True:
+                    account_id_valid = True
+                    account_id = enc.hex_gens(8)
+                    with open("users.txt", encoding="utf-8") as f:
+                        for user in f.readlines():
+                            account_id_ = user.split("🱫")[0]
+                            if account_id_ == account_id:
+                                account_id_valid = False
+                    if account_id_valid:
+                        break
+                password = enc.pass_to_seed(password, default_salt)
+                tag = randint(1111, 9999)
+                with open("users.txt", "a+", encoding="utf-8") as f:
+                    f.write(f"{account_id}🱫{username}#{tag}🱫{email}🱫{password}🱫{device_key}🱫{ip}🱫{session_key}\n")
 
 
-        input()
+
+    input()
     # old code
-    content = enc.decrypt_key(cs.recv(1024), default_key, "salt")
     print(content)
     cs.send(enc.encrypt_key(version_info(content.split("🱫")[0][8:], content.split("🱫")[1], cs), default_key, "salt"))
 
