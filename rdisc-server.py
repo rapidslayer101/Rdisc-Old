@@ -59,6 +59,10 @@ def client_connection(cs):
     cs.send(rsa.encrypt(enc_seed.encode(), pub_key_cli))
     cs.send(rsa.encrypt(enc_salt.encode(), pub_key_cli))
     alpha, shift_seed = enc.seed_to_data(enc_seed)
+
+    def send_e(text):
+        cs.send(enc.encrypt("e", text, alpha, shift_seed, enc_salt))
+
     while True:
         login_request = enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt, "join_dec")
 
@@ -72,7 +76,7 @@ def client_connection(cs):
                         email_valid = False
 
             if not email_valid:
-                cs.send(enc.encrypt("e", "INVALID_EMAIL", alpha, shift_seed, enc_salt))
+                send_e("INVALID_EMAIL")
             else:
                 # email code and username still required
                 # submit username after device_key and code
@@ -84,16 +88,16 @@ def client_connection(cs):
                 print(email_code_send)
                 #
                 #code_valid_until = datetime.datetime.now()+datetime.timedelta(minutes=15)
-                cs.send(enc.encrypt("e", f"VALID", alpha, shift_seed, enc_salt))
+                send_e("VALID")
                 while True:
                     create_verify = enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt, "join_dec")
                     email_code_cli, device_key = create_verify.split("<|>")
                     print(create_verify)
                     if email_code == email_code_cli:
-                        cs.send(enc.encrypt("e", f"VALID", alpha, shift_seed, enc_salt))
+                        send_e("VALID")
                         break
                     else:
-                        cs.send(enc.encrypt("e", f"INVALID_CODE", alpha, shift_seed, enc_salt))
+                        send_e("INVALID_CODE")
 
                 while True:
                     username = enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt, "join_dec")
@@ -110,10 +114,9 @@ def client_connection(cs):
                                 if username_ == username:
                                     user_valid = False
                     if not user_valid:
-                        cs.send(enc.encrypt("e", "INVALID_NAME", alpha, shift_seed, enc_salt))
+                        send_e("INVALID_NAME")
                     else:
-                        session_key = enc.pass_to_seed(enc.hex_gens(128), default_salt)
-                        cs.send(enc.encrypt("e", session_key, alpha, shift_seed, enc_salt))
+                        send_e("VALID")
                         break
                 print("create user account")
                 while True:
@@ -129,8 +132,45 @@ def client_connection(cs):
                 password = enc.pass_to_seed(password, default_salt)
                 tag = randint(1111, 9999)
                 with open("users.txt", "a+", encoding="utf-8") as f:
-                    f.write(f"{account_id}🱫{username}#{tag}🱫{email}🱫{password}🱫{device_key}🱫{ip}🱫{session_key}\n")
+                    f.write(f"{account_id}🱫{username}#{tag}🱫{email}🱫{password}🱫{device_key}🱫\n")
 
+        if login_request.startswith("NEWSK:"):
+            dk = login_request[6:]
+            dk_valid = False
+            line_counter = -1
+            with open("users.txt", encoding="utf-8") as f:
+                users = f.readlines()
+                for user in users:
+                    line_counter += 1
+                    dk_ = user.split("🱫")[4]
+                    if dk_ == dk:
+                        session_key = enc.pass_to_seed(enc.hex_gens(128), default_salt)
+                        udata = user.split("🱫")[:5]
+                        old_data = f"{udata[0]}🱫{udata[1]}🱫{udata[2]}🱫{udata[3]}🱫{udata[4]}"
+                        users[line_counter] = f"{old_data}🱫{ip}🱫{session_key}"
+                        dk_valid = True
+
+            if dk_valid:
+                send_e(session_key)
+                with open("users.txt", "w", encoding="utf-8") as f:
+                    for user in users:
+                        f.write(f"{user}")
+            else:
+                send_e("INVALID_DK")
+
+        if login_request.startswith("LOGIN:"):
+            sk = login_request[6:]
+            login_valid = False
+            with open("users.txt", encoding="utf-8") as f:
+                for user in f.readlines():
+                    ip_, sk_ = user.split("🱫")[5:7]
+                    if ip_ == ip:
+                        if sk_.replace("\n", "") == sk:
+                            login_valid = True
+                if login_valid:
+                    send_e("VALID")  # todo validate user as logged in
+                else:
+                    send_e("INVALID_SK")
 
 
     input()
