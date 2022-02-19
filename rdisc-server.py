@@ -4,7 +4,7 @@ from random import choice, randint
 import enclib as enc
 
 
-min_version = "V0.17.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
+min_version = "V0.19.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
 
 default_salt = """TO$X-YkP#XGl>>Nw@tt ~$c[{N-uF&#~+h#<84@W3 57dkX.V'1el~1JcyMTuRwjG
                   DxnI,ufxSNzdgJyQn<-Qj--.PN+y=Gk.F/(B'Fq+D@,$*9&[`Bt.W3i;0{UN7K="""
@@ -52,7 +52,6 @@ print(f"[*] Listening as 0.0.0.0:{server_port}")
 
 def client_connection(cs):
     ip, port = str(cs).split("raddr=")[1][2:-2].split("', ")
-    print("Waiting for pub key from", ip, port)
     pub_key_cli = rsa.PublicKey.load_pkcs1(cs.recv(1024))
     enc_seed = enc.hex_gens(78)
     enc_salt = enc.hex_gens(32)
@@ -66,9 +65,31 @@ def client_connection(cs):
     while True:
         login_request = enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt, "join_dec")
 
+        def make_new_dk():
+            # email code and username still required
+            # submit username after device_key and code
+
+            # email code sending code will be below
+            # add error return code for if email code sending fails
+            email_code = "".join([choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") for x in range(int(16))])
+            email_code_send = f"{email_code[:4]}-{email_code[4:8]}-{email_code[8:12]}-{email_code[12:]}"
+            print(email_code_send)
+            #
+            # code_valid_until = datetime.datetime.now()+datetime.timedelta(minutes=15)
+            send_e("VALID")
+            while True:
+                create_verify = enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt, "join_dec")
+                email_code_cli, device_key = create_verify.split("🱫")
+                if email_code == email_code_cli:
+                    send_e("VALID")
+                    break
+                else:
+                    send_e("INVALID_CODE")
+            return device_key
+
         # check for login, signup or session
         if login_request.startswith("NEWAC:"):
-            email, password = login_request[6:].split("<|>")
+            email, password = login_request[6:].split("🱫")
             with open("users.txt", encoding="utf-8") as f:
                 email_valid = True
                 for user in f.readlines():
@@ -78,26 +99,7 @@ def client_connection(cs):
             if not email_valid:
                 send_e("INVALID_EMAIL")
             else:
-                # email code and username still required
-                # submit username after device_key and code
-
-                # email code sending code will be below
-                # add error return code for if email code sending fails
-                email_code = "".join([choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") for x in range(int(16))])
-                email_code_send = f"{email_code[:4]}-{email_code[4:8]}-{email_code[8:12]}-{email_code[12:]}"
-                print(email_code_send)
-                #
-                #code_valid_until = datetime.datetime.now()+datetime.timedelta(minutes=15)
-                send_e("VALID")
-                while True:
-                    create_verify = enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt, "join_dec")
-                    email_code_cli, device_key = create_verify.split("<|>")
-                    print(create_verify)
-                    if email_code == email_code_cli:
-                        send_e("VALID")
-                        break
-                    else:
-                        send_e("INVALID_CODE")
+                device_key = make_new_dk()
 
                 while True:
                     username = enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt, "join_dec")
@@ -134,6 +136,31 @@ def client_connection(cs):
                 with open("users.txt", "a+", encoding="utf-8") as f:
                     f.write(f"{account_id}🱫{username}#{tag}🱫{email}🱫{password}🱫{device_key}🱫\n")
 
+        if login_request.startswith("NEWDK:"):
+            email, password = login_request[6:].split("🱫")
+            password = enc.pass_to_seed(password, default_salt)
+            email_valid = False
+            line_counter = -1
+            with open("users.txt", encoding="utf-8") as f:
+                users = f.readlines()
+                for user in users:
+                    line_counter += 1
+                    email_, password_ = user.split("🱫")[2:4]
+                    if email_ == email:
+                        if password_ == password:
+                            udata = user.split("🱫")[:4]
+                            old_data = f"{udata[0]}🱫{udata[1]}🱫{udata[2]}🱫{udata[3]}"
+                            email_valid = True
+            if not email_valid:
+                send_e("INVALID")
+            else:
+                send_e("VALID")
+                device_key = make_new_dk()
+                users[line_counter] = f"{old_data}🱫{device_key}"
+                with open("users.txt", "w", encoding="utf-8") as f:
+                    for user in users:
+                        f.write(f"{user}")
+
         if login_request.startswith("NEWSK:"):
             dk = login_request[6:]
             dk_valid = False
@@ -163,12 +190,12 @@ def client_connection(cs):
             login_valid = False
             with open("users.txt", encoding="utf-8") as f:
                 for user in f.readlines():
-                    ip_, sk_ = user.split("🱫")[5:7]
+                    user_id_, username_, email_, pass_, dk_, ip_, sk_ = user.split("🱫")
                     if ip_ == ip:
                         if sk_.replace("\n", "") == sk:
                             login_valid = True
                 if login_valid:
-                    send_e("VALID")  # todo validate user as logged in
+                    send_e(f"VALID:{user_id_}🱫{username_}")  # todo validate user as logged in
                 else:
                     send_e("INVALID_SK")
 

@@ -1,4 +1,4 @@
-import socket, os, time, datetime, rsa, uuid
+import socket, os, time, datetime, zlib, rsa, uuid
 from threading import Thread
 import enclib as enc
 
@@ -86,8 +86,9 @@ to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
 
 # 0.20 fall back method if sk/ip wrong -> dk, if no dk -> email and pass
 
-# 0.21 basic chat functionality, client to client connections and keys
-# 0.22 downloading, saving, load req files from a first time setup file, on setup know what version is installed
+# 0.21 version checking (on setup know version), client account friending, starting a DM
+# 0.22 basic DM chat functionality with client to server to client connections and keys
+# 0.22 downloading, saving, load req files from a first time setup file
 # 0.23 logout system and storing data
 
 
@@ -155,79 +156,87 @@ class cooldown:
             return "True"
 
 
-def receive():
-    output = cs.recv(1024).decode(encoding="utf-16")
-    if output.lower() == '-restart':
-        should_exit.change(0, "FQR")
+def listen_for_server(cs):
+    def receive():
+        output = cs.recv(1024).decode(encoding="utf-16")
+        if output.lower() == '-restart':
+            should_exit.change(0, "FQR")
 
-    if output.lower() == '-quit':
-        should_exit.change(0, "FQ")
-    return output
+        if output.lower() == '-quit':
+            should_exit.change(0, "FQ")
+        return output
 
+    # initiate server connection
+    pub_key, pri_key = rsa.newkeys(1024)
 
-# initiate server connection
-pub_key, pri_key = rsa.newkeys(1024)
+    server_host = "26.29.111.99"
+    server_port = 8080
+    s = socket.socket()
+    while True:
+        try:
+            s.connect((server_host, server_port))
+            to_c("\n🱫[COLOR THREAD][GREEN] Connected to server")
+            break
+        except ConnectionRefusedError:
+            to_c("\n🱫[COLOR THREAD][RED] Could not connect to server")
+            to_c("🱫[INPUT SHOW]\n🱫[COLOR THREAD][YELLOW] Enter something to retry connection")
+            receive()
+            to_c("🱫[INPUT HIDE]")
 
-server_host = "26.29.111.99"
-server_port = 8080
-s = socket.socket()
-try:
-    s.connect((server_host, server_port))
-    to_c("\n🱫[COLOR THREAD][GREEN] Connected to server")
-except ConnectionRefusedError:
-    to_c("\n🱫[COLOR THREAD][RED] Could not connect to server")
-    input()
-print("Server connected ->", s)
+    print("Server connected ->", s)
 
-# server bootstrap
-s.send(rsa.PublicKey.save_pkcs1(pub_key))
-print(" >> Public RSA key sent")
-enc_seed = rsa.decrypt(s.recv(1024), pri_key).decode()
-enc_salt = rsa.decrypt(s.recv(1024), pri_key).decode()
-alpha, shift_seed = enc.seed_to_data(enc_seed)
-print(" << Client enc_seed and enc_salt received and loaded")
-to_c("\n🱫[COLOR THREAD][GREEN] RSA -> enc bootstrap complete")
+    # server bootstrap
+    s.send(rsa.PublicKey.save_pkcs1(pub_key))
+    print(" >> Public RSA key sent")
+    enc_seed = rsa.decrypt(s.recv(1024), pri_key).decode()
+    enc_salt = rsa.decrypt(s.recv(1024), pri_key).decode()
+    alpha, shift_seed = enc.seed_to_data(enc_seed)
+    print(" << Client enc_seed and enc_salt received and loaded")
+    to_c("\n🱫[COLOR THREAD][GREEN] RSA -> enc bootstrap complete")
 
+    def send_e(text):
+        s.send(enc.encrypt("e", text, alpha, shift_seed, enc_salt))
 
-def send_e(text):
-    s.send(enc.encrypt("e", text, alpha, shift_seed, enc_salt))
+    def send_d():
+        return enc.encrypt("d", s.recv(1024), alpha, shift_seed, enc_salt)
 
-
-def send_d():
-    return enc.encrypt("d", s.recv(1024), alpha, shift_seed, enc_salt)
-
-
-while True:  # login loop
-    device_key = False
-    session_key = False
-
-    if os.path.isfile("auth.txt"):
-        with open("auth.txt", "rb") as f:
-            auth_data = f.read().split(b"  ")
-            if len(auth_data) > 0:
-                if not auth_data[0] == b"":
-                    device_key = mac_decrypt_key(auth_data[0])
-            if len(auth_data) > 1:
-                session_key = mac_decrypt_key(auth_data[1])
-
-
-    # todo version load
-    #to_c(f"Loaded version is {unverified_version} (UNVERIFIED)")
-
-    if session_key:
+    def login(session_key_):
         print("login with session key")
-        send_e(f"LOGIN:{session_key}")
-        print(f" >> Request sent: LOGIN:{session_key}")
+        send_e(f"LOGIN:{session_key_}")
+        print(f" >> Request sent: LOGIN:{session_key_}")
         login_request_response = send_d()
         if login_request_response != "INVALID_SK":
-            session_key = login_request_response
-            print(f" << VALID")
-            to_c(f"\n🱫[COLOR THREAD][GREEN] You are now logged in as USERNAME_PLACEHOLDER#TAG")
-            break
+            print(f" << VALID:{login_request_response}")
+            user_id_, username_ = login_request_response.split("🱫")
+            to_c(f"\n🱫[COLOR THREAD][GREEN] You are now logged in as {username_}")
+            return user_id_, username_
         else:
             print(" << INVALID_SK")
-            input("what to do here")  # todo
-    else:
+            return None
+
+    while True:  # login loop
+        device_key = False
+        session_key = False
+
+        if os.path.isfile("auth.txt"):
+            with open("auth.txt", "rb") as f:
+                auth_data = f.read().split(b"  ")
+                if len(auth_data) > 0:
+                    if not auth_data[0] == b"":
+                        try:
+                            device_key = mac_decrypt_key(auth_data[0])
+                        except zlib.error:
+                            pass
+                if len(auth_data) > 1:
+                    try:
+                        session_key = mac_decrypt_key(auth_data[1])
+                    except zlib.error:
+                        pass
+
+        if session_key:
+            user_data = login(session_key)
+            if user_data:
+                break
         if device_key:
             print("get new session_key")
             send_e(f"NEWSK:{enc.pass_to_seed(device_key, keys.get_key(0, 'mac'))}")
@@ -237,116 +246,136 @@ while True:  # login loop
                 session_key = dk_request_response
                 print(f" << VALID:{session_key}")
                 auth_txt_write(device_key, session_key)
+                user_data = login(session_key)
+                if user_data:
+                    break
             else:
                 print(" << INVALID_DK")
-        else:
-            print("create new account or log in")
-            to_c("🱫[INPUT SHOW]🱫[MNINPLEN][256] ", 0.1)  # todo set len to 7?
+
+        print("create new account or log in")
+        to_c("🱫[INPUT SHOW]🱫[MNINPLEN][256] ", 0.1)  # todo set len to 7?
+        while True:
+            to_c("\n🱫[COLOR THREAD][YELLOW] Type 'login' or 'sign up'")
+            login_signup = receive().lower().replace(" ", "")
+            if login_signup in ["login", "signup"]:
+                break
+
+        def enter_email():
             while True:
-                to_c("\n🱫[COLOR THREAD][YELLOW] Type 'login' or 'sign up'")
-                login_signup = receive().lower().replace(" ", "")
-                if login_signup in ["login", "signup"]:
+                to_c("\n🱫[COLOR THREAD][YELLOW] Please enter email", 0.1)
+                email_ = receive().lower()
+                if "@" not in email_:
+                    to_c("\n🱫[COLOR THREAD][RED] Email does not contain an '@'")
+                else:
                     break
-            if login_signup == "login":
-                print("login system")
-                request = "LOGIN:"
-            else:
-                password = None
-                while True:
-                    while True:
-                        to_c("\n🱫[COLOR THREAD][YELLOW] Please enter an email", 0.1)
-                        email = receive().lower()
-                        if "@" not in email:
-                            to_c("\n🱫[COLOR THREAD][RED] Email does not contain an '@'")
-                        else:
-                            break
+            return email_
 
-                    while password is None:
-                        to_c("\n🱫[COLOR THREAD][YELLOW] Please enter a password", 0.1)
-                        # password_entry_1 = receive()
-                        password_entry_1 = "f839056vgnq5"
-                        if len(password_entry_1) < 8:
-                            to_c("\n🱫[COLOR THREAD][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
-                        else:
-                            to_c(f"\n Entered ({len(password_entry_1)}chrs): "+"*"*len(password_entry_1))
-                            to_c("\n🱫[COLOR THREAD][YELLOW] Please re-enter password", 0.1)
-                            # password_entry_2 = receive()
-                            password_entry_2 = "f839056vgnq5"
-                            if password_entry_1 == password_entry_2:
-                                password = enc.pass_to_seed(password_entry_1, default_salt)
-                                break
-                            else:
-                                to_c("\n🱫[COLOR THREAD][RED] PASSWORDS DO NOT MATCH!")
-                                password = None
-                    send_e(f"NEWAC:{email}<|>{password}")
-                    print(f" >> Request sent: NEWAC:{email}<|>{password}")
-                    create_ac_response = send_d()
-                    if create_ac_response == "INVALID_EMAIL":
-                        print(" << INVALID_EMAIL")
-                        to_c("\n🱫[COLOR THREAD][RED] Email was invalid, probably already taken")
+        def make_new_dk():
+            device_key_ = enc.hex_gens(128)
+            salted_dk = enc.pass_to_seed(device_key_, keys.get_key(0, "mac"))
+            to_c(f"\n🱫[COLOR THREAD][GREEN] A verification code has "
+                 f"been send to '{email}' (code valid for 15 minutes)")
+            # to_c("🱫[INPUT SHOW]🱫[MNINPLEN][16] ", 0.1)  # todo set limit?
+
+            while True:
+                to_c(f"\n🱫[COLOR THREAD][YELLOW] Enter 16 char code below", 0.1)
+                email_code = ""
+                while len(email_code) != 16:
+                    email_code = receive().replace("-", "")
+
+                send_e(f"{email_code}🱫{salted_dk}")
+                print(f" >> Request sent: {email_code}🱫{salted_dk}")
+                verify_dk_response = send_d()
+                if verify_dk_response == "VALID":
+                    print(" << VALID")
+                    break
+                else:
+                    print(" << INVALID_CODE")
+                    to_c("\n🱫[COLOR THREAD][RED] Invalid email code")
+            return device_key_
+
+        if login_signup == "login":
+            print("login system")  # todo relogin WIP
+            while True:
+                email = enter_email()
+                to_c("\n🱫[COLOR THREAD][YELLOW] Please enter your password", 0.1)
+                password = enc.pass_to_seed(receive(), default_salt)
+                send_e(f"NEWDK:{email}🱫{password}")
+                print(f" >> Request sent: NDKEP:{email}🱫{password}")
+                get_dk_response = send_d()
+                if get_dk_response == "INVALID":
+                    print(" << INVALID")
+                    to_c("\n🱫[COLOR THREAD][RED] Email or password invalid")
+                else:
+                    print(" << VALID")
+                    break
+
+            device_key = make_new_dk()
+            auth_txt_write(device_key)
+        else:
+            password = None
+            while True:
+                email = enter_email()
+                while password is None:
+                    to_c("\n🱫[COLOR THREAD][YELLOW] Please enter a password", 0.1)
+                    # password_entry_1 = receive()
+                    password_entry_1 = "f839056vgnq5"
+                    if len(password_entry_1) < 8:
+                        to_c("\n🱫[COLOR THREAD][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
                     else:
-                        print(" << VALID")
-                        break
-                device_key = enc.hex_gens(128)
-                salted_dk = enc.pass_to_seed(device_key, keys.get_key(0, "mac"))
-                to_c(f"\n🱫[COLOR THREAD][GREEN] A verification code has "
-                     f"been send to '{email}' (code valid for 15 minutes)")
-                # to_c("🱫[INPUT SHOW]🱫[MNINPLEN][16] ", 0.1)  # todo set limit?
-
-                while True:
-                    to_c(f"\n🱫[COLOR THREAD][YELLOW] Enter 16 char code below", 0.1)
-                    email_code = ""
-                    while len(email_code) != 16:
-                        email_code = receive().replace("-", "")
-
-                    send_e(f"{email_code}<|>{salted_dk}")
-                    print(f" >> Request sent: {email_code}<|>{salted_dk}")
-                    verify_dk_response = send_d()
-                    if verify_dk_response == "VALID":
-                        print(" << VALID")
-                        break
-                    else:
-                        print(" << INVALID_CODE")
-                        to_c("\n🱫[COLOR THREAD][RED] Invalid email code")
-
-                while True:
-                    to_c(f"\n🱫[COLOR THREAD][YELLOW] Enter a username (upto 32 chars)", 0.1)
-                    while True:
-                        username = receive().replace("#", "")
-                        if 2 < len(username) < 33:
+                        to_c(f"\n Entered ({len(password_entry_1)}chrs): "+"*"*len(password_entry_1))
+                        to_c("\n🱫[COLOR THREAD][YELLOW] Please re-enter password", 0.1)
+                        # password_entry_2 = receive()
+                        password_entry_2 = "f839056vgnq5"
+                        if password_entry_1 == password_entry_2:
+                            password = enc.pass_to_seed(password_entry_1, default_salt)
                             break
                         else:
-                            to_c(f"\n🱫[COLOR THREAD][RED] Username must be 3-32 chars", 0.1)
+                            to_c("\n🱫[COLOR THREAD][RED] PASSWORDS DO NOT MATCH!")
+                            password = None
+                send_e(f"NEWAC:{email}🱫{password}")
+                print(f" >> Request sent: NEWAC:{email}🱫{password}")
+                create_ac_response = send_d()
+                if create_ac_response == "INVALID_EMAIL":
+                    print(" << INVALID_EMAIL")
+                    to_c("\n🱫[COLOR THREAD][RED] Email was invalid, probably already taken")
+                else:
+                    print(" << VALID")
+                    break
 
-                    send_e(username)
-                    print(f" >> Request sent: {username}")
-                    verify_dk_response = send_d()
-                    if verify_dk_response == "INVALID_NAME":
-                        print(" << INVALID_NAME")
-                        to_c("\n🱫[COLOR THREAD][RED] Username already taken")
-                    else:
-                        print(f" << VALID")
+            device_key = make_new_dk()
+
+            while True:
+                to_c(f"\n🱫[COLOR THREAD][YELLOW] Enter a username (upto 32 chars)", 0.1)
+                while True:
+                    username = receive().replace("#", "")
+                    if 2 < len(username) < 33:
                         break
+                    else:
+                        to_c(f"\n🱫[COLOR THREAD][RED] Username must be 3-32 chars", 0.1)
 
-                auth_txt_write(device_key)
-                to_c("\n🱫[COLOR THREAD][GREEN] Account setup complete, logging in...")
-                print("Username accepted, account setup complete, dk received and saved")
+                send_e(username)
+                print(f" >> Request sent: {username}")
+                new_username_response = send_d()
+                if new_username_response == "INVALID_NAME":
+                    print(" << INVALID_NAME")
+                    to_c("\n🱫[COLOR THREAD][RED] Username already taken")
+                else:
+                    print(f" << VALID")
+                    break
+
+            auth_txt_write(device_key)
+            to_c("\n🱫[COLOR THREAD][GREEN] Account setup complete, logging in...")
+            print("Username accepted, account setup complete, dk received and saved")
+
+    # todo grab version and updates here after login
 
 
-# todo grab version and updates here after login
-input("LOGGED IN")
 
+    input("LOGGED IN")
 
-def listen_for_server(cs):
-
-    def receive():
-        output = cs.recv(1024).decode(encoding="utf-16")
-        if output.lower() == '-restart':
-            should_exit.change(0, "FQR")
-
-        if output.lower() == '-quit':
-            should_exit.change(0, "FQ")
-        return output
+    # todo version load
+    #to_c(f"Loaded version is {unverified_version} (UNVERIFIED)")
 
     # code removed
 
