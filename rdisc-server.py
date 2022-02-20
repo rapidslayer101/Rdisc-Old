@@ -1,24 +1,23 @@
-import datetime, os, socket, rsa, uuid
+import socket, rsa
 from threading import Thread
 from random import choice, randint
 import enclib as enc
 
 
-min_version = "V0.19.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
+min_version = "V0.20.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
 
 default_salt = """TO$X-YkP#XGl>>Nw@tt ~$c[{N-uF&#~+h#<84@W3 57dkX.V'1el~1JcyMTuRwjG
                   DxnI,ufxSNzdgJyQn<-Qj--.PN+y=Gk.F/(B'Fq+D@,$*9&[`Bt.W3i;0{UN7K="""
 
 
-def version_info(hashed, user_id, cs):
-    print(hashed, user_id)
+def version_info(hashed):
+    version_data = None
     with open("sha.txt", encoding="utf-8") as f:
-        lines = f.readlines()
-        for line in lines:
+        for line in f.readlines():
             if hashed in line:
                 version_data = line
-            else:
-                return "NOTREAL"
+    if not version_data:
+        return "UNKNOWN"
     latest_sha, type, version, tme, bld_num, run_num = version_data.split("§")
     print(latest_sha, type, version, tme, bld_num, run_num)
     release_major, major, build, run = version.replace("V", "").split(".")
@@ -31,14 +30,9 @@ def version_info(hashed, user_id, cs):
                     valid_version = True
                     print(f"{version} is valid for the {min_version} requirement")
     if not valid_version:
-        return f"INVALID-{version}->{min_version}"
+        return f"INVALID:{version}->{min_version}"
     else:
-        if users.get(0, user_id[:64]):  # todo redo
-            client_sockets.add(cs)
-            print("Updated cs", client_sockets)
-            return f"VALID-{version}-{tme}-{bld_num}-{run_num}"
-        else:
-            return f"NO_ACC_FND"
+        return f"VALID:{version}🱫{tme}🱫{bld_num}🱫{run_num}"
 
 
 server_port = 8080
@@ -62,8 +56,15 @@ def client_connection(cs):
     def send_e(text):
         cs.send(enc.encrypt("e", text, alpha, shift_seed, enc_salt))
 
+    def recv_d():
+        try:
+            return enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt)
+        except ConnectionResetError:
+            print(f"{cs} Disconnected")
+            client_sockets.remove(cs)
+
     while True:
-        login_request = enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt, "join_dec")
+        login_request = recv_d()
 
         def make_new_dk():
             # email code and username still required
@@ -78,14 +79,13 @@ def client_connection(cs):
             # code_valid_until = datetime.datetime.now()+datetime.timedelta(minutes=15)
             send_e("VALID")
             while True:
-                create_verify = enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt, "join_dec")
-                email_code_cli, device_key = create_verify.split("🱫")
+                email_code_cli, device_key_ = recv_d().split("🱫")
                 if email_code == email_code_cli:
                     send_e("VALID")
                     break
                 else:
                     send_e("INVALID_CODE")
-            return device_key
+            return device_key_
 
         # check for login, signup or session
         if login_request.startswith("NEWAC:"):
@@ -100,26 +100,6 @@ def client_connection(cs):
                 send_e("INVALID_EMAIL")
             else:
                 device_key = make_new_dk()
-
-                while True:
-                    username = enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt, "join_dec")
-                    user_valid = True
-                    if len(username) > 32 or "#" in username:
-                        print("reject")  # todo this will not be possible without client modification, flag
-                        user_valid = False
-                    # todo other char checks
-                    else:
-                        # todo proper all tag check, currently only allowing one user the ability to be called something
-                        with open("users.txt", encoding="utf-8") as f:
-                            for user in f.readlines():
-                                username_, tag = user.split("🱫")[1].split("#")
-                                if username_ == username:
-                                    user_valid = False
-                    if not user_valid:
-                        send_e("INVALID_NAME")
-                    else:
-                        send_e("VALID")
-                        break
                 print("create user account")
                 while True:
                     account_id_valid = True
@@ -130,6 +110,16 @@ def client_connection(cs):
                             if account_id_ == account_id:
                                 account_id_valid = False
                     if account_id_valid:
+                        break
+                while True:
+                    username_valid = True
+                    username = enc.hex_gens(8)
+                    with open("users.txt", encoding="utf-8") as f:
+                        for user in f.readlines():
+                            username_ = user.split("🱫")[1]
+                            if username_ == username:
+                                username_valid = False
+                    if username_valid:
                         break
                 password = enc.pass_to_seed(password, default_salt)
                 tag = randint(1111, 9999)
@@ -159,7 +149,7 @@ def client_connection(cs):
                 users[line_counter] = f"{old_data}🱫{device_key}"
                 with open("users.txt", "w", encoding="utf-8") as f:
                     for user in users:
-                        f.write(f"{user}")
+                        f.write(user)
 
         if login_request.startswith("NEWSK:"):
             dk = login_request[6:]
@@ -181,7 +171,7 @@ def client_connection(cs):
                 send_e(session_key)
                 with open("users.txt", "w", encoding="utf-8") as f:
                     for user in users:
-                        f.write(f"{user}")
+                        f.write(user)
             else:
                 send_e("INVALID_DK")
 
@@ -196,47 +186,44 @@ def client_connection(cs):
                             login_valid = True
                 if login_valid:
                     send_e(f"VALID:{user_id_}🱫{username_}")  # todo validate user as logged in
+                    break
                 else:
                     send_e("INVALID_SK")
 
+    print(f"{user_id_} logged in with IP:{ip}")
+    request = recv_d()
+    if request.startswith("VCHCK:"):
+        version_response = version_info(request[6:])
+        send_e(version_response)
+        if not version_response.startswith("VALID:"):
+            pass  # todo client connection close
 
-    input()
-    # old code
-    print(content)
-    cs.send(enc.encrypt_key(version_info(content.split("🱫")[0][8:], content.split("🱫")[1], cs), default_key, "salt"))
-
-    while True:
-        try:
-            content = cs.recv(1024)
-        except ConnectionResetError:
-            print(f"{cs} Disconnected")
-            client_sockets.remove(cs)
-            break
-        actual_message = False
-        try:
-            print(content)
-            content = enc.decrypt_key(content, default_key, "salt")
-            actual_message = True
-        except Exception as e:
-            print("Could not decrypt_key", e)
-            client_socket.close()
-
-        if actual_message:
-            process_code = content[:3]
-            payload = content[3:]
-            print(ip, port, process_code, payload)
-
-            if process_code == "MSG":  # message post
-                send = f"{datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} " \
-                          f"{ip}:{port}: {payload}"
-
-            #if process_code == "CAN":  # change account name  # todo dup checks and reject to long
-            #    users.change_name(0, content[:64], account_data[:32], payload)
-            #    send = enc.encrypt_key(f"'{account_name}' changed name to '{payload}'", default_key)
-
-            #if send:
-            for client_socket in client_sockets:
-                client_socket.send(enc.encrypt_key(send, default_key, "salt"))
+    while True:  # main loop
+        request = recv_d()
+        if request.startswith("CUSRN:"):
+            # todo username validation checks
+            username_valid = True
+            line_counter = -1
+            with open("users.txt", encoding="utf-8") as f:
+                users = f.readlines()
+                for user in users:
+                    line_counter += 1
+                    username_ = user.split("🱫")[1]
+                    ip_ = user.split("🱫")[5]
+                    if ip_ == ip:
+                        udata = user.split("🱫")
+                        username = f"{request[6:]}#{randint(1111, 9999)}"
+                        old_data = f"{udata[0]}🱫{username}🱫{udata[2]}🱫{udata[3]}🱫{udata[4]}🱫{udata[5]}🱫{udata[6]}"
+                        users[line_counter] = old_data
+                    if username_ == request[6:]:
+                        username_valid = False
+            if username_valid:
+                send_e("VALID")
+                with open("users.txt", "w", encoding="utf-8") as f:
+                    for user in users:
+                        f.write(user)
+            else:
+                send_e("INVALID_NAME")
 
 
 while True:
