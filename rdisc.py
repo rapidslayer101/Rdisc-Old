@@ -6,19 +6,19 @@ import enclib as enc
 try:
     hashed = enc.hash_a_file("rdisc.py")
     with open("sha.txt", "r", encoding="utf-8") as f:
-        latest_sha, run_type, version, tme, bld_num, run_num = f.readlines()[-1].split("§")
-    print("prev", run_type, version, tme, bld_num, run_num)
-    release_major, major, build, run = version.replace("V", "").split(".")
+        latest_sha_, run_type_, version_, tme_, bld_num_, run_num_ = f.readlines()[-1].split("§")
+    print("prev", run_type_, version_, tme_, bld_num_, run_num_)
+    release_major, major, build, run = version_.replace("V", "").split(".")
 
-    if latest_sha != hashed:
+    if latest_sha_ != hashed:
         run = int(run) + 1
         with open("sha.txt", "a+", encoding="utf-8") as f:
             write = f"\n{hashed}§RUN§V{release_major}.{major}.{build}.{run}" \
                     f"§TME-{str(datetime.datetime.now())[:-4].replace(' ', '_')}" \
-                    f"§BLD_NM-{bld_num[7:]}§RUN_NM-{int(run_num[7:])+1}"
+                    f"§BLD_NM-{bld_num_[7:]}§RUN_NM-{int(run_num_[7:])+1}"
             print(f"crnt RUN V{release_major}.{major}.{build}.{run} "
                   f"TME-{str(datetime.datetime.now())[:-4].replace(' ', '_')} "
-                  f"BLD_NM-{bld_num[7:]} RUN_NM-{int(run_num[7:])+1}")
+                  f"BLD_NM-{bld_num_[7:]} RUN_NM-{int(run_num_[7:])+1}")
             f.write(write)
         print(f"Running rdisc V{release_major}.{major}.{build}.{run}")
 except FileNotFoundError:
@@ -36,12 +36,12 @@ class should_exit:
         return exit_state.update({"QUIT": change_to})
 
 
-s = socket.socket()
-s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+ui_s = socket.socket()
+ui_s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 if os.path.exists("rdisc.py"):
-    s.bind(("127.0.0.1", 8078))
+    ui_s.bind(("127.0.0.1", 8078))
 else:
-    s.bind(("127.0.0.1", 8079))
+    ui_s.bind(("127.0.0.1", 8079))
 
 print(" -> Launching ui.exe")
 if not os.path.isfile("ui.exe"):
@@ -49,9 +49,9 @@ if not os.path.isfile("ui.exe"):
 else:
     os.startfile("ui.exe")
 print(" <- ui.exe launched")
-s.listen(10)
+ui_s.listen(10)
 
-cs, client_address = s.accept()
+cs, client_address = ui_s.accept()
 
 
 def to_c(text, delay=None):
@@ -86,11 +86,12 @@ to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
 # 0.20 fall back method if sk/ip wrong -> dk, if no dk -> email and pass
 # 0.21 version checking (on setup know version), username changing
 
-# 0.22 finding other clients, connecting to them / friending (on/offline), user tag support
+# 0.22 login and signup rework -> a new dk call will now also give back a sk, general validation framework
 
-# 0.23 basic DM chat functionality with client to server to client connections and keys
-# 0.24 downloading, saving, load req files from a first time setup file
-# 0.25 logout system and storing data
+# 0.23 finding other clients, connecting to them / friending (on/offline), user tag support
+# 0.24 basic DM chat functionality with client to server to client connections and keys
+# 0.25 downloading, saving, load req files from a first time setup file
+# 0.26 logout system and storing data
 
 
 # ports localhost:8079, localhost:8080
@@ -150,7 +151,7 @@ class cooldown:
         if time_since_last.seconds > 5:  # cooldown(s) when triggered
             cool_down_data.update({"msg_counter": 0})
 
-        if cool_down_data["msg_counter"] > 10:  # total before counter triggers cooldown(s)
+        if cool_down_data["msg_counter"] > 10:  # total before counter triggers' cooldown(s)
             return round(5-time_since_last.seconds, 2)
         else:
             cool_down_data.update({"x": (str(datetime.datetime.utcnow()))})
@@ -158,7 +159,12 @@ class cooldown:
 
 
 def listen_for_server(cs):
-    def receive():
+    def receive(c_text=None, delay=None):
+        if c_text:
+            if delay:
+                to_c(c_text, delay)
+            else:
+                to_c(c_text)
         output = cs.recv(1024).decode(encoding="utf-16")
         if output.lower() == '-restart':
             should_exit.change(0, "FQR")
@@ -180,13 +186,10 @@ def listen_for_server(cs):
             break
         except ConnectionRefusedError:
             to_c("\n🱫[COLOR THREAD][RED] Could not connect to server")
-            to_c("🱫[INPUT SHOW]\n🱫[COLOR THREAD][YELLOW] Enter something to retry connection")
-            receive()
+            receive("🱫[INPUT SHOW]\n🱫[COLOR THREAD][YELLOW] Enter something to retry connection")
             to_c("🱫[INPUT HIDE]")
 
     print("Server connected ->", s)
-
-    # server bootstrap
     s.send(rsa.PublicKey.save_pkcs1(pub_key))
     print(" >> Public RSA key sent")
     enc_seed = rsa.decrypt(s.recv(1024), pri_key).decode()
@@ -205,51 +208,55 @@ def listen_for_server(cs):
         print("Login with session key")
         send_e(f"LOGIN:{session_key_}")
         print(f" >> Request sent: LOGIN:{session_key_}")
-        login_request_response = recv_d()
-        if login_request_response != "INVALID_SK":
-            print(f" << VALID:{login_request_response}")
-            user_id_, username_ = login_request_response.split("🱫")
-            to_c(f"\n🱫[COLOR THREAD][GREEN] You are now logged in as {username_}")
-            return user_id_, username_
+        login_req_resp = recv_d()
+        if login_req_resp != "INVALID_SK":
+            print(f" << VALID:{login_req_resp}")
+            to_c(f"\n🱫[COLOR THREAD][GREEN] You are now logged in as {login_req_resp.split('🱫')[1]}")
+            return login_req_resp.split("🱫")
         else:
             print(" << INVALID_SK")
             return None
 
-    while True:  # login loop
-        device_key = False
-        session_key = False
-
-        if os.path.isfile("auth.txt"):
-            with open("auth.txt", "rb") as f:
-                auth_data = f.read().split(b"  ")
-                if len(auth_data) > 0:
-                    if not auth_data[0] == b"":
-                        try:
-                            device_key = mac_decrypt_key(auth_data[0])
-                        except zlib.error:
-                            pass
-                if len(auth_data) > 1:
+    device_key = False
+    session_key = False
+    if os.path.isfile("auth.txt"):
+        with open("auth.txt", "rb") as f:
+            auth_data = f.read().split(b"  ")
+            if len(auth_data) > 0:
+                if not auth_data[0] == b"":
                     try:
-                        session_key = mac_decrypt_key(auth_data[1])
+                        device_key = mac_decrypt_key(auth_data[0])
+                        print(f"LOAD_DK: {enc.pass_to_seed(device_key, keys.get_key(0, 'mac'))}")
                     except zlib.error:
                         pass
+            if len(auth_data) > 1:
+                try:
+                    session_key = mac_decrypt_key(auth_data[1])
+                    print(f"LOAD_SK: {session_key}")
+                except zlib.error:
+                    pass
 
+    while True:  # login loop
         if session_key:
-            user_data = login(session_key)
-            if user_data:
+            try:
+                user_id_, username_ = login(session_key)
                 break
+            except TypeError:
+                pass
         if device_key:
             print("Get a new session_key")
             send_e(f"NEWSK:{enc.pass_to_seed(device_key, keys.get_key(0, 'mac'))}")
-            print(f" >> Request sent: NEWSK:{device_key}")
-            dk_request_response = recv_d()
-            if dk_request_response != "INVALID_DK":
-                session_key = dk_request_response
+            print(f" >> Request sent: NEWSK:{enc.pass_to_seed(device_key, keys.get_key(0, 'mac'))}")
+            dk_req_resp = recv_d()
+            if dk_req_resp.startswith("VALID:"):
+                session_key = dk_req_resp[6:]
                 print(f" << VALID:{session_key}")
                 auth_txt_write(device_key, session_key)
-                user_data = login(session_key)
-                if user_data:
+                try:
+                    user_id_, username_ = login(session_key)
                     break
+                except TypeError:
+                    pass
             else:
                 print(" << INVALID_DK")
 
@@ -257,15 +264,13 @@ def listen_for_server(cs):
         to_c("🱫[INPUT SHOW]🱫[MNINPLEN][256] ", 0.1)  # todo set len to 7?
         while True:
             to_c("Create a new account or log in to an existing one")
-            to_c("\n🱫[COLOR THREAD][YELLOW] Type 'login' or 'sign up'", 0.1)
-            login_signup = receive().lower().replace(" ", "")
+            login_signup = receive("\n🱫[COLOR THREAD][YELLOW] Type 'login' or 'sign up'", 0.1).lower().replace(" ", "")
             if login_signup in ["login", "signup"]:
                 break
 
         def enter_email():
             while True:
-                to_c("\n🱫[COLOR THREAD][YELLOW] Please enter email", 0.1)
-                email_ = receive().lower()
+                email_ = receive("\n🱫[COLOR THREAD][YELLOW] Please enter email", 0.1).lower()
                 if "@" not in email_:
                     to_c("\n🱫[COLOR THREAD][RED] Email does not contain an '@'")
                 else:
@@ -273,6 +278,7 @@ def listen_for_server(cs):
             return email_
 
         def make_new_dk():
+            print("Get a new device_key and session_key")
             device_key_ = enc.hex_gens(128)
             salted_dk = enc.pass_to_seed(device_key_, keys.get_key(0, "mac"))
             to_c(f"\n🱫[COLOR THREAD][GREEN] A verification code has "
@@ -282,22 +288,22 @@ def listen_for_server(cs):
             while True:
                 to_c(f"\n🱫[COLOR THREAD][YELLOW] Enter 16 char code below", 0.1)
                 email_code = ""
-                while len(email_code) != 16:
+                while len(email_code) != 16:  # todo improve
                     email_code = receive().replace("-", "").upper()
 
                 send_e(f"{email_code}🱫{salted_dk}")
                 print(f" >> Request sent: {email_code}🱫{salted_dk}")
-                verify_dk_response = recv_d()
-                if verify_dk_response == "VALID":
-                    print(" << VALID")
+                verify_dk_resp = recv_d()
+                if verify_dk_resp.startswith("VALID:"):
+                    print(f" << {verify_dk_resp}")
                     break
                 else:
                     print(" << INVALID_CODE")
                     to_c("\n🱫[COLOR THREAD][RED] Invalid email code")
-            return device_key_
+            return device_key_, verify_dk_resp[6:]
 
         if login_signup == "login":
-            print("Login system")  # todo relogin WIP
+            print("Login system")
             while True:
                 email = enter_email()
                 to_c("\n🱫[COLOR THREAD][YELLOW] Please enter your password", 0.1)
@@ -312,21 +318,19 @@ def listen_for_server(cs):
                     print(" << VALID")
                     break
 
-            device_key = make_new_dk()
-            auth_txt_write(device_key)
+            device_key, session_key = make_new_dk()
+            auth_txt_write(device_key, session_key)
         else:
             password = None
             while True:
                 email = enter_email()
                 while password is None:
-                    to_c("\n🱫[COLOR THREAD][YELLOW] Please enter a password", 0.1)
-                    password_entry_1 = receive()
+                    password_entry_1 = receive("\n🱫[COLOR THREAD][YELLOW] Please enter a password", 0.1)
                     if len(password_entry_1) < 8:
                         to_c("\n🱫[COLOR THREAD][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
                     else:
                         to_c(f"\n Entered ({len(password_entry_1)}chrs): "+"*"*len(password_entry_1))
-                        to_c("\n🱫[COLOR THREAD][YELLOW] Please re-enter password", 0.1)
-                        password_entry_2 = receive()
+                        password_entry_2 = receive("\n🱫[COLOR THREAD][YELLOW] Please re-enter password", 0.1)
                         if password_entry_1 == password_entry_2:
                             password = enc.pass_to_seed(password_entry_1, default_salt)
                             break
@@ -343,12 +347,10 @@ def listen_for_server(cs):
                     print(" << VALID")
                     break
 
-            device_key = make_new_dk()
-            auth_txt_write(device_key)
+            device_key, session_key = make_new_dk()
+            auth_txt_write(device_key, session_key)
             to_c("\n🱫[COLOR THREAD][GREEN] Account setup complete, logging in...")
-            print("Username accepted, account setup complete, dk received and saved")
-
-    # todo grab version and updates here after login
+            print("Account setup complete, dk received and saved")
 
     print("Version updater")  # todo version load
     send_e(f"VCHCK:{hashed}")
@@ -378,90 +380,33 @@ def listen_for_server(cs):
         request = receive()
 
         if request.startswith("-change name"):
-            to_c(f"\n🱫[COLOR THREAD][YELLOW] Enter a username (upto 32 chars)", 0.1)
-            while True:
-                username = receive().replace("#", "")
-                if 2 < len(username) < 33:
-                    break
+            username = request[13:].replace("#", "").replace(" ", "")
+            if username == username_[:-5]:
+                to_c(f"\n🱫[COLOR THREAD][RED] Username cannot be the same as previous username")
+            else:
+                if 4 < len(username) < 33:
+                    send_e(f"CUSRN:{username}")
+                    print(f" >> Request sent: CUSRN:{username}")
+                    new_username_response = recv_d()
+                    if new_username_response == "INVALID_NAME":
+                        print(" << INVALID_NAME")
+                        to_c("\n🱫[COLOR THREAD][RED] Username already taken")
+                    else:
+                        print(f" << VALID")
+                        to_c(f"\n🱫[COLOR THREAD][GREEN] Username changed to "
+                             f"{new_username_response[6:]} from {username_}")
+                        username_ = new_username_response[6:]
                 else:
-                    to_c(f"\n🱫[COLOR THREAD][RED] Username must be 3-32 chars", 0.1)
+                    to_c(f"\n🱫[COLOR THREAD][RED] Username must be 5-32 chars, you entered: {username[:64]}")
 
-            send_e(f"CUSRN:{username}")
-            print(f" >> Request sent: CUSRN:{username}")
-            new_username_response = recv_d()
-            if new_username_response == "INVALID_NAME":
-                print(" << INVALID_NAME")
-                to_c("\n🱫[COLOR THREAD][RED] Username already taken")
-            else:
-                print(f" << VALID")
-                to_c(f"\n🱫[COLOR THREAD][GREEN] Username changed to {username} from {user_data[0][6:]}")
-                break
+    print("Exit")
 
 
-    # todo username changer
-
-    #to_c(f"Loaded version is {unverified_version} (UNVERIFIED)")
-
-    # code removed
-
-    print("Input handler launched")
-
-    while True:
-        received = s.recv(1024).decode(encoding="utf-16")
-        received_l = received.lower()
-        client_send = None
-        send = True
-        print(received, received_l)
-
-        # internal
-        if received_l == '-restart':
-            should_exit.change(0, "FQR")
-            send = False
-
-        if received_l == '-quit':
-            should_exit.change(0, "FQ")
-            send = False
-
-        if received_l.startswith("-change password "):
-            send = False
-            if len(received[17:]) < 8:
-                to_c("\n🱫[COLOR THREAD][RED] Password to short (must be 8-256 chars)")
-                to_c(f"🱫[MNINPTXT] {received}", 0.1)
-            else:
-                if len(received[13:]) > 256:
-                    to_c("\n🱫[COLOR THREAD][RED] Password to large (must be 8-256 chars)")
-                    to_c(f"🱫[MNINPTXT] {received}", 0.1)
-                else:
-                    keys.update_key(0, "pass_key", received[17:])
-                    auth_txt_write(session_key, verified_version)
-                    to_c(f"\n New password set ({len(received[17:])}chrs): " + "*" * len(received[17:]))
-
-        # external
-        if received_l.startswith("-change name "):
-            send = False
-            if len(received[13:]) < 4:
-                to_c("\n🱫[COLOR THREAD][RED] Name to short (must be 4-32 chars)")
-                to_c(f"🱫[MNINPTXT] {received}", 0.1)
-            else:
-                if len(received[13:]) > 32:
-                    to_c("\n🱫[COLOR THREAD][RED] Name to large (must be 4-32 chars)")
-                    to_c(f"🱫[MNINPTXT] {received}", 0.1)
-                else:
-                    client_send = f"CAN{received[13:]}"
-                    send = True
-
-        if send:
-            if not client_send:
-                client_send = f"MSG{received}"
-
-            while received.endswith("\n"):
-                received = received[:-2]
-
-            checked = cooldown.check(0)  # todo maybe stop input until allowed, bring back what was entered
-            if checked == "True":
-                s.send(enc.encrypt_key(client_send, keys.get_key(0, "df_key"), "salt"))
-            else:
-                to_c(f"\nYOU'RE SENDING MESSAGES TOO FAST! please wait {checked}s~")
+    #checked = cooldown.check(0)  # todo maybe stop input until allowed, bring back what was entered
+    #if checked == "True":
+    #    s.send(enc.encrypt_key(client_send, keys.get_key(0, "df_key"), "salt"))
+    #else:
+    #    to_c(f"\nYOU'RE SENDING MESSAGES TOO FAST! please wait {checked}s~")
 
 
 t = Thread(target=listen_for_server, args=(cs,))
