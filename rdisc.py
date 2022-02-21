@@ -50,7 +50,6 @@ else:
     os.startfile("ui.exe")
 print(" <- ui.exe launched")
 ui_s.listen(10)
-
 cs, client_address = ui_s.accept()
 
 
@@ -85,13 +84,14 @@ to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
 # 0.19 saving keys, logging back in via dk and sk
 # 0.20 fall back method if sk/ip wrong -> dk, if no dk -> email and pass
 # 0.21 version checking (on setup know version), username changing
-
 # 0.22 login and signup rework -> a new dk call will now also give back a sk, general validation framework
+# 0.23 users folder with new user saving to support more future data and data access efficiency, uid now in auth.txt
 
-# 0.23 finding other clients, connecting to them / friending (on/offline), user tag support
-# 0.24 basic DM chat functionality with client to server to client connections and keys
-# 0.25 downloading, saving, load req files from a first time setup file
-# 0.26 logout system and storing data
+# 0.24 finding other clients, connecting to them / friending (on/offline), user tag support
+
+# 0.25 basic DM chat functionality with client to server to client connections and keys
+# 0.26 downloading, saving, load req files from a first time setup file
+# 0.27 logout system and storing data
 
 
 # ports localhost:8079, localhost:8080
@@ -129,10 +129,11 @@ def at_decrypt_key(enc_text):
     return enc.decrypt_key(enc_text, keys.get_key(0, "session_key")[64:], "salt")
 
 
-def auth_txt_write(dk, sk=None):
+def auth_txt_write(uid, dk, sk=None):
     auth_to_write = b""
     if dk:
-        auth_to_write += mac_encrypt_key(dk)
+        auth_to_write += mac_encrypt_key(uid)
+        auth_to_write += b"  "+mac_encrypt_key(dk)
     if sk:
         auth_to_write += b"  "+mac_encrypt_key(sk)
     with open("auth.txt", "wb") as auth_txt:
@@ -204,56 +205,61 @@ def listen_for_server(cs):
     def recv_d():
         return enc.encrypt("d", s.recv(1024), alpha, shift_seed, enc_salt)
 
-    def login(session_key_):
-        print("Login with session key")
-        send_e(f"LOGIN:{session_key_}")
-        print(f" >> Request sent: LOGIN:{session_key_}")
-        login_req_resp = recv_d()
-        if login_req_resp != "INVALID_SK":
-            print(f" << VALID:{login_req_resp}")
-            to_c(f"\n🱫[COLOR THREAD][GREEN] You are now logged in as {login_req_resp.split('🱫')[1]}")
-            return login_req_resp.split("🱫")
-        else:
-            print(" << INVALID_SK")
-            return None
-
     device_key = False
     session_key = False
     if os.path.isfile("auth.txt"):
         with open("auth.txt", "rb") as f:
             auth_data = f.read().split(b"  ")
-            if len(auth_data) > 0:
+            if len(auth_data) > 1:
                 if not auth_data[0] == b"":
                     try:
-                        device_key = mac_decrypt_key(auth_data[0])
+                        uid = mac_decrypt_key(auth_data[0])
+                        print(f"LOAD_UID: {uid}")
+                    except zlib.error:
+                        pass
+                    try:
+                        device_key = mac_decrypt_key(auth_data[1])
                         print(f"LOAD_DK: {enc.pass_to_seed(device_key, keys.get_key(0, 'mac'))}")
                     except zlib.error:
                         pass
-            if len(auth_data) > 1:
+            if len(auth_data) > 2:
                 try:
-                    session_key = mac_decrypt_key(auth_data[1])
+                    session_key = mac_decrypt_key(auth_data[2])
                     print(f"LOAD_SK: {session_key}")
                 except zlib.error:
                     pass
 
+    def login(session_key_):
+        print("Login with session key")
+        send_e(f"LOGIN:{uid}🱫{session_key_}")
+        print(f" >> Request sent: LOGIN:{uid}🱫{session_key_}")
+        login_req_resp = recv_d()
+        if login_req_resp != "INVALID_SK":
+            print(f" << VALID:{login_req_resp}")
+            to_c(f"\n🱫[COLOR THREAD][GREEN] You are now logged in as {login_req_resp[6:]}")
+            return login_req_resp[6:]
+        else:
+            print(" << INVALID_SK")
+            return None
+
     while True:  # login loop
         if session_key:
             try:
-                user_id_, username_ = login(session_key)
+                username_ = login(session_key)
                 break
             except TypeError:
                 pass
         if device_key:
             print("Get a new session_key")
-            send_e(f"NEWSK:{enc.pass_to_seed(device_key, keys.get_key(0, 'mac'))}")
-            print(f" >> Request sent: NEWSK:{enc.pass_to_seed(device_key, keys.get_key(0, 'mac'))}")
+            send_e(f"NEWSK:{uid}🱫{enc.pass_to_seed(device_key, keys.get_key(0, 'mac'))}")
+            print(f" >> Request sent: NEWSK:{uid}🱫{enc.pass_to_seed(device_key, keys.get_key(0, 'mac'))}")
             dk_req_resp = recv_d()
             if dk_req_resp.startswith("VALID:"):
                 session_key = dk_req_resp[6:]
                 print(f" << VALID:{session_key}")
                 auth_txt_write(device_key, session_key)
                 try:
-                    user_id_, username_ = login(session_key)
+                    username_ = login(session_key)
                     break
                 except TypeError:
                     pass
@@ -300,7 +306,8 @@ def listen_for_server(cs):
                 else:
                     print(" << INVALID_CODE")
                     to_c("\n🱫[COLOR THREAD][RED] Invalid email code")
-            return device_key_, verify_dk_resp[6:]
+            user_id__, session_key_ = verify_dk_resp[6:].split("🱫")
+            return user_id__, device_key_, session_key_
 
         if login_signup == "login":
             print("Login system")
@@ -309,7 +316,7 @@ def listen_for_server(cs):
                 to_c("\n🱫[COLOR THREAD][YELLOW] Please enter your password", 0.1)
                 password = enc.pass_to_seed(receive(), default_salt)
                 send_e(f"NEWDK:{email}🱫{password}")
-                print(f" >> Request sent: NDKEP:{email}🱫{password}")
+                print(f" >> Request sent: NEWDK:{email}🱫{password}")
                 get_dk_response = recv_d()
                 if get_dk_response == "INVALID":
                     print(" << INVALID")
@@ -318,8 +325,8 @@ def listen_for_server(cs):
                     print(" << VALID")
                     break
 
-            device_key, session_key = make_new_dk()
-            auth_txt_write(device_key, session_key)
+            user_id, device_key, session_key = make_new_dk()
+            auth_txt_write(user_id, device_key, session_key)
         else:
             password = None
             while True:
@@ -347,8 +354,8 @@ def listen_for_server(cs):
                     print(" << VALID")
                     break
 
-            device_key, session_key = make_new_dk()
-            auth_txt_write(device_key, session_key)
+            user_id, device_key, session_key = make_new_dk()
+            auth_txt_write(user_id, device_key, session_key)
             to_c("\n🱫[COLOR THREAD][GREEN] Account setup complete, logging in...")
             print("Account setup complete, dk received and saved")
 
@@ -381,6 +388,7 @@ def listen_for_server(cs):
 
         if request.startswith("-change name"):
             username = request[13:].replace("#", "").replace(" ", "")
+            print(username, username_)
             if username == username_[:-5]:
                 to_c(f"\n🱫[COLOR THREAD][RED] Username cannot be the same as previous username")
             else:

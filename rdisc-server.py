@@ -1,13 +1,14 @@
-import socket, rsa
+import socket, os, rsa
 from threading import Thread
 from random import choice, randint
 import enclib as enc
 
 
-min_version = "V0.20.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
+min_version = "V0.22.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
 
 default_salt = """TO$X-YkP#XGl>>Nw@tt ~$c[{N-uF&#~+h#<84@W3 57dkX.V'1el~1JcyMTuRwjG
                   DxnI,ufxSNzdgJyQn<-Qj--.PN+y=Gk.F/(B'Fq+D@,$*9&[`Bt.W3i;0{UN7K="""
+b62set = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
 
 def version_info(hashed):
@@ -33,6 +34,19 @@ def version_info(hashed):
         return f"INVALID:{version_}->{min_version}"
     else:
         return f"VALID:{version_}🱫{tme_}🱫{bld_num}🱫{run_num}"
+
+
+if not os.path.exists("Users"):
+    os.mkdir("Users")
+user_dirs = os.listdir("Users")
+user_id_list = []
+user_emails = []
+username_list = []
+for user_dir__ in user_dirs:
+    user_id_, user_email_, username_, = user_dir__.split(" ")
+    user_id_list.append(user_id_)
+    user_emails.append(user_email_)
+    username_list.append(username_)
 
 
 server_port = 8080
@@ -69,7 +83,7 @@ def client_connection(cs):
 
                 # email code sending code will be below
                 # add error return code for if email code sending fails
-                email_code = "".join([choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") for x in range(int(16))])
+                email_code = "".join([choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") for x in range(16)])
                 email_code_send = f"{email_code[:4]}-{email_code[4:8]}-{email_code[8:12]}-{email_code[12:]}"
                 print(email_code_send)
                 #
@@ -84,114 +98,104 @@ def client_connection(cs):
                 return device_key_, session_key_
 
             # check for login, signup or session
-            if login_request.startswith("NEWAC:"):
+            if login_request.startswith("NEWAC:"):  # todo if email contains invalid chars reject
                 email, password = login_request[6:].split("🱫")
-                with open("users.txt", encoding="utf-8") as f:
-                    email_valid = True
-                    for user in f.readlines():
-                        if email == user.split("🱫")[2]:
-                            email_valid = False
-
-                if not email_valid:
+                if email in user_emails:
                     send_e("INVALID_EMAIL")
                 else:
                     send_e("VALID")
                     device_key, session_key = make_new_dk()
                     print("create user account")
                     while True:
-                        account_id_valid = True
-                        account_id = enc.hex_gens(8)
-                        with open("users.txt", encoding="utf-8") as f:
-                            for user in f.readlines():
-                                account_id_ = user.split("🱫")[0]
-                                if account_id_ == account_id:
-                                    account_id_valid = False
-                        if account_id_valid:
+                        user_id = "".join([choice(b62set) for x in range(8)])
+                        if user_id not in user_id_list:
                             break
-                    while True:
-                        username_valid = True
-                        username = enc.hex_gens(8)
-                        with open("users.txt", encoding="utf-8") as f:
-                            for user in f.readlines():
-                                username_ = user.split("🱫")[1]
-                                if username_ == username:
-                                    username_valid = False
-                        if username_valid:
+                    while True:  # todo tag support
+                        username = "".join([choice(b62set) for x in range(8)])
+                        username = f"{username}#{randint(1111, 9999)}"
+                        if username not in username_list:
                             break
                     password = enc.pass_to_seed(password, default_salt)
-                    tag = randint(1111, 9999)
-                    with open("users.txt", "a+", encoding="utf-8") as f:
-                        f.write(f"{account_id}🱫{username}#{tag}🱫{email}🱫{password}🱫{device_key}🱫{ip}🱫{session_key}\n")
-                    send_e(f"VALID:{session_key}")
+                    os.mkdir(f"Users/{user_id} {email} {username}")
+                    user_dirs.append(f"{user_id} {email} {username}")
+                    user_dirs.sort()  # todo test if this actually works
+                    with open(f"Users/{user_id} {email} {username}/keys.txt", "w", encoding="utf-8") as f:
+                        f.write(f"{password}🱫{device_key}🱫{ip}🱫{session_key}\n")
+                    send_e(f"VALID:{user_id}🱫{session_key}")
 
             if login_request.startswith("NEWDK:"):
                 email, password = login_request[6:].split("🱫")
                 password = enc.pass_to_seed(password, default_salt)
-                email_valid = False
-                line_counter = -1
-                with open("users.txt", encoding="utf-8") as f:
-                    users = f.readlines()
-                    for user in users:
-                        line_counter += 1
-                        email_, password_ = user.split("🱫")[2:4]
-                        if email_ == email:
-                            if password_ == password:
-                                udata = user.split("🱫")[:4]
-                                old_data = f"{udata[0]}🱫{udata[1]}🱫{udata[2]}🱫{udata[3]}"
-                                email_valid = True
-                if not email_valid:
-                    send_e("INVALID")
+                email_present = False
+                for user_dir in user_dirs:
+                    user_id_, user_email_, username_, = user_dir.split(" ")
+                    if user_email_ == email:
+                        user_dir_ = user_dir
+                        user_id__ = user_id_
+                        email_present = True
+                if not email_present:
+                    send_e("INVALID")  # email not found
                 else:
-                    send_e("VALID")
-                    device_key, session_key = make_new_dk()
-                    users[line_counter] = f"{old_data}🱫{device_key}🱫{ip}🱫{session_key}"
-                    with open("users.txt", "w", encoding="utf-8") as f:
-                        for user in users:
-                            f.write(user)
-                    send_e(f"VALID:{session_key}")
+                    pass_correct = False
+                    with open(f"Users/{user_dir_}/keys.txt", encoding="utf-8") as f:
+                        pass_ = f.read().split("🱫")[0]
+                        if password == pass_:
+                            pass_correct = True
+                    if not pass_correct:
+                        send_e("INVALID")  # password wrong
+                    else:
+                        send_e("VALID")
+                        device_key, session_key = make_new_dk()
+                        with open(f"Users/{user_dir_}/keys.txt", "w", encoding="utf-8") as f:
+                            f.write(f"{pass_}🱫{device_key}🱫{ip}🱫{session_key}")
+                        send_e(f"VALID:{user_id__}🱫{session_key}")
 
             if login_request.startswith("NEWSK:"):
-                dk = login_request[6:]
-                dk_valid = False
-                line_counter = -1
-                with open("users.txt", encoding="utf-8") as f:
-                    users = f.readlines()
-                    for user in users:
-                        line_counter += 1
-                        dk_ = user.split("🱫")[4]
-                        if dk_ == dk:
-                            session_key = enc.pass_to_seed(enc.hex_gens(128), default_salt)
-                            udata = user.split("🱫")[:5]
-                            old_data = f"{udata[0]}🱫{udata[1]}🱫{udata[2]}🱫{udata[3]}🱫{udata[4]}"
-                            users[line_counter] = f"{old_data}🱫{ip}🱫{session_key}"
-                            dk_valid = True
-
-                if dk_valid:
-                    print("SESH", session_key)
-                    with open("users.txt", "w", encoding="utf-8") as f:
-                        for user in users:
-                            f.write(user)
-                    send_e(f"VALID:{session_key}")
+                uid, dk = login_request[6:].split("🱫")
+                uid_found = False
+                for user_dir in user_dirs:
+                    if uid == user_dir.split(" ")[0]:
+                        user_dir_ = user_dir
+                        uid_found = True
+                if not uid_found:
+                    send_e("INVALID_DK")  # User ID not found
                 else:
-                    send_e("INVALID_DK")
+                    dk_valid = False
+                    with open(f"Users/{user_dir_}/keys.txt", encoding="utf-8") as f:
+                        pass_, dk_ = f.read().split("🱫")[:2]
+                        if dk == dk_:
+                            dk_valid = True
+                    if not dk_valid:
+                        send_e("INVALID_DK")  # DK invalid
+                    else:
+                        session_key = enc.pass_to_seed(enc.hex_gens(128), default_salt)
+                        with open(f"Users/{user_dir_}/keys.txt", "w", encoding="utf-8") as f:
+                            f.write(f"{pass_}🱫{dk_}🱫{ip}🱫{session_key}")
+                        send_e(f"VALID:{session_key}")
 
             if login_request.startswith("LOGIN:"):
-                sk = login_request[6:]
-                login_valid = False
-                with open("users.txt", encoding="utf-8") as f:
-                    for user in f.readlines():
-                        user_id_, username_, email_, pass_, dk_, ip_, sk_ = user.split("🱫")
-                        if ip_ == ip:
-                            if sk_.replace("\n", "") == sk:
+                uid, sk = login_request[6:].split("🱫")
+                uid_found = False
+                for user_dir in user_dirs:
+                    if uid == user_dir.split(" ")[0]:
+                        user_dir_ = user_dir
+                        uid_found = True
+                if not uid_found:
+                    send_e("INVALID_SK")  # User ID not found
+                else:
+                    login_valid = False
+                    with open(f"Users/{user_dir_}/keys.txt", encoding="utf-8") as f:
+                        ip_, sk_ = f.read().split("🱫")[2:]
+                        if ip == ip_:
+                            if sk == sk_:
                                 login_valid = True
-                    if login_valid:
-                        print("login send")
-                        send_e(f"VALID:{user_id_}🱫{username_}")  # todo validate user as logged in
-                        break
+                    if not login_valid:
+                        send_e("INVALID_SK")  # DK invalid
                     else:
-                        send_e("INVALID_SK")
+                        send_e(f"VALID:{user_dir.split(' ')[2]}")  # todo validate user as logged in
+                        break
 
-        print(f"{user_id_} logged in with IP:{ip}")
+        print(f"{uid} logged in with IP:{ip}")
         request = recv_d()
         if request.startswith("VCHCK:"):
             version_response = version_info(request[6:])
@@ -199,6 +203,7 @@ def client_connection(cs):
             if not version_response.startswith("VALID:"):
                 raise AssertionError
 
+        logged_username = user_dir.split(" ")[2]
         while True:  # main loop
             request = recv_d()
             if request.startswith("CUSRN:"):
@@ -207,37 +212,25 @@ def client_connection(cs):
                     raise AssertionError
                 if "#" in username or " " in username:
                     raise AssertionError
-                if username == username_[:-5]:
+                if username == logged_username[:-5]:
                     raise AssertionError
 
-                username_valid = True
-                line_counter = -1
-                with open("users.txt", encoding="utf-8") as f:
-                    users = f.readlines()
-                    for user in users:
-                        line_counter += 1
-                        username_ = user.split("🱫")[1]
-                        ip_ = user.split("🱫")[5]
-                        if ip_ == ip:
-                            udata = user.split("🱫")
-                            username = f"{username}#{randint(1111, 9999)}"
-                            old_data = f"{udata[0]}🱫{username}🱫{udata[2]}🱫{udata[3]}🱫{udata[4]}🱫{udata[5]}🱫{udata[6]}"
-                            users[line_counter] = old_data
-                        if username_ == request[6:]:
-                            username_valid = False
-                if username_valid:
-                    send_e(f"VALID:{username}")
-                    username_ = username
-                    with open("users.txt", "w", encoding="utf-8") as f:
-                        for user in users:
-                            f.write(user)
+                username = f"{username}#{randint(1111, 9999)}"
+                if username not in username_list:
+                    for user_dir in os.listdir("Users"):  # todo make a reload class in future
+                        if uid == user_dir.split(" ")[0]:
+                            user_dir_ = user_dir
+                    user_dir_new = f"{uid} {user_dir_.split(' ')[1]} {username}"
+                    os.rename(f"Users/{user_dir_}", f"Users/{user_dir_new}")
+                    logged_username = username
+                    send_e(f"VALID:{logged_username}")
                 else:
                     send_e("INVALID_NAME")
 
     except ConnectionResetError:
-        print(f"{user_id_}:{ip} DC")
+        print(f"{uid}:{ip} DC")
     except AssertionError:
-        print(f"{user_id_}:{ip} DC - modified client request")
+        print(f"{uid}:{ip} DC - modified client request")
 
 
 while True:
