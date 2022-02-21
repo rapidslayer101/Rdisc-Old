@@ -32,8 +32,8 @@ class should_exit:
     def check(self):
         return exit_state["QUIT"]
 
-    def change(self, change_to):
-        return exit_state.update({"QUIT": change_to})
+    def change(self):
+        return exit_state.update({"QUIT": self})
 
 
 ui_s = socket.socket()
@@ -86,56 +86,53 @@ to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
 # 0.21 version checking (on setup know version), username changing
 # 0.22 login and signup rework -> a new dk call will now also give back a sk, general validation framework
 # 0.23 users folder with new user saving to support more future data and data access efficiency, uid now in auth.txt
+# 0.24 dynamic loading rewrites, solution cleanup
 
-# 0.24 finding other clients, connecting to them / friending (on/offline), user tag support
+# 0.25 finding other clients, connecting to them / friending (on/offline), user tag support
 
-# 0.25 basic DM chat functionality with client to server to client connections and keys
-# 0.26 downloading, saving, load req files from a first time setup file
-# 0.27 logout system and storing data
+# 0.26 basic DM chat functionality with client to server to client connections and keys
+# 0.27 downloading, saving, load req files from a first time setup file
+# 0.28 logout system and storing data
 
 
-# ports localhost:8079, localhost:8080
+# local sockets localhost:8079, localhost:8080
 # Made by rapidslayer101 (Scott Bree), Main tester: James Judge
+# >>> license and agreement data here <<<
 
-encryption_keys = {}
+user_data = {}
 
 
-class keys:
-    def get_key(self, key_name):
-        return encryption_keys[key_name]
+class user:
+    def key(self):
+        try:
+            return user_data[self]
+        except KeyError:
+            return False
 
-    def update_key(self, key_name, key):
-        encryption_keys.update({key_name: key})
+    def update_key(self, key):
+        user_data.update({self: key})
 
 
 default_salt = """52gy"J$&)6%0}fgYfm/%ino}PbJk$w<5~j'|+R .bJcSZ.H&3z'A:gip/jtW$6A=
-                  G-;|&&rR81!BTElChN|+"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#."H4tq)p4"""
-keys.update_key(0, "mac", enc.pass_to_seed(hex(uuid.getnode()), default_salt))
+                  G-;|&&rR81!BTElChN|+"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#."H4tq)p4"""  # todo improve, pass+salt?
+mac = enc.pass_to_seed(hex(uuid.getnode()), default_salt)
 
 
-def mac_encrypt_key(text):
-    return enc.encrypt_key(text, keys.get_key(0, "mac"), "salt")
+def mac_enc(text):
+    return enc.encrypt_key(text, mac, default_salt)
 
 
-def mac_decrypt_key(enc_text):
-    return enc.decrypt_key(enc_text, keys.get_key(0, "mac"), "salt")
-
-
-def at_encrypt_key(text):
-    return enc.encrypt_key(text, keys.get_key(0, "session_key")[64:], "salt")
-
-
-def at_decrypt_key(enc_text):
-    return enc.decrypt_key(enc_text, keys.get_key(0, "session_key")[64:], "salt")
+def mac_dec(enc_text):
+    return enc.decrypt_key(enc_text, mac, default_salt)
 
 
 def auth_txt_write(uid, dk, sk=None):
     auth_to_write = b""
     if dk:
-        auth_to_write += mac_encrypt_key(uid)
-        auth_to_write += b"  "+mac_encrypt_key(dk)
+        auth_to_write += mac_enc(uid)
+        auth_to_write += b"  "+mac_enc(dk)
     if sk:
-        auth_to_write += b"  "+mac_encrypt_key(sk)
+        auth_to_write += b"  "+mac_enc(sk)
     with open("auth.txt", "wb") as auth_txt:
         auth_txt.write(auth_to_write)
 
@@ -168,15 +165,13 @@ def listen_for_server(cs):
                 to_c(c_text)
         output = cs.recv(1024).decode(encoding="utf-16")
         if output.lower() == '-restart':
-            should_exit.change(0, "FQR")
+            should_exit.change("FQR")
 
         if output.lower() == '-quit':
-            should_exit.change(0, "FQ")
+            should_exit.change("FQ")
         return output
 
-    # initiate server connection
     pub_key, pri_key = rsa.newkeys(1024)
-
     server_host = "26.29.111.99"
     server_port = 8080
     s = socket.socket()
@@ -206,63 +201,59 @@ def listen_for_server(cs):
         return enc.encrypt("d", s.recv(1024), alpha, shift_seed, enc_salt)
 
     device_key = False
-    session_key = False
     if os.path.isfile("auth.txt"):
-        with open("auth.txt", "rb") as f:
-            auth_data = f.read().split(b"  ")
+        with open("auth.txt", "rb") as auth_txt:
+            auth_data = auth_txt.read().split(b"  ")
             if len(auth_data) > 1:
                 if not auth_data[0] == b"":
                     try:
-                        uid = mac_decrypt_key(auth_data[0])
-                        print(f"LOAD_UID: {uid}")
+                        user.update_key('uid', mac_dec(auth_data[0]))
+                        print(f"LOADED UID")
+
                     except zlib.error:
                         pass
                     try:
-                        device_key = mac_decrypt_key(auth_data[1])
-                        print(f"LOAD_DK: {enc.pass_to_seed(device_key, keys.get_key(0, 'mac'))}")
+                        device_key = mac_dec(auth_data[1])
+                        print(f"LOADED DK")
                     except zlib.error:
                         pass
             if len(auth_data) > 2:
                 try:
-                    session_key = mac_decrypt_key(auth_data[2])
-                    print(f"LOAD_SK: {session_key}")
+                    user.update_key('sk', mac_dec(auth_data[2]))
+                    print(f"LOADED SK")
                 except zlib.error:
                     pass
 
-    def login(session_key_):
+    def login():
         print("Login with session key")
-        send_e(f"LOGIN:{uid}🱫{session_key_}")
-        print(f" >> Request sent: LOGIN:{uid}🱫{session_key_}")
+        send_e(f"LOGIN:{user.key('uid')}🱫{user.key('sk')}")
+        print(f" >> Request sent: LOGIN:{user.key('uid')}🱫{user.key('sk')}")
         login_req_resp = recv_d()
-        if login_req_resp != "INVALID_SK":
-            print(f" << VALID:{login_req_resp}")
+        if login_req_resp.startswith("VALID:"):
+            print(f" << {login_req_resp}")
             to_c(f"\n🱫[COLOR THREAD][GREEN] You are now logged in as {login_req_resp[6:]}")
-            return login_req_resp[6:]
+            user.update_key('u_name', login_req_resp[6:])
+            return True
         else:
             print(" << INVALID_SK")
-            return None
+            return False
 
     while True:  # login loop
-        if session_key:
-            try:
-                username_ = login(session_key)
+        if user.key('sk'):
+            if login():
                 break
-            except TypeError:
-                pass
         if device_key:
             print("Get a new session_key")
-            send_e(f"NEWSK:{uid}🱫{enc.pass_to_seed(device_key, keys.get_key(0, 'mac'))}")
-            print(f" >> Request sent: NEWSK:{uid}🱫{enc.pass_to_seed(device_key, keys.get_key(0, 'mac'))}")
+            send_e(f"NEWSK:{user.key('uid')}🱫{enc.pass_to_seed(device_key, mac)}")
+            print(f" >> Request sent: NEWSK:{user.key('uid')}🱫{enc.pass_to_seed(device_key, mac)}")
             dk_req_resp = recv_d()
             if dk_req_resp.startswith("VALID:"):
                 session_key = dk_req_resp[6:]
                 print(f" << VALID:{session_key}")
-                auth_txt_write(device_key, session_key)
-                try:
-                    username_ = login(session_key)
+                auth_txt_write(user.key('uid'), device_key, session_key)
+                user.update_key('sk', session_key)
+                if login():
                     break
-                except TypeError:
-                    pass
             else:
                 print(" << INVALID_DK")
 
@@ -286,9 +277,9 @@ def listen_for_server(cs):
         def make_new_dk():
             print("Get a new device_key and session_key")
             device_key_ = enc.hex_gens(128)
-            salted_dk = enc.pass_to_seed(device_key_, keys.get_key(0, "mac"))
+            salted_dk = enc.pass_to_seed(device_key_, mac)
             to_c(f"\n🱫[COLOR THREAD][GREEN] A verification code has "
-                 f"been send to '{email}' (code valid for 15 minutes)")
+                 f"been sent to '{email}' (code valid for 15 minutes)")
             # to_c("🱫[INPUT SHOW]🱫[MNINPLEN][16] ", 0.1)  # todo set limit?
 
             while True:
@@ -306,8 +297,10 @@ def listen_for_server(cs):
                 else:
                     print(" << INVALID_CODE")
                     to_c("\n🱫[COLOR THREAD][RED] Invalid email code")
-            user_id__, session_key_ = verify_dk_resp[6:].split("🱫")
-            return user_id__, device_key_, session_key_
+            uid, session_key_ = verify_dk_resp[6:].split("🱫")
+            auth_txt_write(uid, device_key_, session_key_)
+            user.update_key('sk', session_key_)
+            user.update_key('uid', uid)
 
         if login_signup == "login":
             print("Login system")
@@ -325,8 +318,7 @@ def listen_for_server(cs):
                     print(" << VALID")
                     break
 
-            user_id, device_key, session_key = make_new_dk()
-            auth_txt_write(user_id, device_key, session_key)
+            make_new_dk()
         else:
             password = None
             while True:
@@ -354,10 +346,9 @@ def listen_for_server(cs):
                     print(" << VALID")
                     break
 
-            user_id, device_key, session_key = make_new_dk()
-            auth_txt_write(user_id, device_key, session_key)
+            make_new_dk()
             to_c("\n🱫[COLOR THREAD][GREEN] Account setup complete, logging in...")
-            print("Account setup complete, dk received and saved")
+            print("Account setup complete, dk and sk received and saved")
 
     print("Version updater")  # todo version load
     send_e(f"VCHCK:{hashed}")
@@ -371,15 +362,14 @@ def listen_for_server(cs):
     if version_check_response.startswith("INVALID:"):
         to_c(f"\n <> Updating rdisc {version_check_response[8:]} in 5 seconds")
         time.sleep(5)
-        should_exit.change(0, "FQU")
-        auth_txt_write(session_key, version_check_response[8:].split('->')[0])
+        should_exit.change("FQU")
         while True:
             receive()
 
     if version_check_response.startswith("UNKNOWN"):
         to_c("\n🱫[COLOR THREAD][RED] <> INVALID OR CORRUPTED VERSION, downloading new copy in 5 seconds")
         time.sleep(5)
-        should_exit.change(0, "FQU")
+        should_exit.change("FQU")
 
     to_c("🱫[INPUT SHOW]🱫", 0.1)
     print("Main thread")
@@ -388,31 +378,29 @@ def listen_for_server(cs):
 
         if request.startswith("-change name"):
             username = request[13:].replace("#", "").replace(" ", "")
-            print(username, username_)
-            if username == username_[:-5]:
+            if username == user.key('u_name')[:-5]:
                 to_c(f"\n🱫[COLOR THREAD][RED] Username cannot be the same as previous username")
             else:
                 if 4 < len(username) < 33:
                     send_e(f"CUSRN:{username}")
                     print(f" >> Request sent: CUSRN:{username}")
-                    new_username_response = recv_d()
-                    if new_username_response == "INVALID_NAME":
+                    new_u_name_resp = recv_d()
+                    if new_u_name_resp == "INVALID_NAME":
                         print(" << INVALID_NAME")
                         to_c("\n🱫[COLOR THREAD][RED] Username already taken")
                     else:
                         print(f" << VALID")
                         to_c(f"\n🱫[COLOR THREAD][GREEN] Username changed to "
-                             f"{new_username_response[6:]} from {username_}")
-                        username_ = new_username_response[6:]
+                             f"{new_u_name_resp[6:]} from {user.key('u_name')}")
+                        user.update_key('u_name', new_u_name_resp[6:])
                 else:
                     to_c(f"\n🱫[COLOR THREAD][RED] Username must be 5-32 chars, you entered: {username[:64]}")
 
     print("Exit")
 
-
     #checked = cooldown.check(0)  # todo maybe stop input until allowed, bring back what was entered
     #if checked == "True":
-    #    s.send(enc.encrypt_key(client_send, keys.get_key(0, "df_key"), "salt"))
+    #    s.send(enc.encrypt_key(client_send, user.key('df_key'), "salt"))
     #else:
     #    to_c(f"\nYOU'RE SENDING MESSAGES TOO FAST! please wait {checked}s~")
 

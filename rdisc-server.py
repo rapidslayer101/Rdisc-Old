@@ -38,15 +38,50 @@ def version_info(hashed):
 
 if not os.path.exists("Users"):
     os.mkdir("Users")
-user_dirs = os.listdir("Users")
-user_id_list = []
-user_emails = []
-username_list = []
-for user_dir__ in user_dirs:
-    user_id_, user_email_, username_, = user_dir__.split(" ")
-    user_id_list.append(user_id_)
-    user_emails.append(user_email_)
-    username_list.append(username_)
+
+user_dirs = {}
+u_ids = []
+u_emails = []
+u_names = []
+
+for user_dir in os.listdir("Users"):
+    user_id_, email_, username_, = user_dir.split(" ")
+    user_dirs.update({user_id_: [email_, username_]})
+    u_ids.append(user_id_)
+    u_emails.append(email_)
+    u_names.append(username_)
+
+
+class users:
+    def dirs(self):
+        return user_dirs
+
+    def dirs_update(self, _email_, _username_):
+        user_dirs.update({self: [_email_, _username_]})
+
+    def ids(self):
+        return u_ids
+
+    def ids_update(self):
+        u_ids.append(self)
+        u_ids.sort()
+
+    def names(self):
+        return u_names
+
+    def names_update(self):
+        u_names.append(self)
+        u_names.sort()
+
+    def names_remove(self):
+        u_names.pop(self)
+
+    def emails(self):
+        return u_emails
+
+    def emails_update(self):
+        u_emails.append(self)
+        u_emails.sort()
 
 
 server_port = 8080
@@ -74,70 +109,72 @@ def client_connection(cs):
         def recv_d():
             return enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt)
 
+        def make_new_dk():
+            # email code and username still required
+            # submit username after device_key and code
+
+            # email code sending code will be below
+            # add error return code for if email code sending fails
+            email_code = "".join([choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") for x in range(16)])
+            email_code_send = f"{email_code[:4]}-{email_code[4:8]}-{email_code[8:12]}-{email_code[12:]}"
+            print(email_code_send)
+            #
+            # code_valid_until = datetime.datetime.now()+datetime.timedelta(minutes=15)
+            while True:
+                email_code_cli, device_key_ = recv_d().split("🱫")
+                if email_code == email_code_cli:
+                    session_key_ = enc.pass_to_seed(enc.hex_gens(128), default_salt)
+                    break
+                else:
+                    send_e("INVALID_CODE")
+            return device_key_, session_key_
+
         while True:
             login_request = recv_d()
-
-            def make_new_dk():
-                # email code and username still required
-                # submit username after device_key and code
-
-                # email code sending code will be below
-                # add error return code for if email code sending fails
-                email_code = "".join([choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") for x in range(16)])
-                email_code_send = f"{email_code[:4]}-{email_code[4:8]}-{email_code[8:12]}-{email_code[12:]}"
-                print(email_code_send)
-                #
-                # code_valid_until = datetime.datetime.now()+datetime.timedelta(minutes=15)
-                while True:
-                    email_code_cli, device_key_ = recv_d().split("🱫")
-                    if email_code == email_code_cli:
-                        session_key_ = enc.pass_to_seed(enc.hex_gens(128), default_salt)
-                        break
-                    else:
-                        send_e("INVALID_CODE")
-                return device_key_, session_key_
 
             # check for login, signup or session
             if login_request.startswith("NEWAC:"):  # todo if email contains invalid chars reject
                 email, password = login_request[6:].split("🱫")
-                if email in user_emails:
+                if email in users.emails(0):
                     send_e("INVALID_EMAIL")
                 else:
                     send_e("VALID")
                     device_key, session_key = make_new_dk()
-                    print("create user account")
                     while True:
-                        user_id = "".join([choice(b62set) for x in range(8)])
-                        if user_id not in user_id_list:
+                        u_id = "".join([choice(b62set) for x in range(8)])
+                        if u_id not in users.ids(0):
                             break
                     while True:  # todo tag support
                         username = "".join([choice(b62set) for x in range(8)])
                         username = f"{username}#{randint(1111, 9999)}"
-                        if username not in username_list:
+                        if username not in users.names(0):
                             break
                     password = enc.pass_to_seed(password, default_salt)
-                    os.mkdir(f"Users/{user_id} {email} {username}")
-                    user_dirs.append(f"{user_id} {email} {username}")
-                    user_dirs.sort()  # todo test if this actually works
-                    with open(f"Users/{user_id} {email} {username}/keys.txt", "w", encoding="utf-8") as f:
-                        f.write(f"{password}🱫{device_key}🱫{ip}🱫{session_key}\n")
-                    send_e(f"VALID:{user_id}🱫{session_key}")
+                    os.mkdir(f"Users/{u_id} {email} {username}")
+                    with open(f"Users/{u_id} {email} {username}/keys.txt", "w", encoding="utf-8") as f:
+                        f.write(f"{password}🱫{device_key}🱫{ip}🱫{session_key}")
+                    users.dirs_update(u_id, email, username)
+                    users.ids_update(u_id)
+                    users.emails_update(email)
+                    users.names_update(username)
+                    send_e(f"VALID:{u_id}🱫{session_key}")
 
             if login_request.startswith("NEWDK:"):
                 email, password = login_request[6:].split("🱫")
                 password = enc.pass_to_seed(password, default_salt)
-                email_present = False
-                for user_dir in user_dirs:
-                    user_id_, user_email_, username_, = user_dir.split(" ")
-                    if user_email_ == email:
-                        user_dir_ = user_dir
-                        user_id__ = user_id_
-                        email_present = True
-                if not email_present:
+                valid_email = False
+                dirs = users.dirs(0)
+                for dir_ in dirs:
+                    if dirs[dir_][0] == email:
+                        dir__ = dir_
+                        username = dirs[dir_][1]
+                        valid_email = True
+                if not valid_email:
                     send_e("INVALID")  # email not found
                 else:
                     pass_correct = False
-                    with open(f"Users/{user_dir_}/keys.txt", encoding="utf-8") as f:
+                    u_dir = f"{dir__} {email} {username}"
+                    with open(f"Users/{u_dir}/keys.txt", encoding="utf-8") as f:
                         pass_ = f.read().split("🱫")[0]
                         if password == pass_:
                             pass_correct = True
@@ -146,22 +183,20 @@ def client_connection(cs):
                     else:
                         send_e("VALID")
                         device_key, session_key = make_new_dk()
-                        with open(f"Users/{user_dir_}/keys.txt", "w", encoding="utf-8") as f:
+                        with open(f"Users/{u_dir}/keys.txt", "w", encoding="utf-8") as f:
                             f.write(f"{pass_}🱫{device_key}🱫{ip}🱫{session_key}")
-                        send_e(f"VALID:{user_id__}🱫{session_key}")
+                        send_e(f"VALID:{dir__}🱫{session_key}")
 
             if login_request.startswith("NEWSK:"):
                 uid, dk = login_request[6:].split("🱫")
-                uid_found = False
-                for user_dir in user_dirs:
-                    if uid == user_dir.split(" ")[0]:
-                        user_dir_ = user_dir
-                        uid_found = True
-                if not uid_found:
+                try:
+                    u_dir = users.dirs(0)[uid]
+                except KeyError:
                     send_e("INVALID_DK")  # User ID not found
                 else:
+                    u_dir = f"{uid} {u_dir[0]} {u_dir[1]}"
                     dk_valid = False
-                    with open(f"Users/{user_dir_}/keys.txt", encoding="utf-8") as f:
+                    with open(f"Users/{u_dir}/keys.txt", encoding="utf-8") as f:
                         pass_, dk_ = f.read().split("🱫")[:2]
                         if dk == dk_:
                             dk_valid = True
@@ -169,30 +204,28 @@ def client_connection(cs):
                         send_e("INVALID_DK")  # DK invalid
                     else:
                         session_key = enc.pass_to_seed(enc.hex_gens(128), default_salt)
-                        with open(f"Users/{user_dir_}/keys.txt", "w", encoding="utf-8") as f:
+                        with open(f"Users/{u_dir}/keys.txt", "w", encoding="utf-8") as f:
                             f.write(f"{pass_}🱫{dk_}🱫{ip}🱫{session_key}")
                         send_e(f"VALID:{session_key}")
 
             if login_request.startswith("LOGIN:"):
                 uid, sk = login_request[6:].split("🱫")
-                uid_found = False
-                for user_dir in user_dirs:
-                    if uid == user_dir.split(" ")[0]:
-                        user_dir_ = user_dir
-                        uid_found = True
-                if not uid_found:
+                try:
+                    u_dir = users.dirs(0)[uid]
+                except KeyError:
                     send_e("INVALID_SK")  # User ID not found
                 else:
+                    u_dir = f"{uid} {u_dir[0]} {u_dir[1]}"
                     login_valid = False
-                    with open(f"Users/{user_dir_}/keys.txt", encoding="utf-8") as f:
+                    with open(f"Users/{u_dir}/keys.txt", encoding="utf-8") as f:
                         ip_, sk_ = f.read().split("🱫")[2:]
                         if ip == ip_:
-                            if sk == sk_:
+                            if sk.replace("\n", "") == sk_.replace("\n", ""):
                                 login_valid = True
                     if not login_valid:
                         send_e("INVALID_SK")  # DK invalid
                     else:
-                        send_e(f"VALID:{user_dir.split(' ')[2]}")  # todo validate user as logged in
+                        send_e(f"VALID:{u_dir.split(' ')[2]}")  # todo validate user as logged in
                         break
 
         print(f"{uid} logged in with IP:{ip}")
@@ -203,27 +236,28 @@ def client_connection(cs):
             if not version_response.startswith("VALID:"):
                 raise AssertionError
 
-        logged_username = user_dir.split(" ")[2]
         while True:  # main loop
             request = recv_d()
             if request.startswith("CUSRN:"):
-                username = request[6:]
-                if not 4 < len(username) < 33:
+                u_name = request[6:]
+                u_dir = users.dirs(0)[uid]
+                u_dir = f"{uid} {u_dir[0]} {u_dir[1]}"
+
+                if not 4 < len(u_name) < 33:
                     raise AssertionError
-                if "#" in username or " " in username:
+                if "#" in u_name or " " in u_name:
                     raise AssertionError
-                if username == logged_username[:-5]:
+                if u_name == u_dir.split(" ")[2][:-5]:
                     raise AssertionError
 
-                username = f"{username}#{randint(1111, 9999)}"
-                if username not in username_list:
-                    for user_dir in os.listdir("Users"):  # todo make a reload class in future
-                        if uid == user_dir.split(" ")[0]:
-                            user_dir_ = user_dir
-                    user_dir_new = f"{uid} {user_dir_.split(' ')[1]} {username}"
-                    os.rename(f"Users/{user_dir_}", f"Users/{user_dir_new}")
-                    logged_username = username
-                    send_e(f"VALID:{logged_username}")
+                u_name = f"{u_name}#{randint(1111, 9999)}"
+                if u_name not in users.names(0):
+                    user_dir_new = f"{uid} {u_dir.split(' ')[1]} {u_name}"
+                    os.rename(f"Users/{u_dir}", f"Users/{user_dir_new}")
+                    users.dirs_update(uid, u_dir.split(' ')[1], u_name)
+                    users.names_remove(users.names(0).index(u_dir.split(" ")[2]))
+                    users.names_update(u_name)
+                    send_e(f"VALID:{u_name}")
                 else:
                     send_e("INVALID_NAME")
 
