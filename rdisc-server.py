@@ -1,11 +1,11 @@
 import socket, os, rsa
+import zlib
 from threading import Thread
 from random import choice, randint
 import enclib as enc
 
 
-min_version = "V0.22.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
-
+min_version = "V0.23.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
 default_salt = """TO$X-YkP#XGl>>Nw@tt ~$c[{N-uF&#~+h#<84@W3 57dkX.V'1el~1JcyMTuRwjG
                   DxnI,ufxSNzdgJyQn<-Qj--.PN+y=Gk.F/(B'Fq+D@,$*9&[`Bt.W3i;0{UN7K="""
 b62set = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
@@ -20,7 +20,6 @@ def version_info(hashed):
     if not version_data:
         return "UNKNOWN"
     version_, tme_, bld_num, run_num = version_data.split("§")[2:]
-    print(version_, tme_, bld_num, run_num)
     release_major, major, build, run = version_.replace("V", "").split(".")
     req_release_major, req_major, req_build, req_run = min_version.replace("V", "").split(".")
     valid_version = False
@@ -109,6 +108,7 @@ print(f"[*] Listening as 0.0.0.0:{server_port}")
 def client_connection(cs):
     try:
         ip, port = str(cs).split("raddr=")[1][2:-2].split("', ")
+        print(f"NEW CLIENT-{ip}:{port}")
         uid = None
         try:
             pub_key_cli = rsa.PublicKey.load_pkcs1(cs.recv(256))
@@ -124,7 +124,10 @@ def client_connection(cs):
             cs.send(enc.encrypt("e", text, alpha, shift_seed, enc_salt))
 
         def recv_d(buf_lim):
-            return enc.encrypt("d", cs.recv(buf_lim), alpha, shift_seed, enc_salt)
+            try:
+                return enc.encrypt("d", cs.recv(buf_lim), alpha, shift_seed, enc_salt)
+            except zlib.error:
+                raise ConnectionResetError
 
         def make_new_dk():
             # email code and username still required
@@ -266,16 +269,15 @@ def client_connection(cs):
                         if not login_valid:
                             send_e("INVALID_SK")  # DK invalid
                         else:
-                            users.login(uid)
                             send_e(f"VALID:{u_dir.split(' ')[2]}")  # todo validate user as logged in
+                            version_response = version_info(recv_d(512))
+                            send_e(version_response)
+                            if not version_response.startswith("VALID:"):
+                                raise AssertionError
+                            users.login(uid)
                             break
 
-        print(f"{uid} logged in with IP:{ip}")
-        version_response = version_info(recv_d(512))
-        send_e(version_response)
-        if not version_response.startswith("VALID:"):
-            raise AssertionError
-
+        print(f"{uid} logged in with IP-{ip}:{port} and version-{version_response}")
         while True:  # main loop
             request = recv_d(1024)
             if request.startswith("CUSRN:"):
@@ -311,7 +313,6 @@ def client_connection(cs):
 
 while True:
     client_socket, client_address = s.accept()
-    print("NEW CLIENT:", client_socket, client_address)
     t = Thread(target=client_connection, args=(client_socket,))
     t.daemon = True
     t.start()

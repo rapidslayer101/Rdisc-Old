@@ -25,31 +25,50 @@ except FileNotFoundError:
     hashed = enc.hash_a_file("rdisc.exe")
 
 
-ui_s = socket.socket()
-ui_s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-if os.path.exists("rdisc.py"):
-    ui_s.bind(("127.0.0.1", 8078))
+ui = True
+
+if ui:
+    ui_s = socket.socket()
+    ui_s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    if os.path.exists("rdisc.py"):
+        ui_s.bind(("127.0.0.1", 8078))
+    else:
+        ui_s.bind(("127.0.0.1", 8079))
+
+    print(" -> Launching ui.exe")
+    if not os.path.isfile("ui.exe"):
+        print("[!] CRITICAL FILE ui.exe MISSING, falling back to CLI")
+        ui = False
+    else:
+        os.startfile("ui.exe")
+        print(" <- ui.exe launched")
+        ui_s.listen(10)
+        cs, client_address = ui_s.accept()
+
+        def to_c(text, delay=None):
+            if delay:
+                time.sleep(delay)
+            cs.send(str(text).encode(encoding="utf-16"))
+
+        print(f" Connected to ui.exe via socket {client_address}")
+        to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
 else:
-    ui_s.bind(("127.0.0.1", 8079))
+    def to_c(text, delay=None):
+        if delay:
+            time.sleep(delay)
 
-print(" -> Launching ui.exe")
-if not os.path.isfile("ui.exe"):
-    print("[!] CRITICAL FILE ui.exe MISSING")
-else:
-    os.startfile("ui.exe")
-print(" <- ui.exe launched")
-ui_s.listen(10)
-cs, client_address = ui_s.accept()
-
-
-def to_c(text, delay=None):
-    if delay:
-        time.sleep(delay)
-    cs.send(str(text).encode(encoding="utf-16"))
-
-
-print(f" Connected to ui.exe via socket {client_address}")
-to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
+        if text.startswith("🱫[INPUT SHOW]🱫"):
+            text = text[14:]
+        if text.startswith("\n🱫[COLOR THREAD][GREEN] "):  # todo CLI colors
+            text = text[24:]
+        if text.startswith("\n🱫[COLOR THREAD][YELLOW] "):
+            text = text[25:]
+        if text.startswith("\n🱫[COLOR THREAD][RED] "):
+            text = text[22:]
+        if text.startswith("[MNINPLEN][256] "):
+            text = text[16:]
+        if not text == "":
+            print(text)
 
 
 # 0.1 code rewrite and code foundations/framework from rchat 0.7.119.14 (process build 119, rchat GUI build 14)
@@ -76,14 +95,14 @@ to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
 # 0.22 login and signup rework -> a new dk call will now also give back a sk, general validation framework
 # 0.23 users folder with new user saving to support more future data and data access efficiency, uid now in auth.txt
 # 0.24 dynamic loading rewrites, solution cleanup
+# 0.25 invalid req catching, only allow one user session, remove client wide thread, redid exit system
 
-# 0.25 invalid req catching, only allow one user session, remove client wide thread, redid exit system,
-# todo pass changing
+# 0.26 client CLI, pass changing, rate limits for accounts, unames and passes
 
-# 0.26 finding other clients, connecting to them / friending (on/offline), user tag support
-# 0.27 basic DM chat functionality with client to server to client connections and keys
-# 0.28 downloading, saving, load req files from a first time setup file
-# 0.29 logout system and storing data
+# 0.27 finding other clients, connecting to them / friending (on/offline), user tag support
+# 0.28 basic DM chat functionality with client to server to client connections and keys
+# 0.29 downloading, saving, load req files from a first time setup file
+# 0.30 logout system and storing data
 
 
 # local sockets localhost:8079, localhost:8080
@@ -149,18 +168,32 @@ class cooldown:
 
 exit_reason = False
 try:
-    def receive(c_text=None, delay=None):
-        if c_text:
-            if delay:
-                to_c(c_text, delay)
-            else:
-                to_c(c_text)
-        output = cs.recv(1024).decode(encoding="utf-16")  # todo test buffer limit
-        if output.lower() == '-restart':
-            raise AssertionError  # todo make new restart system
-        if output.lower() == '-quit':
-            raise AssertionError
-        return output
+    if ui:
+        def receive(c_text=None, delay=None):
+            if c_text:
+                if delay:
+                    to_c(c_text, delay)
+                else:
+                    to_c(c_text)
+            output = cs.recv(1024).decode(encoding="utf-16")
+            if output.lower() == '-restart':
+                raise AssertionError  # todo make new restart system
+            if output.lower() == '-quit':
+                raise AssertionError
+            return output
+    else:
+        def receive(c_text=None, delay=None):
+            if c_text:
+                if delay:
+                    to_c(c_text, delay)
+                else:
+                    to_c(c_text)
+            output = input()
+            if output.lower() == '-restart':
+                raise AssertionError  # todo make new restart system
+            if output.lower() == '-quit':
+                raise AssertionError
+            return output
 
     pub_key, pri_key = rsa.newkeys(1024)
     server_host = "26.29.111.99"
@@ -177,7 +210,9 @@ try:
             receive("🱫[INPUT SHOW]\n🱫[COLOR THREAD][YELLOW] Enter something to retry connection")
             to_c("🱫[INPUT HIDE]")
 
-    print("Server connected ->", s)
+    l_ip, l_port = str(s).split("laddr=")[1].split("raddr=")[0][2:-3].split("', ")
+    s_ip, s_port = str(s).split("raddr=")[1][2:-2].split("', ")
+    print(f"Server connected via {l_ip}:{l_port} -> {s_ip}:{s_port}")
     s.send(rsa.PublicKey.save_pkcs1(pub_key))
     print(" >> Public RSA key sent")
     enc_seed = rsa.decrypt(s.recv(128), pri_key).decode()
@@ -223,7 +258,6 @@ try:
         login_req_resp = recv_d(512)
         if login_req_resp.startswith("VALID:"):
             print(f" << {login_req_resp}")
-            to_c(f"\n🱫[COLOR THREAD][GREEN] You are now logged in as {login_req_resp[6:]}")
             user.update_key('u_name', login_req_resp[6:])
             return True
         else:
@@ -356,22 +390,23 @@ try:
     print("Version updater")  # todo version load
     send_e(hashed)
     print(f" >> {hashed}")
-    version_check_response = recv_d(512)
-    print(f" << {version_check_response}")
-    if version_check_response.startswith("VALID:"):
-        verified_version, tme, bld_num, run_num = version_check_response[6:].split('🱫')
+    v_check_resp = recv_d(512)
+    print(f" << {v_check_resp}")
+    if v_check_resp.startswith("VALID:"):
+        verified_version, tme, bld_num, run_num = v_check_resp[6:].split('🱫')
         to_c(f"Verified version is {verified_version} (VERIFIED)", 0.1)
 
-    if version_check_response.startswith("INVALID:"):
-        to_c(f"\n <> Updating rdisc {version_check_response[8:]} in 5 seconds")
+    if v_check_resp.startswith("INVALID:"):
+        to_c(f"\n <> Updating rdisc {v_check_resp[8:]} in 5 seconds")
         time.sleep(5)
         raise AssertionError
 
-    if version_check_response.startswith("UNKNOWN"):
+    if v_check_resp.startswith("UNKNOWN"):
         to_c("\n🱫[COLOR THREAD][RED] <> INVALID OR CORRUPTED VERSION, downloading new copy in 5 seconds")
         time.sleep(5)
         raise AssertionError  # todo redo updater and restarter
 
+    to_c(f"\n🱫[COLOR THREAD][GREEN] You are now logged in as {user.key('u_name')}")
     to_c("🱫[INPUT SHOW]🱫", 0.1)
     print("Main thread")
     while True:
