@@ -43,6 +43,7 @@ user_dirs = {}
 u_ids = []
 u_emails = []
 u_names = []
+logged_in_users = []
 
 for user_dir in os.listdir("Users"):
     user_id_, email_, username_, = user_dir.split(" ")
@@ -83,6 +84,18 @@ class users:
         u_emails.append(self)
         u_emails.sort()
 
+    def logged_in(self):
+        return logged_in_users
+
+    def login(self):
+        logged_in_users.append(self)
+
+    def logout(self):
+        try:
+            logged_in_users.pop(logged_in_users.index(self))
+        except ValueError:
+            pass
+
 
 server_port = 8080
 client_sockets = set()
@@ -96,7 +109,11 @@ print(f"[*] Listening as 0.0.0.0:{server_port}")
 def client_connection(cs):
     try:
         ip, port = str(cs).split("raddr=")[1][2:-2].split("', ")
-        pub_key_cli = rsa.PublicKey.load_pkcs1(cs.recv(1024))
+        uid = None
+        try:
+            pub_key_cli = rsa.PublicKey.load_pkcs1(cs.recv(256))
+        except ValueError:
+            raise AssertionError
         enc_seed = enc.hex_gens(78)
         enc_salt = enc.hex_gens(32)
         cs.send(rsa.encrypt(enc_seed.encode(), pub_key_cli))
@@ -106,8 +123,8 @@ def client_connection(cs):
         def send_e(text):
             cs.send(enc.encrypt("e", text, alpha, shift_seed, enc_salt))
 
-        def recv_d():
-            return enc.encrypt("d", cs.recv(1024), alpha, shift_seed, enc_salt)
+        def recv_d(buf_lim):
+            return enc.encrypt("d", cs.recv(buf_lim), alpha, shift_seed, enc_salt)
 
         def make_new_dk():
             # email code and username still required
@@ -121,20 +138,26 @@ def client_connection(cs):
             #
             # code_valid_until = datetime.datetime.now()+datetime.timedelta(minutes=15)
             while True:
-                email_code_cli, device_key_ = recv_d().split("🱫")
-                if email_code == email_code_cli:
-                    session_key_ = enc.pass_to_seed(enc.hex_gens(128), default_salt)
-                    break
-                else:
-                    send_e("INVALID_CODE")
+                try:
+                    email_code_cli, device_key_ = recv_d(1024).split("🱫")
+                    if email_code == email_code_cli:
+                        session_key_ = enc.pass_to_seed(enc.hex_gens(128), default_salt)
+                        break
+                    else:
+                        send_e("INVALID_CODE")
+                except ValueError:
+                    raise AssertionError
             return device_key_, session_key_
 
         while True:
-            login_request = recv_d()
+            login_request = recv_d(1024)
 
             # check for login, signup or session
             if login_request.startswith("NEWAC:"):  # todo if email contains invalid chars reject
-                email, password = login_request[6:].split("🱫")
+                try:
+                    email, password = login_request[6:].split("🱫")
+                except ValueError:
+                    raise AssertionError
                 if email in users.emails(0):
                     send_e("INVALID_EMAIL")
                 else:
@@ -160,84 +183,101 @@ def client_connection(cs):
                     send_e(f"VALID:{u_id}🱫{session_key}")
 
             if login_request.startswith("NEWDK:"):
-                email, password = login_request[6:].split("🱫")
+                try:
+                    email, password = login_request[6:].split("🱫")
+                except ValueError:
+                    raise AssertionError
                 password = enc.pass_to_seed(password, default_salt)
                 valid_email = False
                 dirs = users.dirs(0)
                 for dir_ in dirs:
                     if dirs[dir_][0] == email:
-                        dir__ = dir_
+                        uid = dir_
                         username = dirs[dir_][1]
                         valid_email = True
-                if not valid_email:
-                    send_e("INVALID")  # email not found
+                if uid in users.logged_in(0):
+                    send_e("SESSION_TAKEN")
                 else:
-                    pass_correct = False
-                    u_dir = f"{dir__} {email} {username}"
-                    with open(f"Users/{u_dir}/keys.txt", encoding="utf-8") as f:
-                        pass_ = f.read().split("🱫")[0]
-                        if password == pass_:
-                            pass_correct = True
-                    if not pass_correct:
-                        send_e("INVALID")  # password wrong
+                    if not valid_email:
+                        send_e("INVALID")  # email not found
                     else:
-                        send_e("VALID")
-                        device_key, session_key = make_new_dk()
-                        with open(f"Users/{u_dir}/keys.txt", "w", encoding="utf-8") as f:
-                            f.write(f"{pass_}🱫{device_key}🱫{ip}🱫{session_key}")
-                        send_e(f"VALID:{dir__}🱫{session_key}")
+                        pass_correct = False
+                        u_dir = f"{uid} {email} {username}"
+                        with open(f"Users/{u_dir}/keys.txt", encoding="utf-8") as f:
+                            pass_ = f.read().split("🱫")[0]
+                            if password == pass_:
+                                pass_correct = True
+                        if not pass_correct:
+                            send_e("INVALID")  # password wrong
+                        else:
+                            send_e("VALID")
+                            device_key, session_key = make_new_dk()
+                            with open(f"Users/{u_dir}/keys.txt", "w", encoding="utf-8") as f:
+                                f.write(f"{pass_}🱫{device_key}🱫{ip}🱫{session_key}")
+                            send_e(f"VALID:{uid}🱫{session_key}")
 
             if login_request.startswith("NEWSK:"):
-                uid, dk = login_request[6:].split("🱫")
                 try:
-                    u_dir = users.dirs(0)[uid]
-                except KeyError:
-                    send_e("INVALID_DK")  # User ID not found
+                    uid, dk = login_request[6:].split("🱫")
+                except ValueError:
+                    raise AssertionError
+                if uid in users.logged_in(0):
+                    send_e("SESSION_TAKEN")
                 else:
-                    u_dir = f"{uid} {u_dir[0]} {u_dir[1]}"
-                    dk_valid = False
-                    with open(f"Users/{u_dir}/keys.txt", encoding="utf-8") as f:
-                        pass_, dk_ = f.read().split("🱫")[:2]
-                        if dk == dk_:
-                            dk_valid = True
-                    if not dk_valid:
-                        send_e("INVALID_DK")  # DK invalid
+                    try:
+                        u_dir = users.dirs(0)[uid]
+                    except KeyError:
+                        send_e("INVALID_DK")  # User ID not found
                     else:
-                        session_key = enc.pass_to_seed(enc.hex_gens(128), default_salt)
-                        with open(f"Users/{u_dir}/keys.txt", "w", encoding="utf-8") as f:
-                            f.write(f"{pass_}🱫{dk_}🱫{ip}🱫{session_key}")
-                        send_e(f"VALID:{session_key}")
+                        u_dir = f"{uid} {u_dir[0]} {u_dir[1]}"
+                        dk_valid = False
+                        with open(f"Users/{u_dir}/keys.txt", encoding="utf-8") as f:
+                            pass_, dk_ = f.read().split("🱫")[:2]
+                            if dk == dk_:
+                                dk_valid = True
+                        if not dk_valid:
+                            send_e("INVALID_DK")  # DK invalid
+                        else:
+                            session_key = enc.pass_to_seed(enc.hex_gens(128), default_salt)
+                            with open(f"Users/{u_dir}/keys.txt", "w", encoding="utf-8") as f:
+                                f.write(f"{pass_}🱫{dk_}🱫{ip}🱫{session_key}")
+                            send_e(f"VALID:{session_key}")
 
             if login_request.startswith("LOGIN:"):
-                uid, sk = login_request[6:].split("🱫")
                 try:
-                    u_dir = users.dirs(0)[uid]
-                except KeyError:
-                    send_e("INVALID_SK")  # User ID not found
+                    uid, sk = login_request[6:].split("🱫")
+                except ValueError:
+                    raise AssertionError
+                if uid in users.logged_in(0):
+                    send_e("SESSION_TAKEN")
                 else:
-                    u_dir = f"{uid} {u_dir[0]} {u_dir[1]}"
-                    login_valid = False
-                    with open(f"Users/{u_dir}/keys.txt", encoding="utf-8") as f:
-                        ip_, sk_ = f.read().split("🱫")[2:]
-                        if ip == ip_:
-                            if sk.replace("\n", "") == sk_.replace("\n", ""):
-                                login_valid = True
-                    if not login_valid:
-                        send_e("INVALID_SK")  # DK invalid
+                    try:
+                        u_dir = users.dirs(0)[uid]
+                    except KeyError:
+                        send_e("INVALID_SK")  # User ID not found
                     else:
-                        send_e(f"VALID:{u_dir.split(' ')[2]}")  # todo validate user as logged in
-                        break
+                        u_dir = f"{uid} {u_dir[0]} {u_dir[1]}"
+                        login_valid = False
+                        with open(f"Users/{u_dir}/keys.txt", encoding="utf-8") as f:
+                            ip_, sk_ = f.read().split("🱫")[2:]
+                            if ip == ip_:
+                                if sk.replace("\n", "") == sk_.replace("\n", ""):
+                                    login_valid = True
+                        if not login_valid:
+                            send_e("INVALID_SK")  # DK invalid
+                        else:
+                            users.login(uid)
+                            send_e(f"VALID:{u_dir.split(' ')[2]}")  # todo validate user as logged in
+                            break
 
         print(f"{uid} logged in with IP:{ip}")
-        request = recv_d()
-        if request.startswith("VCHCK:"):
-            version_response = version_info(request[6:])
-            send_e(version_response)
-            if not version_response.startswith("VALID:"):
-                raise AssertionError
+        version_response = version_info(recv_d(512))
+        send_e(version_response)
+        if not version_response.startswith("VALID:"):
+            raise AssertionError
 
         while True:  # main loop
-            request = recv_d()
+            request = recv_d(1024)
             if request.startswith("CUSRN:"):
                 u_name = request[6:]
                 u_dir = users.dirs(0)[uid]
@@ -262,9 +302,11 @@ def client_connection(cs):
                     send_e("INVALID_NAME")
 
     except ConnectionResetError:
-        print(f"{uid}:{ip} DC")
+        print(f"{uid}-{ip}:{port} DC")
+        users.logout(uid)
     except AssertionError:
-        print(f"{uid}:{ip} DC - modified client request")
+        print(f"{uid}-{ip}:{port} DC - modified/invalid client request")
+        users.logout(uid)
 
 
 while True:

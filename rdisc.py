@@ -1,4 +1,4 @@
-import socket, os, time, datetime, zlib, rsa, uuid
+import socket, os, time, datetime, zlib, uuid, rsa
 from threading import Thread
 import enclib as enc
 
@@ -23,17 +23,6 @@ try:
         print(f"Running rdisc V{release_major}.{major}.{build}.{run}")
 except FileNotFoundError:
     hashed = enc.hash_a_file("rdisc.exe")
-
-
-exit_state = {"QUIT": "--"}
-
-
-class should_exit:
-    def check(self):
-        return exit_state["QUIT"]
-
-    def change(self):
-        return exit_state.update({"QUIT": self})
 
 
 ui_s = socket.socket()
@@ -88,11 +77,13 @@ to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
 # 0.23 users folder with new user saving to support more future data and data access efficiency, uid now in auth.txt
 # 0.24 dynamic loading rewrites, solution cleanup
 
-# 0.25 finding other clients, connecting to them / friending (on/offline), user tag support
+# 0.25 invalid req catching, only allow one user session, remove client wide thread, redid exit system,
+# todo pass changing
 
-# 0.26 basic DM chat functionality with client to server to client connections and keys
-# 0.27 downloading, saving, load req files from a first time setup file
-# 0.28 logout system and storing data
+# 0.26 finding other clients, connecting to them / friending (on/offline), user tag support
+# 0.27 basic DM chat functionality with client to server to client connections and keys
+# 0.28 downloading, saving, load req files from a first time setup file
+# 0.29 logout system and storing data
 
 
 # local sockets localhost:8079, localhost:8080
@@ -156,29 +147,30 @@ class cooldown:
             return "True"
 
 
-def listen_for_server(cs):
+exit_reason = False
+try:
     def receive(c_text=None, delay=None):
         if c_text:
             if delay:
                 to_c(c_text, delay)
             else:
                 to_c(c_text)
-        output = cs.recv(1024).decode(encoding="utf-16")
+        output = cs.recv(1024).decode(encoding="utf-16")  # todo test buffer limit
         if output.lower() == '-restart':
-            should_exit.change("FQR")
-
+            raise AssertionError  # todo make new restart system
         if output.lower() == '-quit':
-            should_exit.change("FQ")
+            raise AssertionError
         return output
 
     pub_key, pri_key = rsa.newkeys(1024)
     server_host = "26.29.111.99"
     server_port = 8080
     s = socket.socket()
+    to_c("\n >> Connecting to server")
     while True:
         try:
             s.connect((server_host, server_port))
-            to_c("\n🱫[COLOR THREAD][GREEN] Connected to server")
+            to_c("\n🱫[COLOR THREAD][GREEN] << Connected to server")
             break
         except ConnectionRefusedError:
             to_c("\n🱫[COLOR THREAD][RED] Could not connect to server")
@@ -188,8 +180,8 @@ def listen_for_server(cs):
     print("Server connected ->", s)
     s.send(rsa.PublicKey.save_pkcs1(pub_key))
     print(" >> Public RSA key sent")
-    enc_seed = rsa.decrypt(s.recv(1024), pri_key).decode()
-    enc_salt = rsa.decrypt(s.recv(1024), pri_key).decode()
+    enc_seed = rsa.decrypt(s.recv(128), pri_key).decode()
+    enc_salt = rsa.decrypt(s.recv(128), pri_key).decode()
     alpha, shift_seed = enc.seed_to_data(enc_seed)
     print(" << Client enc_seed and enc_salt received and loaded")
     to_c("\n🱫[COLOR THREAD][GREEN] RSA -> enc bootstrap complete")
@@ -197,8 +189,8 @@ def listen_for_server(cs):
     def send_e(text):
         s.send(enc.encrypt("e", text, alpha, shift_seed, enc_salt))
 
-    def recv_d():
-        return enc.encrypt("d", s.recv(1024), alpha, shift_seed, enc_salt)
+    def recv_d(buf_lim):
+        return enc.encrypt("d", s.recv(buf_lim), alpha, shift_seed, enc_salt)
 
     device_key = False
     if os.path.isfile("auth.txt"):
@@ -228,7 +220,7 @@ def listen_for_server(cs):
         print("Login with session key")
         send_e(f"LOGIN:{user.key('uid')}🱫{user.key('sk')}")
         print(f" >> Request sent: LOGIN:{user.key('uid')}🱫{user.key('sk')}")
-        login_req_resp = recv_d()
+        login_req_resp = recv_d(512)
         if login_req_resp.startswith("VALID:"):
             print(f" << {login_req_resp}")
             to_c(f"\n🱫[COLOR THREAD][GREEN] You are now logged in as {login_req_resp[6:]}")
@@ -246,7 +238,7 @@ def listen_for_server(cs):
             print("Get a new session_key")
             send_e(f"NEWSK:{user.key('uid')}🱫{enc.pass_to_seed(device_key, mac)}")
             print(f" >> Request sent: NEWSK:{user.key('uid')}🱫{enc.pass_to_seed(device_key, mac)}")
-            dk_req_resp = recv_d()
+            dk_req_resp = recv_d(512)
             if dk_req_resp.startswith("VALID:"):
                 session_key = dk_req_resp[6:]
                 print(f" << VALID:{session_key}")
@@ -255,7 +247,13 @@ def listen_for_server(cs):
                 if login():
                     break
             else:
-                print(" << INVALID_DK")
+                if dk_req_resp == "SESSION_TAKEN":
+                    to_c("\n🱫[COLOR THREAD][RED] User session logged in on another device")
+                    print(" << SESSION_TAKEN")
+                    exit_reason = "SESSION_TAKEN"
+                    raise AssertionError
+                else:
+                    print(" << INVALID_DK")
 
         print("Create a new account or log in to an existing one")
         to_c("🱫[INPUT SHOW]🱫[MNINPLEN][256] ", 0.1)  # todo set len to 7?
@@ -283,14 +281,14 @@ def listen_for_server(cs):
             # to_c("🱫[INPUT SHOW]🱫[MNINPLEN][16] ", 0.1)  # todo set limit?
 
             while True:
-                to_c(f"\n🱫[COLOR THREAD][YELLOW] Enter 16 char code below", 0.1)
+                to_c(f"\n🱫[COLOR THREAD][YELLOW] Enter 16 char code", 0.1)
                 email_code = ""
                 while len(email_code) != 16:  # todo improve
                     email_code = receive().replace("-", "").upper()
 
                 send_e(f"{email_code}🱫{salted_dk}")
                 print(f" >> Request sent: {email_code}🱫{salted_dk}")
-                verify_dk_resp = recv_d()
+                verify_dk_resp = recv_d(512)
                 if verify_dk_resp.startswith("VALID:"):
                     print(f" << {verify_dk_resp}")
                     break
@@ -310,13 +308,19 @@ def listen_for_server(cs):
                 password = enc.pass_to_seed(receive(), default_salt)
                 send_e(f"NEWDK:{email}🱫{password}")
                 print(f" >> Request sent: NEWDK:{email}🱫{password}")
-                get_dk_response = recv_d()
-                if get_dk_response == "INVALID":
+                new_dk_resp = recv_d(64)
+                if new_dk_resp == "INVALID":
                     print(" << INVALID")
                     to_c("\n🱫[COLOR THREAD][RED] Email or password invalid")
                 else:
-                    print(" << VALID")
-                    break
+                    if new_dk_resp == "SESSION_TAKEN":
+                        to_c("\n🱫[COLOR THREAD][RED] User session logged in on another device")
+                        print(" << SESSION_TAKEN")
+                        exit_reason = "SESSION_TAKEN"
+                        raise AssertionError
+                    else:
+                        print(" << VALID")
+                        break
 
             make_new_dk()
         else:
@@ -338,8 +342,7 @@ def listen_for_server(cs):
                             password = None
                 send_e(f"NEWAC:{email}🱫{password}")
                 print(f" >> Request sent: NEWAC:{email}🱫{password}")
-                create_ac_response = recv_d()
-                if create_ac_response == "INVALID_EMAIL":
+                if recv_d(64) == "INVALID_EMAIL":
                     print(" << INVALID_EMAIL")
                     to_c("\n🱫[COLOR THREAD][RED] Email was invalid, probably already taken")
                 else:
@@ -351,9 +354,9 @@ def listen_for_server(cs):
             print("Account setup complete, dk and sk received and saved")
 
     print("Version updater")  # todo version load
-    send_e(f"VCHCK:{hashed}")
-    print(f" >> VCHCK:{hashed}")
-    version_check_response = recv_d()
+    send_e(hashed)
+    print(f" >> {hashed}")
+    version_check_response = recv_d(512)
     print(f" << {version_check_response}")
     if version_check_response.startswith("VALID:"):
         verified_version, tme, bld_num, run_num = version_check_response[6:].split('🱫')
@@ -362,14 +365,12 @@ def listen_for_server(cs):
     if version_check_response.startswith("INVALID:"):
         to_c(f"\n <> Updating rdisc {version_check_response[8:]} in 5 seconds")
         time.sleep(5)
-        should_exit.change("FQU")
-        while True:
-            receive()
+        raise AssertionError
 
     if version_check_response.startswith("UNKNOWN"):
         to_c("\n🱫[COLOR THREAD][RED] <> INVALID OR CORRUPTED VERSION, downloading new copy in 5 seconds")
         time.sleep(5)
-        should_exit.change("FQU")
+        raise AssertionError  # todo redo updater and restarter
 
     to_c("🱫[INPUT SHOW]🱫", 0.1)
     print("Main thread")
@@ -384,7 +385,7 @@ def listen_for_server(cs):
                 if 4 < len(username) < 33:
                     send_e(f"CUSRN:{username}")
                     print(f" >> Request sent: CUSRN:{username}")
-                    new_u_name_resp = recv_d()
+                    new_u_name_resp = recv_d(128)
                     if new_u_name_resp == "INVALID_NAME":
                         print(" << INVALID_NAME")
                         to_c("\n🱫[COLOR THREAD][RED] Username already taken")
@@ -396,25 +397,12 @@ def listen_for_server(cs):
                 else:
                     to_c(f"\n🱫[COLOR THREAD][RED] Username must be 5-32 chars, you entered: {username[:64]}")
 
+except AssertionError:
+    if exit_reason == "SESSION_TAKEN":
+        input("Input to exit")
     print("Exit")
 
-    #checked = cooldown.check(0)  # todo maybe stop input until allowed, bring back what was entered
-    #if checked == "True":
-    #    s.send(enc.encrypt_key(client_send, user.key('df_key'), "salt"))
-    #else:
-    #    to_c(f"\nYOU'RE SENDING MESSAGES TOO FAST! please wait {checked}s~")
-
-
-t = Thread(target=listen_for_server, args=(cs,))
-t.daemon = True
-t.start()
-
-
-while True:
-    if should_exit.check(0).startswith("FQ"):
-        #if should_exit.check(0) == "FQU":
-        #    os.startfile("installer.exe")
-        if should_exit.check(0) == "FQR":
-            os.startfile("rdisc.exe")
-        break
-    time.sleep(1)
+#if cooldown.check(0) == "True":  # todo maybe stop input until allowed, bring back what was entered
+#    s.send(enc.encrypt_key(client_send, user.key('df_key'), "salt"))
+#else:
+#    to_c(f"\nYOU'RE SENDING MESSAGES TOO FAST! please wait {checked}s~")
