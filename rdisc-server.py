@@ -351,6 +351,13 @@ def client_connection(cs):
                 else:
                     send_e("INVALID_NAME")
 
+            if request.startswith("LOG_A"):
+                with open(f"Users/{u_dir}/{uid}-keys.txt", encoding="utf-8") as f:
+                    log_a_write = f.readlines()[0]
+                with open(f"Users/{u_dir}/{uid}-keys.txt", "w", encoding="utf-8") as f:
+                    f.write(log_a_write)
+                raise ConnectionResetError
+
     except ConnectionResetError:
         print(f"{uid}-{ip}:{port} DC")
         users.logout(uid, ip)

@@ -191,9 +191,9 @@ namespace Rchat
 				MainInput.SelectionStart = MainInput.Text.Length;
 			}
 
-			if (readData.StartsWith("\n🱫﻿[COLOR THREAD]"))
+			if (readData.StartsWith("\n🱫﻿[COLOR]"))
 			{
-				readData = readData.Replace("🱫[COLOR THREAD]", "");
+				readData = readData.Replace("🱫[COLOR]", "");
 				if (readData.StartsWith("\n﻿[GREEN]"))
                 {
 					MainOutput.SelectionColor = Color.LightGreen;
@@ -339,13 +339,9 @@ namespace Rchat
 
 		private void Exit_Click(object sender, EventArgs e)
 		{
-			try
-			{
-				byte[] bytes = Encoding.Unicode.GetBytes("-quit");
-				serverStream.Write(bytes, 0, bytes.Length);
-				serverStream.Flush();
-			}
-			catch {}
+			byte[] bytes = Encoding.Unicode.GetBytes("🱫[QUIT]");
+			serverStream.Write(bytes, 0, bytes.Length);
+			serverStream.Flush();
 			Application.Exit();
 		}
 
@@ -364,23 +360,6 @@ namespace Rchat
 			MainInput.Text = MainInput.Text.Replace("\n", "");
 			MainInput.SelectionStart = MainInput.Text.Length;
 			MI_MaxChars.Text = (MainInput.MaxLength-MainInput.Text.Length).ToString();
-		}
-
-		private void quitToolStripMenuItem_Click_1(object sender, EventArgs e)
-		{
-			byte[] bytes = Encoding.Unicode.GetBytes("-quit");
-			serverStream.Write(bytes, 0, bytes.Length);
-			serverStream.Flush();
-			Application.Exit();
-		}
-
-		private void restartToolStripMenuItem_Click_1(object sender, EventArgs e)
-		{
-			byte[] bytes = Encoding.Unicode.GetBytes("-restart");
-			serverStream.Write(bytes, 0, bytes.Length);
-			serverStream.Flush();
-			InitializeComponent();
-			Application.Exit();
 		}
 
 		private void clearToolStripMenuItem_Click(object sender, EventArgs e)
@@ -440,6 +419,46 @@ namespace Rchat
         {
 			MainInput.Text = "-change name ";
 			MainInput.Select(MainInput.Text.Length, 0);
+		}
+
+		private void confirmToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			byte[] bytes = Encoding.Unicode.GetBytes("🱫[LOGOUT]");
+			MainOutput.Text = "";
+			serverStream.Write(bytes, 0, bytes.Length);
+			serverStream.Flush();
+		}
+
+		private void confirmLogoutOfAllSessionsToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			byte[] bytes = Encoding.Unicode.GetBytes("🱫[LOGOUT_ALL]");
+			MainOutput.Text = "";
+			serverStream.Write(bytes, 0, bytes.Length);
+			serverStream.Flush();
+		}
+
+		private void reloadToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			byte[] bytes = Encoding.Unicode.GetBytes("🱫[RELOAD]");
+			MainOutput.Text = "";
+			serverStream.Write(bytes, 0, bytes.Length);
+			serverStream.Flush();
+		}
+
+		private void restartToolStripMenuItem_Click_1(object sender, EventArgs e)
+		{
+			byte[] bytes = Encoding.Unicode.GetBytes("🱫[RESTART]");
+			serverStream.Write(bytes, 0, bytes.Length);
+			serverStream.Flush();
+			Application.Exit();
+		}
+
+		private void quitToolStripMenuItem_Click_1(object sender, EventArgs e)
+		{
+			byte[] bytes = Encoding.Unicode.GetBytes("🱫[QUIT]");
+			serverStream.Write(bytes, 0, bytes.Length);
+			serverStream.Flush();
+			Application.Exit();
 		}
     }
 }

@@ -52,6 +52,11 @@
             this.MainOutput = new System.Windows.Forms.RichTextBox();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.timer1 = new System.Windows.Forms.Timer(this.components);
+            this.logoutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.confirmToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.logoutAllSessionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.confirmLogoutOfAllSessionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.reloadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.panel1.SuspendLayout();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.MainInput_pic)).BeginInit();
@@ -192,6 +197,8 @@
             // 
             this.optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.clearToolStripMenuItem,
+            this.logoutToolStripMenuItem,
+            this.reloadToolStripMenuItem,
             this.restartToolStripMenuItem,
             this.quitToolStripMenuItem});
             this.optionsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
@@ -204,25 +211,25 @@
             this.clearToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
             this.clearToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.clearToolStripMenuItem.Name = "clearToolStripMenuItem";
-            this.clearToolStripMenuItem.Size = new System.Drawing.Size(110, 22);
+            this.clearToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.clearToolStripMenuItem.Text = "Clear";
             this.clearToolStripMenuItem.Click += new System.EventHandler(this.clearToolStripMenuItem_Click);
             // 
             // restartToolStripMenuItem
             // 
-            this.restartToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
+            this.restartToolStripMenuItem.BackColor = System.Drawing.Color.Yellow;
             this.restartToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.restartToolStripMenuItem.Name = "restartToolStripMenuItem";
-            this.restartToolStripMenuItem.Size = new System.Drawing.Size(110, 22);
+            this.restartToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.restartToolStripMenuItem.Text = "Restart";
             this.restartToolStripMenuItem.Click += new System.EventHandler(this.restartToolStripMenuItem_Click_1);
             // 
             // quitToolStripMenuItem
             // 
-            this.quitToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
-            this.quitToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
+            this.quitToolStripMenuItem.BackColor = System.Drawing.Color.Red;
+            this.quitToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
-            this.quitToolStripMenuItem.Size = new System.Drawing.Size(110, 22);
+            this.quitToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.quitToolStripMenuItem.Text = "Quit";
             this.quitToolStripMenuItem.Click += new System.EventHandler(this.quitToolStripMenuItem_Click_1);
             // 
@@ -337,7 +344,7 @@
             this.changeNameToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
             this.changeNameToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.changeNameToolStripMenuItem.Name = "changeNameToolStripMenuItem";
-            this.changeNameToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.changeNameToolStripMenuItem.Size = new System.Drawing.Size(148, 22);
             this.changeNameToolStripMenuItem.Text = "Change name";
             this.changeNameToolStripMenuItem.Click += new System.EventHandler(this.changeNameToolStripMenuItem_Click);
             // 
@@ -429,6 +436,51 @@
             // 
             this.timer1.Enabled = true;
             this.timer1.Tick += new System.EventHandler(this.timer1_Tick_1);
+            // 
+            // logoutToolStripMenuItem
+            // 
+            this.logoutToolStripMenuItem.BackColor = System.Drawing.Color.Yellow;
+            this.logoutToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.confirmToolStripMenuItem,
+            this.logoutAllSessionsToolStripMenuItem});
+            this.logoutToolStripMenuItem.Name = "logoutToolStripMenuItem";
+            this.logoutToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.logoutToolStripMenuItem.Text = "Logout";
+            // 
+            // confirmToolStripMenuItem
+            // 
+            this.confirmToolStripMenuItem.BackColor = System.Drawing.Color.Yellow;
+            this.confirmToolStripMenuItem.Name = "confirmToolStripMenuItem";
+            this.confirmToolStripMenuItem.Size = new System.Drawing.Size(194, 22);
+            this.confirmToolStripMenuItem.Text = "Logout current session";
+            this.confirmToolStripMenuItem.Click += new System.EventHandler(this.confirmToolStripMenuItem_Click);
+            // 
+            // logoutAllSessionsToolStripMenuItem
+            // 
+            this.logoutAllSessionsToolStripMenuItem.BackColor = System.Drawing.Color.Red;
+            this.logoutAllSessionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.confirmLogoutOfAllSessionsToolStripMenuItem});
+            this.logoutAllSessionsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            this.logoutAllSessionsToolStripMenuItem.Name = "logoutAllSessionsToolStripMenuItem";
+            this.logoutAllSessionsToolStripMenuItem.Size = new System.Drawing.Size(194, 22);
+            this.logoutAllSessionsToolStripMenuItem.Text = "Logout all sessions";
+            // 
+            // confirmLogoutOfAllSessionsToolStripMenuItem
+            // 
+            this.confirmLogoutOfAllSessionsToolStripMenuItem.BackColor = System.Drawing.Color.Red;
+            this.confirmLogoutOfAllSessionsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            this.confirmLogoutOfAllSessionsToolStripMenuItem.Name = "confirmLogoutOfAllSessionsToolStripMenuItem";
+            this.confirmLogoutOfAllSessionsToolStripMenuItem.Size = new System.Drawing.Size(231, 22);
+            this.confirmLogoutOfAllSessionsToolStripMenuItem.Text = "Confirm logout of all sessions";
+            this.confirmLogoutOfAllSessionsToolStripMenuItem.Click += new System.EventHandler(this.confirmLogoutOfAllSessionsToolStripMenuItem_Click);
+            // 
+            // reloadToolStripMenuItem
+            // 
+            this.reloadToolStripMenuItem.BackColor = System.Drawing.Color.Yellow;
+            this.reloadToolStripMenuItem.Name = "reloadToolStripMenuItem";
+            this.reloadToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.reloadToolStripMenuItem.Text = "Reload";
+            this.reloadToolStripMenuItem.Click += new System.EventHandler(this.reloadToolStripMenuItem_Click);
             // 
             // Rchat
             // 
@@ -529,5 +581,10 @@
         private System.Windows.Forms.Timer timer1;
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem changeNameToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem logoutToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem confirmToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem logoutAllSessionsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem confirmLogoutOfAllSessionsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem reloadToolStripMenuItem;
     }
 }
