@@ -37,7 +37,7 @@ if ui:
 
     print(" -> Launching ui.exe")
     if not os.path.isfile("ui.exe"):
-        print("[!] CRITICAL FILE ui.exe MISSING, falling back to CLI")
+        input("[!] CRITICAL FILE ui.exe MISSING, hit enter to fall back to CLI\n")
         ui = False
     else:
         os.startfile("ui.exe")
@@ -52,11 +52,10 @@ if ui:
 
         print(f" Connected to ui.exe via socket {client_address}")
         to_c("\n🱫[COLOR THREAD][GREEN] <- Internal socket connected\n", 0.1)
-else:
+if not ui:
     def to_c(text, delay=None):
         if delay:
             time.sleep(delay)
-
         if text.startswith("🱫[INPUT SHOW]🱫"):
             text = text[14:]
         if text.startswith("\n🱫[COLOR THREAD][GREEN] "):  # todo CLI colors
@@ -96,17 +95,19 @@ else:
 # 0.23 users folder with new user saving to support more future data and data access efficiency, uid now in auth.txt
 # 0.24 dynamic loading rewrites, solution cleanup
 # 0.25 invalid req catching, only allow one user session, remove client wide thread, redid exit system
+# 0.26 client CLI, 1 login per IP at a time, 2 account created per IP, upto 3 dks active at once with ips and sks
 
-# 0.26 client CLI, pass changing, rate limits for accounts, unames and passes
+# 0.27 logins/logouts, logout current session, logout all, delete account
+# 0.27 rate limits for unames, forgot or change pass
 
-# 0.27 finding other clients, connecting to them / friending (on/offline), user tag support
-# 0.28 basic DM chat functionality with client to server to client connections and keys
-# 0.29 downloading, saving, load req files from a first time setup file
-# 0.30 logout system and storing data
+# 0.28 pass rate limit, friending (on/offline), connecting to online friends
+# 0.29 basic DM chat functionality with client to server to client connections and keys
+# 0.30 downloading, saving, load req files from a first time setup file
+# 0.31 logout system and storing data
 
 
 # local sockets localhost:8079, localhost:8080
-# Made by rapidslayer101 (Scott Bree), Main tester: James Judge
+# Made by rapidslayer101 (Scott Bree), General usage testing and spelling: James Judge
 # >>> license and agreement data here <<<
 
 user_data = {}
@@ -124,7 +125,7 @@ class user:
 
 
 default_salt = """52gy"J$&)6%0}fgYfm/%ino}PbJk$w<5~j'|+R .bJcSZ.H&3z'A:gip/jtW$6A=
-                  G-;|&&rR81!BTElChN|+"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#."H4tq)p4"""  # todo improve, pass+salt?
+                  G-;|&&rR81!BTElChN|+"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#."H4tq)p4"""
 mac = enc.pass_to_seed(hex(uuid.getnode()), default_salt)
 
 
@@ -137,14 +138,11 @@ def mac_dec(enc_text):
 
 
 def auth_txt_write(uid, dk, sk=None):
-    auth_to_write = b""
-    if dk:
-        auth_to_write += mac_enc(uid)
-        auth_to_write += b"  "+mac_enc(dk)
+    auth_write = mac_enc(uid)+b"  "+mac_enc(dk)
     if sk:
-        auth_to_write += b"  "+mac_enc(sk)
-    with open("auth.txt", "wb") as auth_txt:
-        auth_txt.write(auth_to_write)
+        auth_write += b"  "+mac_enc(sk)
+    with open("auth.txt", "wb") as auth_txt_:
+        auth_txt_.write(auth_write)
 
 
 cool_down_data = {"x": (str(datetime.datetime.utcnow())), "msg_counter": 0}
@@ -236,7 +234,6 @@ try:
                     try:
                         user.update_key('uid', mac_dec(auth_data[0]))
                         print(f"LOADED UID")
-
                     except zlib.error:
                         pass
                     try:
@@ -282,7 +279,7 @@ try:
                     break
             else:
                 if dk_req_resp == "SESSION_TAKEN":
-                    to_c("\n🱫[COLOR THREAD][RED] User session logged in on another device")
+                    to_c("\n🱫[COLOR THREAD][RED] User logged in on another device or multiple app instances open")
                     print(" << SESSION_TAKEN")
                     exit_reason = "SESSION_TAKEN"
                     raise AssertionError
@@ -348,7 +345,7 @@ try:
                     to_c("\n🱫[COLOR THREAD][RED] Email or password invalid")
                 else:
                     if new_dk_resp == "SESSION_TAKEN":
-                        to_c("\n🱫[COLOR THREAD][RED] User session logged in on another device")
+                        to_c("\n🱫[COLOR THREAD][RED] User logged in on another device or multiple app instances open")
                         print(" << SESSION_TAKEN")
                         exit_reason = "SESSION_TAKEN"
                         raise AssertionError
@@ -376,16 +373,20 @@ try:
                             password = None
                 send_e(f"NEWAC:{email}🱫{password}")
                 print(f" >> Request sent: NEWAC:{email}🱫{password}")
-                if recv_d(64) == "INVALID_EMAIL":
+                new_ac_req = recv_d(64)
+                if new_ac_req == "INVALID_EMAIL":
                     print(" << INVALID_EMAIL")
                     to_c("\n🱫[COLOR THREAD][RED] Email was invalid, probably already taken")
                 else:
-                    print(" << VALID")
-                    break
-
-            make_new_dk()
-            to_c("\n🱫[COLOR THREAD][GREEN] Account setup complete, logging in...")
-            print("Account setup complete, dk and sk received and saved")
+                    if new_ac_req == "IP_CREATE_LIMIT":
+                        to_c("\n🱫[COLOR THREAD][RED] This IP has already reached the creation limit of 2 accounts)")
+                        break
+                    else:
+                        print(" << VALID")
+                        make_new_dk()
+                        to_c("\n🱫[COLOR THREAD][GREEN] Account setup complete, logging in...")
+                        print("Account setup complete, dk and sk received and saved")
+                        break
 
     print("Version updater")  # todo version load
     send_e(hashed)
@@ -437,7 +438,7 @@ except AssertionError:
         input("Input to exit")
     print("Exit")
 
-#if cooldown.check(0) == "True":  # todo maybe stop input until allowed, bring back what was entered
+# if cooldown.check(0) == "True":  # todo maybe stop input until allowed, bring back what was entered
 #    s.send(enc.encrypt_key(client_send, user.key('df_key'), "salt"))
-#else:
+# else:
 #    to_c(f"\nYOU'RE SENDING MESSAGES TOO FAST! please wait {checked}s~")

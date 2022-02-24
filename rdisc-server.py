@@ -1,3 +1,4 @@
+import datetime
 import socket, os, rsa
 import zlib
 from threading import Thread
@@ -5,7 +6,7 @@ from random import choice, randint
 import enclib as enc
 
 
-min_version = "V0.23.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
+min_version = "V0.25.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
 default_salt = """TO$X-YkP#XGl>>Nw@tt ~$c[{N-uF&#~+h#<84@W3 57dkX.V'1el~1JcyMTuRwjG
                   DxnI,ufxSNzdgJyQn<-Qj--.PN+y=Gk.F/(B'Fq+D@,$*9&[`Bt.W3i;0{UN7K="""
 b62set = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
@@ -37,6 +38,10 @@ def version_info(hashed):
 
 if not os.path.exists("Users"):
     os.mkdir("Users")
+
+if not os.path.exists("account_creation_ips.txt"):
+    with open("account_creation_ips.txt", "w") as f:
+        f.write("")
 
 user_dirs = {}
 u_ids = []
@@ -86,12 +91,14 @@ class users:
     def logged_in(self):
         return logged_in_users
 
-    def login(self):
+    def login(self, ip):
         logged_in_users.append(self)
+        logged_in_users.append(ip)
 
-    def logout(self):
+    def logout(self, ip):
         try:
             logged_in_users.pop(logged_in_users.index(self))
+            logged_in_users.pop(logged_in_users.index(ip))
         except ValueError:
             pass
 
@@ -107,7 +114,10 @@ print(f"[*] Listening as 0.0.0.0:{server_port}")
 
 def client_connection(cs):
     try:
-        ip, port = str(cs).split("raddr=")[1][2:-2].split("', ")
+        ip_l, port = str(cs).split("raddr=")[1][2:-2].split("', ")
+        ip_p1, ip_p2, ip_p3, ip_p4 = ip_l.split(".")
+        ip = f"{enc.to_hex(10, 96, ip_p1)}§{enc.to_hex(10, 96, ip_p2)}" \
+             f"§{enc.to_hex(10, 96, ip_p3)}§{enc.to_hex(10, 96, ip_p4)}"
         print(f"NEW CLIENT-{ip}:{port}")
         uid = None
         try:
@@ -128,6 +138,16 @@ def client_connection(cs):
                 return enc.encrypt("d", cs.recv(buf_lim), alpha, shift_seed, enc_salt)
             except zlib.error:
                 raise ConnectionResetError
+
+        def check_logged_in(uid_):
+            l_users = users.logged_in(0)
+            if uid_ in l_users:
+                return True
+            else:
+                if ip in l_users:
+                    return True
+                else:
+                    return False
 
         def make_new_dk():
             # email code and username still required
@@ -164,26 +184,35 @@ def client_connection(cs):
                 if email in users.emails(0):
                     send_e("INVALID_EMAIL")
                 else:
-                    send_e("VALID")
-                    device_key, session_key = make_new_dk()
-                    while True:
-                        u_id = "".join([choice(b62set) for x in range(8)])
-                        if u_id not in users.ids(0):
-                            break
-                    while True:  # todo tag support
-                        username = "".join([choice(b62set) for x in range(8)])
-                        username = f"{username}#{randint(1111, 9999)}"
-                        if username not in users.names(0):
-                            break
-                    password = enc.pass_to_seed(password, default_salt)
-                    os.mkdir(f"Users/{u_id} {email} {username}")
-                    with open(f"Users/{u_id} {email} {username}/keys.txt", "w", encoding="utf-8") as f:
-                        f.write(f"{password}🱫{device_key}🱫{ip}🱫{session_key}")
-                    users.dirs_update(u_id, email, username)
-                    users.ids_update(u_id)
-                    users.emails_update(email)
-                    users.names_update(username)
-                    send_e(f"VALID:{u_id}🱫{session_key}")
+                    with open("account_creation_ips.txt", encoding="utf-8") as f:
+                        ip_create_num = f.read().count(ip)
+                    if ip_create_num > 1:
+                        send_e("IP_CREATE_LIMIT")
+                    else:
+                        send_e("VALID")
+                        device_key, session_key = make_new_dk()
+                        while True:
+                            u_id = "".join([choice(b62set) for x in range(8)])
+                            if u_id not in users.ids(0):
+                                break
+                        while True:  # todo make run through 9999 on fail x amount of time so not inf loop
+                            username = "".join([choice(b62set) for x in range(8)])
+                            username = f"{username}#{randint(1111, 9999)}"
+                            if username not in users.names(0):
+                                break
+                        password = enc.pass_to_seed(password, default_salt)
+                        os.mkdir(f"Users/{u_id} {email} {username}")
+                        with open(f"Users/{u_id} {email} {username}/{u_id}-keys.txt", "w", encoding="utf-8") as f:
+                            f.write(f"{password}\n{device_key}🱫{ip}🱫{session_key}\n")
+                        with open(f"Users/{u_id} {email} {username}/{u_id}-logins.txt", "w", encoding="utf-8") as f:
+                            f.write(f"AC {datetime.datetime.now()}")
+                        with open(f"account_creation_ips.txt", "a+", encoding="utf-8") as f:
+                            f.write(f"{ip} ")
+                        users.dirs_update(u_id, email, username)
+                        users.ids_update(u_id)
+                        users.emails_update(email)
+                        users.names_update(username)
+                        send_e(f"VALID:{u_id}🱫{session_key}")
 
             if login_request.startswith("NEWDK:"):
                 try:
@@ -198,7 +227,7 @@ def client_connection(cs):
                         uid = dir_
                         username = dirs[dir_][1]
                         valid_email = True
-                if uid in users.logged_in(0):
+                if check_logged_in(uid):
                     send_e("SESSION_TAKEN")
                 else:
                     if not valid_email:
@@ -206,17 +235,26 @@ def client_connection(cs):
                     else:
                         pass_correct = False
                         u_dir = f"{uid} {email} {username}"
-                        with open(f"Users/{u_dir}/keys.txt", encoding="utf-8") as f:
-                            pass_ = f.read().split("🱫")[0]
-                            if password == pass_:
+                        with open(f"Users/{u_dir}/{uid}-keys.txt", encoding="utf-8") as f:
+                            lines = f.readlines()
+                            pass_ = lines[0]
+                            if password == pass_.replace("\n", ""):
                                 pass_correct = True
                         if not pass_correct:
                             send_e("INVALID")  # password wrong
                         else:
                             send_e("VALID")
                             device_key, session_key = make_new_dk()
-                            with open(f"Users/{u_dir}/keys.txt", "w", encoding="utf-8") as f:
-                                f.write(f"{pass_}🱫{device_key}🱫{ip}🱫{session_key}")
+                            if len(lines) > 3:
+                                lines[1] = lines[2]
+                                lines[2] = lines[3]
+                                lines[3] = f"{device_key}🱫{ip}🱫{session_key}"
+                                with open(f"Users/{u_dir}/{uid}-keys.txt", "w", encoding="utf-8") as f:
+                                    for line in lines:
+                                        f.write(line)
+                            else:
+                                with open(f"Users/{u_dir}/{uid}-keys.txt", "a+", encoding="utf-8") as f:
+                                    f.write(f"{device_key}🱫{ip}🱫{session_key}\n")
                             send_e(f"VALID:{uid}🱫{session_key}")
 
             if login_request.startswith("NEWSK:"):
@@ -224,7 +262,7 @@ def client_connection(cs):
                     uid, dk = login_request[6:].split("🱫")
                 except ValueError:
                     raise AssertionError
-                if uid in users.logged_in(0):
+                if check_logged_in(uid):
                     send_e("SESSION_TAKEN")
                 else:
                     try:
@@ -234,16 +272,22 @@ def client_connection(cs):
                     else:
                         u_dir = f"{uid} {u_dir[0]} {u_dir[1]}"
                         dk_valid = False
-                        with open(f"Users/{u_dir}/keys.txt", encoding="utf-8") as f:
-                            pass_, dk_ = f.read().split("🱫")[:2]
-                            if dk == dk_:
-                                dk_valid = True
+                        with open(f"Users/{u_dir}/{uid}-keys.txt", encoding="utf-8") as f:
+                            lines = f.readlines()
+                            dk_l_n = 0
+                            for line in lines[1:]:
+                                dk_ = line.split("🱫")[0]
+                                dk_l_n += 1
+                                if dk == dk_:
+                                    session_key = enc.pass_to_seed(enc.hex_gens(128), default_salt)
+                                    lines[dk_l_n] = f"{dk_}🱫{ip}🱫{session_key}\n"
+                                    dk_valid = True
                         if not dk_valid:
                             send_e("INVALID_DK")  # DK invalid
                         else:
-                            session_key = enc.pass_to_seed(enc.hex_gens(128), default_salt)
-                            with open(f"Users/{u_dir}/keys.txt", "w", encoding="utf-8") as f:
-                                f.write(f"{pass_}🱫{dk_}🱫{ip}🱫{session_key}")
+                            with open(f"Users/{u_dir}/{uid}-keys.txt", "w", encoding="utf-8") as f:
+                                for line in lines:
+                                    f.write(line)
                             send_e(f"VALID:{session_key}")
 
             if login_request.startswith("LOGIN:"):
@@ -251,7 +295,7 @@ def client_connection(cs):
                     uid, sk = login_request[6:].split("🱫")
                 except ValueError:
                     raise AssertionError
-                if uid in users.logged_in(0):
+                if check_logged_in(uid):
                     send_e("SESSION_TAKEN")
                 else:
                     try:
@@ -261,20 +305,22 @@ def client_connection(cs):
                     else:
                         u_dir = f"{uid} {u_dir[0]} {u_dir[1]}"
                         login_valid = False
-                        with open(f"Users/{u_dir}/keys.txt", encoding="utf-8") as f:
-                            ip_, sk_ = f.read().split("🱫")[2:]
-                            if ip == ip_:
-                                if sk.replace("\n", "") == sk_.replace("\n", ""):
-                                    login_valid = True
+                        with open(f"Users/{u_dir}/{uid}-keys.txt", encoding="utf-8") as f:
+                            lines = f.readlines()
+                            for line in lines[1:]:
+                                ip_, sk_ = line.split("🱫")[1:]
+                                if ip == ip_:
+                                    if sk.replace("\n", "") == sk_.replace("\n", ""):
+                                        login_valid = True
                         if not login_valid:
                             send_e("INVALID_SK")  # DK invalid
                         else:
-                            send_e(f"VALID:{u_dir.split(' ')[2]}")  # todo validate user as logged in
+                            send_e(f"VALID:{u_dir.split(' ')[2]}")
                             version_response = version_info(recv_d(512))
                             send_e(version_response)
                             if not version_response.startswith("VALID:"):
                                 raise AssertionError
-                            users.login(uid)
+                            users.login(uid, ip)
                             break
 
         print(f"{uid} logged in with IP-{ip}:{port} and version-{version_response}")
@@ -284,13 +330,14 @@ def client_connection(cs):
                 u_name = request[6:]
                 u_dir = users.dirs(0)[uid]
                 u_dir = f"{uid} {u_dir[0]} {u_dir[1]}"
-
                 if not 4 < len(u_name) < 33:
                     raise AssertionError
                 if "#" in u_name or " " in u_name:
                     raise AssertionError
                 if u_name == u_dir.split(" ")[2][:-5]:
                     raise AssertionError
+
+                # todo check amount of username changes here
 
                 u_name = f"{u_name}#{randint(1111, 9999)}"
                 if u_name not in users.names(0):
@@ -299,16 +346,17 @@ def client_connection(cs):
                     users.dirs_update(uid, u_dir.split(' ')[1], u_name)
                     users.names_remove(users.names(0).index(u_dir.split(" ")[2]))
                     users.names_update(u_name)
+                    # todo update amount of username changes here
                     send_e(f"VALID:{u_name}")
                 else:
                     send_e("INVALID_NAME")
 
     except ConnectionResetError:
         print(f"{uid}-{ip}:{port} DC")
-        users.logout(uid)
+        users.logout(uid, ip)
     except AssertionError:
         print(f"{uid}-{ip}:{port} DC - modified/invalid client request")
-        users.logout(uid)
+        users.logout(uid, ip)
 
 
 while True:

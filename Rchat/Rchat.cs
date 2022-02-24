@@ -441,11 +441,5 @@ namespace Rchat
 			MainInput.Text = "-change name ";
 			MainInput.Select(MainInput.Text.Length, 0);
 		}
-
-        private void changePasswordToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-			MainInput.Text = "-change password ";
-			MainInput.SelectionStart = MainInput.Text.Length;
-		}
     }
 }
