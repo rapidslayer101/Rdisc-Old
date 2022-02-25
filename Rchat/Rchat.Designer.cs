@@ -1,9 +1,7 @@
 ﻿namespace Rchat
 {
-	// Token: 0x02000002 RID: 2
 	public partial class Rchat : global::System.Windows.Forms.Form
 	{
-		// Token: 0x0600001E RID: 30 RVA: 0x000027B4 File Offset: 0x000009B4
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing && this.components != null)
@@ -13,22 +11,25 @@
 			base.Dispose(disposing);
 		}
 
-		// Token: 0x0600001F RID: 31 RVA: 0x000027D4 File Offset: 0x000009D4
 		private void InitializeComponent()
 		{
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Rchat));
             this.Send = new System.Windows.Forms.Button();
             this.MainInput = new System.Windows.Forms.RichTextBox();
-            this.label1 = new System.Windows.Forms.Label();
+            this.VersionLabel = new System.Windows.Forms.Label();
             this.MI_MaxChars = new System.Windows.Forms.Label();
             this.Resize = new System.Windows.Forms.Button();
             this.Exit = new System.Windows.Forms.Button();
             this.Minimise = new System.Windows.Forms.Button();
-            this.panel1 = new System.Windows.Forms.Panel();
-            this.menuStrip1 = new System.Windows.Forms.MenuStrip();
+            this.TopPanel = new System.Windows.Forms.Panel();
+            this.Menu = new System.Windows.Forms.MenuStrip();
             this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.clearToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.logoutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.logoutDeviceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.logoutAllDecicesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.confirmLogoutOfAllDevicesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.reloadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.restartToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.quitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.preferencesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -46,19 +47,16 @@
             this.MainInput_pic = new System.Windows.Forms.PictureBox();
             this.MainOutput_backing_pic = new System.Windows.Forms.PictureBox();
             this.Background = new System.Windows.Forms.Panel();
+            this.LeftPanel = new System.Windows.Forms.Panel();
             this.clock = new System.Windows.Forms.Label();
-            this.tmkyt = new System.Windows.Forms.Label();
+            this.runtime = new System.Windows.Forms.Label();
             this.Mninp_Bk = new System.Windows.Forms.Panel();
             this.MainOutput = new System.Windows.Forms.RichTextBox();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.timer1 = new System.Windows.Forms.Timer(this.components);
-            this.logoutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.confirmToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.logoutAllSessionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.confirmLogoutOfAllSessionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.reloadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.panel1.SuspendLayout();
-            this.menuStrip1.SuspendLayout();
+            this.Timer1 = new System.Windows.Forms.Timer(this.components);
+            this.BottomPanel = new System.Windows.Forms.Panel();
+            this.TopPanel.SuspendLayout();
+            this.Menu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.MainInput_pic)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.MainOutput_backing_pic)).BeginInit();
             this.Background.SuspendLayout();
@@ -69,7 +67,7 @@
             this.Send.FlatAppearance.BorderSize = 0;
             this.Send.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.Send.Image = ((System.Drawing.Image)(resources.GetObject("Send.Image")));
-            this.Send.Location = new System.Drawing.Point(1201, 565);
+            this.Send.Location = new System.Drawing.Point(1201, 560);
             this.Send.Name = "Send";
             this.Send.Size = new System.Drawing.Size(50, 50);
             this.Send.TabIndex = 5;
@@ -85,35 +83,38 @@
             this.MainInput.EnableAutoDragDrop = true;
             this.MainInput.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.MainInput.ForeColor = System.Drawing.Color.White;
-            this.MainInput.Location = new System.Drawing.Point(18, 602);
+            this.MainInput.Location = new System.Drawing.Point(278, 597);
             this.MainInput.MaxLength = 4000;
             this.MainInput.Name = "MainInput";
             this.MainInput.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
-            this.MainInput.Size = new System.Drawing.Size(1109, 35);
+            this.MainInput.Size = new System.Drawing.Size(849, 35);
             this.MainInput.TabIndex = 6;
             this.MainInput.Text = "";
             this.MainInput.LinkClicked += new System.Windows.Forms.LinkClickedEventHandler(this.MainInput_LinkClicked);
             this.MainInput.TextChanged += new System.EventHandler(this.MainInput_TextChanged);
             this.MainInput.KeyDown += new System.Windows.Forms.KeyEventHandler(this.MainInput_KeyDown);
             // 
-            // label1
+            // VersionLabel
             // 
-            this.label1.AutoSize = true;
-            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.ForeColor = System.Drawing.Color.White;
-            this.label1.Location = new System.Drawing.Point(5, 6);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(220, 20);
-            this.label1.TabIndex = 7;
-            this.label1.Text = "RDISC v0.x.x (UNKNOWN)";
-            this.label1.MouseMove += new System.Windows.Forms.MouseEventHandler(this.label1_MouseMove);
+            this.VersionLabel.AutoSize = true;
+            this.VersionLabel.Font = new System.Drawing.Font("Montserrat", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.VersionLabel.ForeColor = System.Drawing.Color.White;
+            this.VersionLabel.Location = new System.Drawing.Point(5, 6);
+            this.VersionLabel.Name = "VersionLabel";
+            this.VersionLabel.Size = new System.Drawing.Size(124, 22);
+            this.VersionLabel.TabIndex = 7;
+            this.VersionLabel.Tag = "";
+            this.VersionLabel.Text = "RDISC V0.x.x";
+            this.VersionLabel.MouseEnter += new System.EventHandler(this.VersionLabel_MouseEnter);
+            this.VersionLabel.MouseLeave += new System.EventHandler(this.VersionLabel_MouseLeave);
+            this.VersionLabel.MouseMove += new System.Windows.Forms.MouseEventHandler(this.label1_MouseMove);
             // 
             // MI_MaxChars
             // 
             this.MI_MaxChars.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.MI_MaxChars.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
             this.MI_MaxChars.ForeColor = System.Drawing.Color.Coral;
-            this.MI_MaxChars.Location = new System.Drawing.Point(1154, 620);
+            this.MI_MaxChars.Location = new System.Drawing.Point(1154, 615);
             this.MI_MaxChars.Name = "MI_MaxChars";
             this.MI_MaxChars.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.MI_MaxChars.Size = new System.Drawing.Size(42, 13);
@@ -128,7 +129,7 @@
             this.Resize.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.Resize.ForeColor = System.Drawing.Color.White;
             this.Resize.Image = ((System.Drawing.Image)(resources.GetObject("Resize.Image")));
-            this.Resize.Location = new System.Drawing.Point(1204, 15);
+            this.Resize.Location = new System.Drawing.Point(1204, 0);
             this.Resize.Name = "Resize";
             this.Resize.Size = new System.Drawing.Size(23, 23);
             this.Resize.TabIndex = 10;
@@ -142,7 +143,7 @@
             this.Exit.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.Exit.ForeColor = System.Drawing.Color.White;
             this.Exit.Image = ((System.Drawing.Image)(resources.GetObject("Exit.Image")));
-            this.Exit.Location = new System.Drawing.Point(1231, 15);
+            this.Exit.Location = new System.Drawing.Point(1231, 0);
             this.Exit.Name = "Exit";
             this.Exit.Size = new System.Drawing.Size(29, 23);
             this.Exit.TabIndex = 8;
@@ -158,45 +159,44 @@
             this.Minimise.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.Minimise.ForeColor = System.Drawing.Color.White;
             this.Minimise.Image = ((System.Drawing.Image)(resources.GetObject("Minimise.Image")));
-            this.Minimise.Location = new System.Drawing.Point(1177, 15);
+            this.Minimise.Location = new System.Drawing.Point(1177, 0);
             this.Minimise.Name = "Minimise";
             this.Minimise.Size = new System.Drawing.Size(23, 23);
             this.Minimise.TabIndex = 11;
             this.Minimise.UseVisualStyleBackColor = false;
             this.Minimise.Click += new System.EventHandler(this.Minimise_Click);
             // 
-            // panel1
+            // TopPanel
             // 
-            this.panel1.Controls.Add(this.Minimise);
-            this.panel1.Controls.Add(this.Exit);
-            this.panel1.Controls.Add(this.Resize);
-            this.panel1.Location = new System.Drawing.Point(2, -12);
-            this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1262, 38);
-            this.panel1.TabIndex = 9;
-            this.panel1.MouseMove += new System.Windows.Forms.MouseEventHandler(this.panel1_MouseMove);
+            this.TopPanel.Controls.Add(this.Minimise);
+            this.TopPanel.Controls.Add(this.Exit);
+            this.TopPanel.Controls.Add(this.Resize);
+            this.TopPanel.Location = new System.Drawing.Point(2, 0);
+            this.TopPanel.Name = "TopPanel";
+            this.TopPanel.Size = new System.Drawing.Size(1262, 26);
+            this.TopPanel.TabIndex = 9;
+            this.TopPanel.MouseMove += new System.Windows.Forms.MouseEventHandler(this.panel1_MouseMove);
             // 
-            // menuStrip1
+            // Menu
             // 
-            this.menuStrip1.AllowDrop = true;
-            this.menuStrip1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
-            this.menuStrip1.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.Menu.AllowDrop = true;
+            this.Menu.AutoSize = false;
+            this.Menu.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
+            this.Menu.Dock = System.Windows.Forms.DockStyle.None;
+            this.Menu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.optionsToolStripMenuItem,
             this.preferencesToolStripMenuItem,
             this.settingsToolStripMenuItem});
-            this.menuStrip1.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.Flow;
-            this.menuStrip1.Location = new System.Drawing.Point(0, 658);
-            this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.RenderMode = System.Windows.Forms.ToolStripRenderMode.Professional;
-            this.menuStrip1.Size = new System.Drawing.Size(1264, 23);
-            this.menuStrip1.TabIndex = 12;
-            this.menuStrip1.Text = "menuStrip1";
+            this.Menu.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.Flow;
+            this.Menu.Location = new System.Drawing.Point(4, 650);
+            this.Menu.Name = "Menu";
+            this.Menu.RenderMode = System.Windows.Forms.ToolStripRenderMode.Professional;
+            this.Menu.Size = new System.Drawing.Size(1258, 20);
+            this.Menu.TabIndex = 12;
             // 
             // optionsToolStripMenuItem
             // 
             this.optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.clearToolStripMenuItem,
             this.logoutToolStripMenuItem,
             this.reloadToolStripMenuItem,
             this.restartToolStripMenuItem,
@@ -206,30 +206,75 @@
             this.optionsToolStripMenuItem.Size = new System.Drawing.Size(61, 19);
             this.optionsToolStripMenuItem.Text = "Options";
             // 
-            // clearToolStripMenuItem
+            // logoutToolStripMenuItem
             // 
-            this.clearToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
-            this.clearToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
-            this.clearToolStripMenuItem.Name = "clearToolStripMenuItem";
-            this.clearToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.clearToolStripMenuItem.Text = "Clear";
-            this.clearToolStripMenuItem.Click += new System.EventHandler(this.clearToolStripMenuItem_Click);
+            this.logoutToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
+            this.logoutToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.logoutDeviceToolStripMenuItem,
+            this.logoutAllDecicesToolStripMenuItem});
+            this.logoutToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
+            this.logoutToolStripMenuItem.Name = "logoutToolStripMenuItem";
+            this.logoutToolStripMenuItem.Size = new System.Drawing.Size(174, 22);
+            this.logoutToolStripMenuItem.Text = "Logout";
+            // 
+            // logoutDeviceToolStripMenuItem
+            // 
+            this.logoutDeviceToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(55)))), ((int)(((byte)(55)))), ((int)(((byte)(55)))));
+            this.logoutDeviceToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
+            this.logoutDeviceToolStripMenuItem.Name = "logoutDeviceToolStripMenuItem";
+            this.logoutDeviceToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L)));
+            this.logoutDeviceToolStripMenuItem.Size = new System.Drawing.Size(211, 22);
+            this.logoutDeviceToolStripMenuItem.Text = "Logout this device";
+            this.logoutDeviceToolStripMenuItem.Click += new System.EventHandler(this.confirmToolStripMenuItem_Click);
+            // 
+            // logoutAllDecicesToolStripMenuItem
+            // 
+            this.logoutAllDecicesToolStripMenuItem.BackColor = System.Drawing.Color.Red;
+            this.logoutAllDecicesToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.confirmLogoutOfAllDevicesToolStripMenuItem});
+            this.logoutAllDecicesToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
+            this.logoutAllDecicesToolStripMenuItem.Name = "logoutAllDecicesToolStripMenuItem";
+            this.logoutAllDecicesToolStripMenuItem.Size = new System.Drawing.Size(211, 22);
+            this.logoutAllDecicesToolStripMenuItem.Text = "Logout all devices";
+            // 
+            // confirmLogoutOfAllDevicesToolStripMenuItem
+            // 
+            this.confirmLogoutOfAllDevicesToolStripMenuItem.BackColor = System.Drawing.Color.Red;
+            this.confirmLogoutOfAllDevicesToolStripMenuItem.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.confirmLogoutOfAllDevicesToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
+            this.confirmLogoutOfAllDevicesToolStripMenuItem.Name = "confirmLogoutOfAllDevicesToolStripMenuItem";
+            this.confirmLogoutOfAllDevicesToolStripMenuItem.Size = new System.Drawing.Size(227, 22);
+            this.confirmLogoutOfAllDevicesToolStripMenuItem.Text = "Confirm logout of all devices";
+            this.confirmLogoutOfAllDevicesToolStripMenuItem.Click += new System.EventHandler(this.confirmLogoutOfAllSessionsToolStripMenuItem_Click);
+            // 
+            // reloadToolStripMenuItem
+            // 
+            this.reloadToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(66)))), ((int)(((byte)(66)))), ((int)(((byte)(66)))));
+            this.reloadToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
+            this.reloadToolStripMenuItem.Name = "reloadToolStripMenuItem";
+            this.reloadToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.R)));
+            this.reloadToolStripMenuItem.Size = new System.Drawing.Size(174, 22);
+            this.reloadToolStripMenuItem.Text = "Reload";
+            this.reloadToolStripMenuItem.Click += new System.EventHandler(this.reloadToolStripMenuItem_Click);
             // 
             // restartToolStripMenuItem
             // 
-            this.restartToolStripMenuItem.BackColor = System.Drawing.Color.Yellow;
-            this.restartToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
+            this.restartToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(55)))), ((int)(((byte)(55)))), ((int)(((byte)(55)))));
+            this.restartToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
             this.restartToolStripMenuItem.Name = "restartToolStripMenuItem";
-            this.restartToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.restartToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Alt) 
+            | System.Windows.Forms.Keys.R)));
+            this.restartToolStripMenuItem.Size = new System.Drawing.Size(174, 22);
             this.restartToolStripMenuItem.Text = "Restart";
             this.restartToolStripMenuItem.Click += new System.EventHandler(this.restartToolStripMenuItem_Click_1);
             // 
             // quitToolStripMenuItem
             // 
             this.quitToolStripMenuItem.BackColor = System.Drawing.Color.Red;
-            this.quitToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            this.quitToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
             this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
-            this.quitToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.quitToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.F4)));
+            this.quitToolStripMenuItem.Size = new System.Drawing.Size(174, 22);
             this.quitToolStripMenuItem.Text = "Quit";
             this.quitToolStripMenuItem.Click += new System.EventHandler(this.quitToolStripMenuItem_Click_1);
             // 
@@ -369,16 +414,24 @@
             // Background
             // 
             this.Background.AllowDrop = true;
-            this.Background.AutoSize = true;
             this.Background.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(50)))), ((int)(((byte)(50)))));
+            this.Background.Controls.Add(this.LeftPanel);
             this.Background.Controls.Add(this.clock);
-            this.Background.Controls.Add(this.tmkyt);
+            this.Background.Controls.Add(this.runtime);
             this.Background.Controls.Add(this.Mninp_Bk);
             this.Background.Controls.Add(this.Send);
-            this.Background.Location = new System.Drawing.Point(6, 29);
+            this.Background.Location = new System.Drawing.Point(4, 29);
             this.Background.Name = "Background";
-            this.Background.Size = new System.Drawing.Size(1254, 626);
+            this.Background.Size = new System.Drawing.Size(1259, 639);
             this.Background.TabIndex = 17;
+            // 
+            // LeftPanel
+            // 
+            this.LeftPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(45)))));
+            this.LeftPanel.Location = new System.Drawing.Point(0, 0);
+            this.LeftPanel.Name = "LeftPanel";
+            this.LeftPanel.Size = new System.Drawing.Size(250, 635);
+            this.LeftPanel.TabIndex = 8;
             // 
             // clock
             // 
@@ -391,23 +444,23 @@
             this.clock.TabIndex = 7;
             this.clock.Text = "CLOCK";
             // 
-            // tmkyt
+            // runtime
             // 
-            this.tmkyt.AutoSize = true;
-            this.tmkyt.Font = new System.Drawing.Font("UD Digi Kyokasho NK-B", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.tmkyt.ForeColor = System.Drawing.Color.Red;
-            this.tmkyt.Location = new System.Drawing.Point(1168, 41);
-            this.tmkyt.Name = "tmkyt";
-            this.tmkyt.Size = new System.Drawing.Size(68, 18);
-            this.tmkyt.TabIndex = 6;
-            this.tmkyt.Text = "TMKYT";
+            this.runtime.AutoSize = true;
+            this.runtime.Font = new System.Drawing.Font("UD Digi Kyokasho NK-B", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.runtime.ForeColor = System.Drawing.Color.Red;
+            this.runtime.Location = new System.Drawing.Point(1168, 41);
+            this.runtime.Name = "runtime";
+            this.runtime.Size = new System.Drawing.Size(65, 18);
+            this.runtime.TabIndex = 6;
+            this.runtime.Text = "RTIME";
             // 
             // Mninp_Bk
             // 
             this.Mninp_Bk.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
-            this.Mninp_Bk.Location = new System.Drawing.Point(4, 566);
+            this.Mninp_Bk.Location = new System.Drawing.Point(264, 561);
             this.Mninp_Bk.Name = "Mninp_Bk";
-            this.Mninp_Bk.Size = new System.Drawing.Size(1192, 50);
+            this.Mninp_Bk.Size = new System.Drawing.Size(932, 50);
             this.Mninp_Bk.TabIndex = 0;
             // 
             // MainOutput
@@ -417,10 +470,10 @@
             this.MainOutput.Cursor = System.Windows.Forms.Cursors.Default;
             this.MainOutput.Font = new System.Drawing.Font("Lucida Sans Unicode", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.MainOutput.ForeColor = System.Drawing.Color.White;
-            this.MainOutput.Location = new System.Drawing.Point(18, 36);
+            this.MainOutput.Location = new System.Drawing.Point(278, 36);
             this.MainOutput.Name = "MainOutput";
             this.MainOutput.ReadOnly = true;
-            this.MainOutput.Size = new System.Drawing.Size(1135, 525);
+            this.MainOutput.Size = new System.Drawing.Size(875, 520);
             this.MainOutput.TabIndex = 4;
             this.MainOutput.TabStop = false;
             this.MainOutput.Text = "";
@@ -432,55 +485,19 @@
             this.contextMenuStrip1.Name = "contextMenuStrip1";
             this.contextMenuStrip1.Size = new System.Drawing.Size(61, 4);
             // 
-            // timer1
+            // Timer1
             // 
-            this.timer1.Enabled = true;
-            this.timer1.Tick += new System.EventHandler(this.timer1_Tick_1);
+            this.Timer1.Enabled = true;
+            this.Timer1.Interval = 1000;
+            this.Timer1.Tick += new System.EventHandler(this.Clock_Tick);
             // 
-            // logoutToolStripMenuItem
+            // BottomPanel
             // 
-            this.logoutToolStripMenuItem.BackColor = System.Drawing.Color.Yellow;
-            this.logoutToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.confirmToolStripMenuItem,
-            this.logoutAllSessionsToolStripMenuItem});
-            this.logoutToolStripMenuItem.Name = "logoutToolStripMenuItem";
-            this.logoutToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.logoutToolStripMenuItem.Text = "Logout";
-            // 
-            // confirmToolStripMenuItem
-            // 
-            this.confirmToolStripMenuItem.BackColor = System.Drawing.Color.Yellow;
-            this.confirmToolStripMenuItem.Name = "confirmToolStripMenuItem";
-            this.confirmToolStripMenuItem.Size = new System.Drawing.Size(194, 22);
-            this.confirmToolStripMenuItem.Text = "Logout current session";
-            this.confirmToolStripMenuItem.Click += new System.EventHandler(this.confirmToolStripMenuItem_Click);
-            // 
-            // logoutAllSessionsToolStripMenuItem
-            // 
-            this.logoutAllSessionsToolStripMenuItem.BackColor = System.Drawing.Color.Red;
-            this.logoutAllSessionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.confirmLogoutOfAllSessionsToolStripMenuItem});
-            this.logoutAllSessionsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
-            this.logoutAllSessionsToolStripMenuItem.Name = "logoutAllSessionsToolStripMenuItem";
-            this.logoutAllSessionsToolStripMenuItem.Size = new System.Drawing.Size(194, 22);
-            this.logoutAllSessionsToolStripMenuItem.Text = "Logout all sessions";
-            // 
-            // confirmLogoutOfAllSessionsToolStripMenuItem
-            // 
-            this.confirmLogoutOfAllSessionsToolStripMenuItem.BackColor = System.Drawing.Color.Red;
-            this.confirmLogoutOfAllSessionsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
-            this.confirmLogoutOfAllSessionsToolStripMenuItem.Name = "confirmLogoutOfAllSessionsToolStripMenuItem";
-            this.confirmLogoutOfAllSessionsToolStripMenuItem.Size = new System.Drawing.Size(231, 22);
-            this.confirmLogoutOfAllSessionsToolStripMenuItem.Text = "Confirm logout of all sessions";
-            this.confirmLogoutOfAllSessionsToolStripMenuItem.Click += new System.EventHandler(this.confirmLogoutOfAllSessionsToolStripMenuItem_Click);
-            // 
-            // reloadToolStripMenuItem
-            // 
-            this.reloadToolStripMenuItem.BackColor = System.Drawing.Color.Yellow;
-            this.reloadToolStripMenuItem.Name = "reloadToolStripMenuItem";
-            this.reloadToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.reloadToolStripMenuItem.Text = "Reload";
-            this.reloadToolStripMenuItem.Click += new System.EventHandler(this.reloadToolStripMenuItem_Click);
+            this.BottomPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
+            this.BottomPanel.Location = new System.Drawing.Point(4, 652);
+            this.BottomPanel.Name = "BottomPanel";
+            this.BottomPanel.Size = new System.Drawing.Size(1259, 26);
+            this.BottomPanel.TabIndex = 0;
             // 
             // Rchat
             // 
@@ -492,20 +509,21 @@
             this.ControlBox = false;
             this.Controls.Add(this.MainOutput);
             this.Controls.Add(this.MI_MaxChars);
-            this.Controls.Add(this.label1);
+            this.Controls.Add(this.VersionLabel);
             this.Controls.Add(this.MainInput);
-            this.Controls.Add(this.panel1);
-            this.Controls.Add(this.menuStrip1);
+            this.Controls.Add(this.TopPanel);
+            this.Controls.Add(this.Menu);
             this.Controls.Add(this.MainInput_pic);
             this.Controls.Add(this.MainOutput_backing_pic);
             this.Controls.Add(this.Background);
+            this.Controls.Add(this.BottomPanel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Name = "Rchat";
             this.Text = "Rchat";
             this.Load += new System.EventHandler(this.Form1_Load);
-            this.panel1.ResumeLayout(false);
-            this.menuStrip1.ResumeLayout(false);
-            this.menuStrip1.PerformLayout();
+            this.TopPanel.ResumeLayout(false);
+            this.Menu.ResumeLayout(false);
+            this.Menu.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.MainInput_pic)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.MainOutput_backing_pic)).EndInit();
             this.Background.ResumeLayout(false);
@@ -515,52 +533,20 @@
 
 		}
 
-		// Token: 0x04000006 RID: 6
 		private global::System.ComponentModel.IContainer components;
-
-		// Token: 0x04000008 RID: 8
 		private global::System.Windows.Forms.Button Send;
-
-		// Token: 0x04000009 RID: 9
 		private global::System.Windows.Forms.RichTextBox MainInput;
-
-		// Token: 0x0400000A RID: 10
-		private global::System.Windows.Forms.Label label1;
-
-		// Token: 0x0400000B RID: 11
+		private global::System.Windows.Forms.Label VersionLabel;
 		private global::System.Windows.Forms.Label MI_MaxChars;
-
-		// Token: 0x0400000C RID: 12
 		private new global::System.Windows.Forms.Button Resize;
-
-		// Token: 0x0400000D RID: 13
 		private global::System.Windows.Forms.Button Exit;
-
-		// Token: 0x0400000E RID: 14
 		private global::System.Windows.Forms.Button Minimise;
-
-		// Token: 0x0400000F RID: 15
-		private global::System.Windows.Forms.Panel panel1;
-
-		// Token: 0x04000010 RID: 16
-		private global::System.Windows.Forms.MenuStrip menuStrip1;
-
-		// Token: 0x04000012 RID: 18
+		private global::System.Windows.Forms.Panel TopPanel;
+		private global::System.Windows.Forms.MenuStrip Menu;
 		private global::System.Windows.Forms.ToolStripMenuItem optionsToolStripMenuItem;
-
-		// Token: 0x04000013 RID: 19
 		private global::System.Windows.Forms.ToolStripMenuItem restartToolStripMenuItem;
-
-		// Token: 0x04000014 RID: 20
 		private global::System.Windows.Forms.ToolStripMenuItem quitToolStripMenuItem;
-
-		// Token: 0x04000019 RID: 25
-		private global::System.Windows.Forms.ToolStripMenuItem clearToolStripMenuItem;
-
-		// Token: 0x0400001B RID: 27
 		private global::System.Windows.Forms.PictureBox MainInput_pic;
-
-		// Token: 0x0400001C RID: 28
 		private global::System.Windows.Forms.PictureBox MainOutput_backing_pic;
         private System.Windows.Forms.ToolStripMenuItem preferencesToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem fontToolStripMenuItem;
@@ -576,15 +562,17 @@
         private System.Windows.Forms.Panel Mninp_Bk;
         private System.Windows.Forms.RichTextBox MainOutput;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
-        private System.Windows.Forms.Label tmkyt;
+        private System.Windows.Forms.Label runtime;
         private System.Windows.Forms.Label clock;
-        private System.Windows.Forms.Timer timer1;
+        private System.Windows.Forms.Timer Timer1;
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem changeNameToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem logoutToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem confirmToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem logoutAllSessionsToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem confirmLogoutOfAllSessionsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem logoutDeviceToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem logoutAllDecicesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem confirmLogoutOfAllDevicesToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem reloadToolStripMenuItem;
+        private System.Windows.Forms.Panel LeftPanel;
+        private System.Windows.Forms.Panel BottomPanel;
     }
 }

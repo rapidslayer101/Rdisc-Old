@@ -19,14 +19,15 @@ namespace Rchat
 		[DllImport("Gdi32.dll")]
 		private static extern IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
 
-		public Rchat()
+	public Rchat()
 		{
 			InitializeComponent();
 			FormBorderStyle = FormBorderStyle.None;
-			Region = Region.FromHrgn(Rchat.CreateRoundRectRgn(0, 0, Width, Height, 20, 20));
+			Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Width, Height, 20, 20));
 			Background.Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Background.Width, Background.Height, 20, 20));
 			Mninp_Bk.Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Mninp_Bk.Width, Mninp_Bk.Height, 20, 20));
 			Send.Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Send.Width, Send.Height, 20, 20));
+			BottomPanel.Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, BottomPanel.Width, BottomPanel.Height, 20, 20));
 		}
 
 		private void Form1_Load(object sender, EventArgs e)
@@ -62,9 +63,6 @@ namespace Rchat
 				}
 			}
 			MI_MaxChars.Visible = Send.Visible = Mninp_Bk.Visible = MainInput.Visible = false;
-			//Send.Visible = false;
-			//Mninp_Bk.Visible = false;
-			//MainInput.Visible = false;
 		}
 
 		private void getMessage()
@@ -119,44 +117,40 @@ namespace Rchat
 			}
 
 
-			if (readData.StartsWith("Loaded version is"))
+			if (readData.StartsWith("﻿🱫[LODVS]"))
 			{
-				string version_text2 = Regex.Split(readData, "Loaded version is")[1];
+				string version_text2 = Regex.Split(readData, "🱫\\[LODVS]")[1];
 				string format = "RDISC{0}";
-				object[] args = Regex.Split(version_text2, "NE");
-				version_text2 = string.Format(format, args);
-				version_text2 = version_text2.Replace("[", "");
-				if (label1.InvokeRequired)
+				version_text2 = string.Format(format, version_text2);
+				if (VersionLabel.InvokeRequired)
 				{
-					label1.Invoke(new MethodInvoker(delegate()
+					VersionLabel.Invoke(new MethodInvoker(delegate()
 					{
-						version_text2 = label1.Text;
+						version_text2 = VersionLabel.Text;
 					}));
 				}
-				label1.Text = version_text2;
+				VersionLabel.Text = version_text2;
 			}
 
-			if (readData.StartsWith("Verified version is"))
+			if (readData.StartsWith("🱫[LODVS_E]"))
 			{
-				string version_text2 = Regex.Split(readData, "Verified version is")[1];
+				string version_text2 = Regex.Split(readData, "🱫\\[LODVS_E]")[1];
 				string format = "RDISC{0}";
-				object[] args = Regex.Split(version_text2, "NE");
-				version_text2 = string.Format(format, args);
-				version_text2 = version_text2.Replace("[", "");
-				if (label1.InvokeRequired)
+				version_text2 = string.Format(format, version_text2);
+				if (VersionLabel.InvokeRequired)
 				{
-					label1.Invoke(new MethodInvoker(delegate ()
+					VersionLabel.Invoke(new MethodInvoker(delegate()
 					{
-						version_text2 = label1.Text;
+						version_text2 = VersionLabel.Text;
 					}));
 				}
-				label1.Text = version_text2;
+				VersionLabel.Text = version_text2;
 			}
 
 			if (readData.StartsWith("﻿🱫[TMKYT]"))
 			{
 				readData = readData.Replace("🱫[TMKYT]", "");
-				tmkyt.Text = readData;
+				runtime.Text = readData;
 			}
 
 			//if (readData.StartsWith("-font"));
@@ -246,6 +240,20 @@ namespace Rchat
 					readData = readData.Replace("[64]", "");
 				}
 			}
+		}
+
+		private void VersionLabel_MouseEnter(object sender, EventArgs e)
+		{
+			byte[] bytes = Encoding.Unicode.GetBytes("🱫[GET_VDATA_E]");
+			serverStream.Write(bytes, 0, bytes.Length);
+			serverStream.Flush();
+		}
+
+		private void VersionLabel_MouseLeave(object sender, EventArgs e)
+		{
+			byte[] bytes = Encoding.Unicode.GetBytes("🱫[GET_VDATA]");
+			serverStream.Write(bytes, 0, bytes.Length);
+			serverStream.Flush();
 		}
 
 		private void MainOutput_TextChanged(object sender, EventArgs e)
@@ -362,11 +370,6 @@ namespace Rchat
 			MI_MaxChars.Text = (MainInput.MaxLength-MainInput.Text.Length).ToString();
 		}
 
-		private void clearToolStripMenuItem_Click(object sender, EventArgs e)
-		{
-			MainOutput.Text = "";
-		}
-
 		private TcpClient clientSocket = new TcpClient();
 		private NetworkStream serverStream;
 		private string readData;
@@ -408,11 +411,6 @@ namespace Rchat
         private void fontCommandToolStripMenuItem_Click(object sender, EventArgs e)
         {
 			MainInput.Text = "-font "+MainOutput.Font.Name+"-"+MainOutput.Font.Size;
-		}
-
-        private void timer1_Tick_1(object sender, EventArgs e)
-        {
-			clock.Text = DateTime.Now.ToString("HH:mm:ss");
 		}
 
         private void changeNameToolStripMenuItem_Click(object sender, EventArgs e)
@@ -460,5 +458,17 @@ namespace Rchat
 			serverStream.Flush();
 			Application.Exit();
 		}
-    }
+
+		int watch = 1;
+		private void Clock_Tick(object sender, EventArgs e)
+        {
+			watch += 1;
+			var timeSpan = TimeSpan.FromSeconds(watch);
+			string hh = timeSpan.Hours.ToString();
+			string mm = timeSpan.Minutes.ToString();
+			string ss = timeSpan.Seconds.ToString();
+			clock.Text = DateTime.Now.ToString("HH:mm:ss");
+			runtime.Text = hh + "h" + mm + "m" + ss + "s";
+		}
+	}
 }

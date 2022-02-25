@@ -34,7 +34,6 @@ if ui:
         ui_s.bind(("127.0.0.1", 8078))
     else:
         ui_s.bind(("127.0.0.1", 8079))
-
     print(" -> Launching ui.exe")
     if not os.path.isfile("ui.exe"):
         input("[!] CRITICAL FILE ui.exe MISSING, hit enter to fall back to CLI\n")
@@ -52,7 +51,6 @@ if ui:
                 cs.send(str(text).encode(encoding="utf-16"))
             except ConnectionResetError:
                 exit.update("EXIT")
-
         print(f" Connected to ui.exe via socket {client_address}")
         to_c("\n🱫[COLOR][GREEN] <- Internal socket connected\n", 0.1)
 if not ui:
@@ -93,20 +91,21 @@ if not ui:
 # 0.18 s<->c connect RSA falls back to enc 10.0.1 (implemented), signup complete (apart from key saving to auth)
 # 0.19 saving keys, logging back in via dk and sk
 # 0.20 fall back method if sk/ip wrong -> dk, if no dk -> email and pass
-# 0.21 version checking (on setup know version), username changing
+# 0.21 version checking, username changing
 # 0.22 login and signup rework -> a new dk call will now also give back a sk, general validation framework
 # 0.23 users folder with new user saving to support more future data and data access efficiency, uid now in auth.txt
 # 0.24 dynamic loading rewrites, solution cleanup
 # 0.25 invalid req catching, only allow one user session, remove client wide thread, redid exit system
 # 0.26 client CLI, 1 login per IP at a time, 2 account created per IP, upto 3 dks active at once with ips and sks
 # 0.27 fast restarts, reloads and exits, logout current session, logins/logouts log, logout all
+# 0.28 shortcut keys, ui reworks, on setup know version, runtime clock
 
-# 0.28 delete account, rate limits for unames, forgot or change pass
+# 0.29 delete account, rate limits for unames, forgot or change pass
 
-# 0.29 pass rate limit, friending (on/offline), connecting to online friends
-# 0.30 basic DM chat functionality with client to server to client connections and keys
-# 0.31 downloading, saving, load req files from a first time setup file
-# 0.31 logout system and storing data
+# 0.30 pass rate limit, friending (on/offline), connecting to online friends
+# 0.31 basic DM chat functionality with client to server to client connections and keys
+# 0.32 downloading, saving, load req files from a first time setup file
+# 0.33 logout system and storing data
 
 # local sockets localhost:8079, localhost:8080
 # Made by rapidslayer101 (Scott Bree), General usage testing and spelling: James Judge
@@ -114,6 +113,7 @@ if not ui:
 
 while True:
     print("Started main loop")
+
     user_data = {}
 
     class user:
@@ -125,6 +125,11 @@ while True:
 
         def update_key(self, key):
             user_data.update({self: key})
+
+    if os.path.exists("version.txt"):
+        with open("version.txt", encoding="utf-8") as f:
+            version, tme, bld_num, run_num = f.read().split('🱫')
+        to_c(f"🱫[LODVS] {version}")
 
     default_salt = """52gy"J$&)6%0}fgYfm/%ino}PbJk$w<5~j'|+R .bJcSZ.H&3z'A:gip/jtW$6A=
                       G-;|&&rR81!BTElChN|+"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#."H4tq)p4"""
@@ -172,6 +177,7 @@ while True:
 
     try:
         def process_from_c(output_):
+            return_value = True
             if output_ == '🱫[RELOAD]':
                 exit.update("RELOAD")
             if output_ == '🱫[RESTART]':
@@ -195,7 +201,16 @@ while True:
                         exit.update("LOGOUT")
                 else:
                     to_c("\n🱫[COLOR][RED] You cannot log out when not logged in")
-
+            if output_ == '🱫[GET_VDATA_E]':
+                to_c(f"🱫[LODVS_E] {version}-{tme}-{bld_num}-{run_num}")
+                return_value = False
+            if output_ == '🱫[GET_VDATA]':
+                to_c(f"🱫[LODVS] {version}")
+                return_value = False
+            if return_value:
+                return True
+            else:
+                return False
         if ui:
             def receive(c_text=None, delay=None):
                 if c_text:
@@ -203,11 +218,13 @@ while True:
                         to_c(c_text, delay)
                     else:
                         to_c(c_text)
-                try:
-                    output = cs.recv(1024).decode(encoding="utf-16")
-                except ConnectionResetError:
-                    exit.update("EXIT")
-                process_from_c(output)
+                while True:
+                    try:
+                        output = cs.recv(1024).decode(encoding="utf-16")
+                    except ConnectionResetError:
+                        exit.update("EXIT")
+                    if process_from_c(output):
+                        break
                 return output
         else:
             def receive(c_text=None, delay=None):
@@ -233,7 +250,7 @@ while True:
             except ConnectionRefusedError:
                 to_c("\n🱫[COLOR][RED] Could not connect to server")
                 receive("🱫[INPUT SHOW]\n🱫[COLOR][YELLOW] Enter something to retry connection")
-                to_c("🱫[INPUT HIDE]")
+                to_c("🱫[INPUT HIDE]", 0.1)
 
         l_ip, l_port = str(s).split("laddr=")[1].split("raddr=")[0][2:-3].split("', ")
         s_ip, s_port = str(s).split("raddr=")[1][2:-2].split("', ")
@@ -418,14 +435,17 @@ while True:
                             print("Account setup complete, dk and sk received and saved")
                             break
 
-        print("Version updater")  # todo version load
+        print("Version updater")
         send_e(hashed)
         print(f" >> {hashed}")
         v_check_resp = recv_d(512)
         print(f" << {v_check_resp}")
         if v_check_resp.startswith("VALID:"):
-            verified_version, tme, bld_num, run_num = v_check_resp[6:].split('🱫')
-            to_c(f"Verified version is {verified_version} (VERIFIED)", 0.1)
+            with open("version.txt", "w", encoding="utf-8") as f:
+                f.write(v_check_resp[6:])
+            version, tme, bld_num, run_num = v_check_resp[6:].split('🱫')
+            version = f"{version} ✔"
+            to_c(f"🱫[LODVS] {version}", 0.1)
 
         if v_check_resp.startswith("INVALID:"):
             to_c(f"\n <> Updating rdisc {v_check_resp[8:]} in 5 seconds")
