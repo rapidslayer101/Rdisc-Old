@@ -150,9 +150,6 @@ def client_connection(cs):
                     return False
 
         def make_new_dk():
-            # email code and username still required
-            # submit username after device_key and code
-
             # email code sending code will be below
             # add error return code for if email code sending fails
             email_code = "".join([choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") for x in range(16)])
@@ -235,27 +232,30 @@ def client_connection(cs):
                     else:
                         pass_correct = False
                         u_dir = f"{uid} {email} {username}"
-                        with open(f"Users/{u_dir}/{uid}-keys.txt", encoding="utf-8") as f:
-                            lines = f.readlines()
-                            pass_ = lines[0]
-                            if password == pass_.replace("\n", ""):
-                                pass_correct = True
-                        if not pass_correct:
-                            send_e("INVALID")  # password wrong
-                        else:
-                            send_e("VALID")
-                            device_key, session_key = make_new_dk()
-                            if len(lines) > 3:
-                                lines[1] = lines[2]
-                                lines[2] = lines[3]
-                                lines[3] = f"{device_key}🱫{ip}🱫{session_key}"
-                                with open(f"Users/{u_dir}/{uid}-keys.txt", "w", encoding="utf-8") as f:
-                                    for line in lines:
-                                        f.write(line)
+                        try:
+                            with open(f"Users/{u_dir}/{uid}-keys.txt", encoding="utf-8") as f:
+                                lines = f.readlines()
+                                pass_ = lines[0]
+                                if password == pass_.replace("\n", ""):
+                                    pass_correct = True
+                            if not pass_correct:
+                                send_e("INVALID")  # password wrong
                             else:
-                                with open(f"Users/{u_dir}/{uid}-keys.txt", "a+", encoding="utf-8") as f:
-                                    f.write(f"{device_key}🱫{ip}🱫{session_key}\n")
-                            send_e(f"VALID:{uid}🱫{session_key}")
+                                send_e("VALID")
+                                device_key, session_key = make_new_dk()
+                                if len(lines) > 3:
+                                    lines[1] = lines[2]
+                                    lines[2] = lines[3]
+                                    lines[3] = f"{device_key}🱫{ip}🱫{session_key}"
+                                    with open(f"Users/{u_dir}/{uid}-keys.txt", "w", encoding="utf-8") as f:
+                                        for line in lines:
+                                            f.write(line)
+                                else:
+                                    with open(f"Users/{u_dir}/{uid}-keys.txt", "a+", encoding="utf-8") as f:
+                                        f.write(f"{device_key}🱫{ip}🱫{session_key}\n")
+                                send_e(f"VALID:{uid}🱫{session_key}")
+                        except FileNotFoundError:
+                            send_e("INVALID")  # email not found
 
             if login_request.startswith("NEWSK:"):
                 try:
@@ -326,6 +326,47 @@ def client_connection(cs):
         print(f"{uid} logged in with IP-{ip}:{port} and version-{version_response}")
         while True:  # main loop
             request = recv_d(1024)
+
+            # logout causing requests
+            if request.startswith("LOG_A"):
+                with open(f"Users/{u_dir}/{uid}-keys.txt", encoding="utf-8") as f:
+                    log_a_write = f.readlines()[0]
+                with open(f"Users/{u_dir}/{uid}-keys.txt", "w", encoding="utf-8") as f:
+                    f.write(log_a_write)
+                raise ConnectionResetError
+
+            if request.startswith("DELAC:"):
+                password = enc.pass_to_seed(request[6:], default_salt)
+                pass_correct = False
+                u_dir = users.dirs(0)[uid]
+                u_dir = f"{uid} {u_dir[0]} {u_dir[1]}"
+                with open(f"Users/{u_dir}/{uid}-keys.txt", encoding="utf-8") as f:
+                    lines = f.readlines()
+                    pass_ = lines[0]
+                    if password == pass_.replace("\n", ""):
+                        pass_correct = True
+                if not pass_correct:
+                    send_e("INVALID")  # password wrong
+                else:
+                    send_e("VALID")
+                    # email code sending code will be below
+                    # add error return code for if email code sending fails
+                    email_code = "".join([choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") for x in range(16)])
+                    email_code_send = f"{email_code[:4]}-{email_code[4:8]}-{email_code[8:12]}-{email_code[12:]}"
+                    print(email_code_send)
+                    #
+                    # code_valid_until = datetime.datetime.now()+datetime.timedelta(minutes=15)
+                    while True:
+                        if email_code == recv_d(1024):
+                            for file in os.listdir(f"Users/{u_dir}"):
+                                os.remove(f"Users/{u_dir}/{file}")
+                            os.removedirs(f"Users/{u_dir}")
+                            print(f"{u_dir} deleted")
+                            send_e("VALID")
+                            raise ConnectionResetError
+                        else:
+                            send_e("INVALID_CODE")
+
             if request.startswith("CUSRN:"):
                 u_name = request[6:]
                 u_dir = users.dirs(0)[uid]

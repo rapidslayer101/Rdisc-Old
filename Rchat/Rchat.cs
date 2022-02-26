@@ -39,15 +39,14 @@ namespace Rchat
 					readData = "\n -> Starting internal socket (8078)";
 					msg();
 					clientSocket.Connect("127.0.0.1", 8078);
-					new Thread(new ThreadStart(getMessage)).Start();
 				}
                 else
                 {
 					readData = "\n -> Starting internal socket (8079)";
 					msg();
 					clientSocket.Connect("127.0.0.1", 8079);
-					new Thread(new ThreadStart(getMessage)).Start();
 				}
+				new Thread(new ThreadStart(getMessage)).Start();
 			}
 			catch (Exception d)
 			{
@@ -111,12 +110,6 @@ namespace Rchat
 			//}
 
 
-			if (readData.StartsWith("🱫[QUIT]"))
-            {
-				Application.Exit();
-			}
-
-
 			if (readData.StartsWith("﻿🱫[LODVS]"))
 			{
 				string version_text2 = Regex.Split(readData, "🱫\\[LODVS]")[1];
@@ -147,12 +140,6 @@ namespace Rchat
 				VersionLabel.Text = version_text2;
 			}
 
-			if (readData.StartsWith("﻿🱫[TMKYT]"))
-			{
-				readData = readData.Replace("🱫[TMKYT]", "");
-				runtime.Text = readData;
-			}
-
 			//if (readData.StartsWith("-font"));
 			//	readData = readData[6:];
 			//	MainOutput.Font = new Font("Arial", MainOutput.Font.Size, MainOutput.Font.Style);
@@ -164,14 +151,14 @@ namespace Rchat
 			//}
 
 
-			if (readData.StartsWith("﻿🱫[INPUT SHOW]"))
+			if (readData.StartsWith("﻿🱫[INP SHOW]"))
 			{
 				MI_MaxChars.Visible = Send.Visible = Mninp_Bk.Visible = MainInput.Visible = true;
 				MainInput.Select();
 				readData = readData.Replace("🱫[INPUT SHOW]", "");
 			}
 
-			if (readData.StartsWith("﻿🱫[INPUT HIDE]"))
+			if (readData.StartsWith("﻿🱫[INP HIDE]"))
             {
 				MI_MaxChars.Visible = Send.Visible = Mninp_Bk.Visible = MainInput.Visible = false;
 				readData = readData.Replace("🱫[INPUT HIDE]", "");
@@ -188,15 +175,15 @@ namespace Rchat
 			if (readData.StartsWith("\n🱫﻿[COLOR]"))
 			{
 				readData = readData.Replace("🱫[COLOR]", "");
-				if (readData.StartsWith("\n﻿[GREEN]"))
+				if (readData.StartsWith("\n﻿[GRN]"))
                 {
 					MainOutput.SelectionColor = Color.LightGreen;
-					readData = readData.Replace("[GREEN]", "");
+					readData = readData.Replace("[GRN]", "");
 				}
-				if (readData.StartsWith("\n﻿[YELLOW]"))
+				if (readData.StartsWith("\n﻿[YEL]"))
                 {
 					MainOutput.SelectionColor = Color.Yellow;
-					readData = readData.Replace("[YELLOW]", "");
+					readData = readData.Replace("[YEL]", "");
 				}
 				if (readData.StartsWith("﻿\n[RED]"))
                 {
@@ -413,28 +400,6 @@ namespace Rchat
 			MainInput.Text = "-font "+MainOutput.Font.Name+"-"+MainOutput.Font.Size;
 		}
 
-        private void changeNameToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-			MainInput.Text = "-change name ";
-			MainInput.Select(MainInput.Text.Length, 0);
-		}
-
-		private void confirmToolStripMenuItem_Click(object sender, EventArgs e)
-		{
-			byte[] bytes = Encoding.Unicode.GetBytes("🱫[LOGOUT]");
-			MainOutput.Text = "";
-			serverStream.Write(bytes, 0, bytes.Length);
-			serverStream.Flush();
-		}
-
-		private void confirmLogoutOfAllSessionsToolStripMenuItem_Click(object sender, EventArgs e)
-		{
-			byte[] bytes = Encoding.Unicode.GetBytes("🱫[LOGOUT_ALL]");
-			MainOutput.Text = "";
-			serverStream.Write(bytes, 0, bytes.Length);
-			serverStream.Flush();
-		}
-
 		private void reloadToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			byte[] bytes = Encoding.Unicode.GetBytes("🱫[RELOAD]");
@@ -470,5 +435,43 @@ namespace Rchat
 			clock.Text = DateTime.Now.ToString("HH:mm:ss");
 			runtime.Text = hh + "h" + mm + "m" + ss + "s";
 		}
-	}
+
+        private void logoutThisDeviceToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+			byte[] bytes = Encoding.Unicode.GetBytes("🱫[LOG]");
+			MainOutput.Text = "";
+			serverStream.Write(bytes, 0, bytes.Length);
+			serverStream.Flush();
+		}
+
+        private void confirmLogoutOfAllDevicesToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+			byte[] bytes = Encoding.Unicode.GetBytes("🱫[LOG_A]");
+			MainOutput.Text = "";
+			serverStream.Write(bytes, 0, bytes.Length);
+			serverStream.Flush();
+		}
+
+        private void confirmAccountDeletetionToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+			byte[] bytes = Encoding.Unicode.GetBytes("🱫[DELAC]");
+			MainOutput.Text = "";
+			serverStream.Write(bytes, 0, bytes.Length);
+			serverStream.Flush();
+		}
+
+        private void changeNameToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+			MainInput.Text = "-change name ";
+			MainInput.Select(MainInput.Text.Length, 0);
+		}
+
+        private void changePasswordToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+			byte[] bytes = Encoding.Unicode.GetBytes("🱫[CNGPASS]");
+			MainOutput.Text = "";
+			serverStream.Write(bytes, 0, bytes.Length);
+			serverStream.Flush();
+		}
+    }
 }

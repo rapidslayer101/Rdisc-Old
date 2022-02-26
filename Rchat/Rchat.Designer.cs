@@ -25,13 +25,18 @@
             this.TopPanel = new System.Windows.Forms.Panel();
             this.Menu = new System.Windows.Forms.MenuStrip();
             this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.logoutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.logoutDeviceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.logoutAllDecicesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.confirmLogoutOfAllDevicesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.reloadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.restartToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.quitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.accountToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.changeNameToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.changePasswordToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.logoutToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.logoutThisDeviceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.logoutAllDevicesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.confirmLogoutOfAllDevicesToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.deleteAccountToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.confirmAccountDeletetionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.preferencesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fontToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.arialToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -42,8 +47,6 @@
             this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem4 = new System.Windows.Forms.ToolStripMenuItem();
             this.fontCommandToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.changeNameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.MainInput_pic = new System.Windows.Forms.PictureBox();
             this.MainOutput_backing_pic = new System.Windows.Forms.PictureBox();
             this.Background = new System.Windows.Forms.Panel();
@@ -185,8 +188,8 @@
             this.Menu.Dock = System.Windows.Forms.DockStyle.None;
             this.Menu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.optionsToolStripMenuItem,
-            this.preferencesToolStripMenuItem,
-            this.settingsToolStripMenuItem});
+            this.accountToolStripMenuItem,
+            this.preferencesToolStripMenuItem});
             this.Menu.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.Flow;
             this.Menu.Location = new System.Drawing.Point(4, 650);
             this.Menu.Name = "Menu";
@@ -197,86 +200,139 @@
             // optionsToolStripMenuItem
             // 
             this.optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.logoutToolStripMenuItem,
             this.reloadToolStripMenuItem,
             this.restartToolStripMenuItem,
             this.quitToolStripMenuItem});
             this.optionsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
-            this.optionsToolStripMenuItem.Size = new System.Drawing.Size(61, 19);
-            this.optionsToolStripMenuItem.Text = "Options";
-            // 
-            // logoutToolStripMenuItem
-            // 
-            this.logoutToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
-            this.logoutToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.logoutDeviceToolStripMenuItem,
-            this.logoutAllDecicesToolStripMenuItem});
-            this.logoutToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
-            this.logoutToolStripMenuItem.Name = "logoutToolStripMenuItem";
-            this.logoutToolStripMenuItem.Size = new System.Drawing.Size(174, 22);
-            this.logoutToolStripMenuItem.Text = "Logout";
-            // 
-            // logoutDeviceToolStripMenuItem
-            // 
-            this.logoutDeviceToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(55)))), ((int)(((byte)(55)))), ((int)(((byte)(55)))));
-            this.logoutDeviceToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
-            this.logoutDeviceToolStripMenuItem.Name = "logoutDeviceToolStripMenuItem";
-            this.logoutDeviceToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L)));
-            this.logoutDeviceToolStripMenuItem.Size = new System.Drawing.Size(211, 22);
-            this.logoutDeviceToolStripMenuItem.Text = "Logout this device";
-            this.logoutDeviceToolStripMenuItem.Click += new System.EventHandler(this.confirmToolStripMenuItem_Click);
-            // 
-            // logoutAllDecicesToolStripMenuItem
-            // 
-            this.logoutAllDecicesToolStripMenuItem.BackColor = System.Drawing.Color.Red;
-            this.logoutAllDecicesToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.confirmLogoutOfAllDevicesToolStripMenuItem});
-            this.logoutAllDecicesToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
-            this.logoutAllDecicesToolStripMenuItem.Name = "logoutAllDecicesToolStripMenuItem";
-            this.logoutAllDecicesToolStripMenuItem.Size = new System.Drawing.Size(211, 22);
-            this.logoutAllDecicesToolStripMenuItem.Text = "Logout all devices";
-            // 
-            // confirmLogoutOfAllDevicesToolStripMenuItem
-            // 
-            this.confirmLogoutOfAllDevicesToolStripMenuItem.BackColor = System.Drawing.Color.Red;
-            this.confirmLogoutOfAllDevicesToolStripMenuItem.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.confirmLogoutOfAllDevicesToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
-            this.confirmLogoutOfAllDevicesToolStripMenuItem.Name = "confirmLogoutOfAllDevicesToolStripMenuItem";
-            this.confirmLogoutOfAllDevicesToolStripMenuItem.Size = new System.Drawing.Size(227, 22);
-            this.confirmLogoutOfAllDevicesToolStripMenuItem.Text = "Confirm logout of all devices";
-            this.confirmLogoutOfAllDevicesToolStripMenuItem.Click += new System.EventHandler(this.confirmLogoutOfAllSessionsToolStripMenuItem_Click);
+            this.optionsToolStripMenuItem.Size = new System.Drawing.Size(41, 19);
+            this.optionsToolStripMenuItem.Text = "App";
             // 
             // reloadToolStripMenuItem
             // 
-            this.reloadToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(66)))), ((int)(((byte)(66)))), ((int)(((byte)(66)))));
+            this.reloadToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
+            this.reloadToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.reloadToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
             this.reloadToolStripMenuItem.Name = "reloadToolStripMenuItem";
             this.reloadToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.R)));
-            this.reloadToolStripMenuItem.Size = new System.Drawing.Size(174, 22);
+            this.reloadToolStripMenuItem.Size = new System.Drawing.Size(195, 24);
             this.reloadToolStripMenuItem.Text = "Reload";
             this.reloadToolStripMenuItem.Click += new System.EventHandler(this.reloadToolStripMenuItem_Click);
             // 
             // restartToolStripMenuItem
             // 
-            this.restartToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(55)))), ((int)(((byte)(55)))), ((int)(((byte)(55)))));
+            this.restartToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(66)))), ((int)(((byte)(66)))), ((int)(((byte)(66)))));
+            this.restartToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.restartToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
             this.restartToolStripMenuItem.Name = "restartToolStripMenuItem";
             this.restartToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Alt) 
             | System.Windows.Forms.Keys.R)));
-            this.restartToolStripMenuItem.Size = new System.Drawing.Size(174, 22);
+            this.restartToolStripMenuItem.Size = new System.Drawing.Size(195, 24);
             this.restartToolStripMenuItem.Text = "Restart";
             this.restartToolStripMenuItem.Click += new System.EventHandler(this.restartToolStripMenuItem_Click_1);
             // 
             // quitToolStripMenuItem
             // 
             this.quitToolStripMenuItem.BackColor = System.Drawing.Color.Red;
+            this.quitToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.quitToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
             this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
             this.quitToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.F4)));
-            this.quitToolStripMenuItem.Size = new System.Drawing.Size(174, 22);
+            this.quitToolStripMenuItem.Size = new System.Drawing.Size(195, 24);
             this.quitToolStripMenuItem.Text = "Quit";
             this.quitToolStripMenuItem.Click += new System.EventHandler(this.quitToolStripMenuItem_Click_1);
+            // 
+            // accountToolStripMenuItem
+            // 
+            this.accountToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.changeNameToolStripMenuItem1,
+            this.changePasswordToolStripMenuItem,
+            this.logoutToolStripMenuItem1,
+            this.deleteAccountToolStripMenuItem});
+            this.accountToolStripMenuItem.Name = "accountToolStripMenuItem";
+            this.accountToolStripMenuItem.Size = new System.Drawing.Size(64, 19);
+            this.accountToolStripMenuItem.Text = "Account";
+            // 
+            // changeNameToolStripMenuItem1
+            // 
+            this.changeNameToolStripMenuItem1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
+            this.changeNameToolStripMenuItem1.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.changeNameToolStripMenuItem1.ForeColor = System.Drawing.Color.Yellow;
+            this.changeNameToolStripMenuItem1.Name = "changeNameToolStripMenuItem1";
+            this.changeNameToolStripMenuItem1.Size = new System.Drawing.Size(185, 24);
+            this.changeNameToolStripMenuItem1.Text = "Change name";
+            this.changeNameToolStripMenuItem1.Click += new System.EventHandler(this.changeNameToolStripMenuItem1_Click);
+            // 
+            // changePasswordToolStripMenuItem
+            // 
+            this.changePasswordToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(66)))), ((int)(((byte)(66)))), ((int)(((byte)(66)))));
+            this.changePasswordToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.changePasswordToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
+            this.changePasswordToolStripMenuItem.Name = "changePasswordToolStripMenuItem";
+            this.changePasswordToolStripMenuItem.Size = new System.Drawing.Size(185, 24);
+            this.changePasswordToolStripMenuItem.Text = "Change password";
+            this.changePasswordToolStripMenuItem.Click += new System.EventHandler(this.changePasswordToolStripMenuItem_Click);
+            // 
+            // logoutToolStripMenuItem1
+            // 
+            this.logoutToolStripMenuItem1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
+            this.logoutToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.logoutThisDeviceToolStripMenuItem,
+            this.logoutAllDevicesToolStripMenuItem});
+            this.logoutToolStripMenuItem1.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.logoutToolStripMenuItem1.ForeColor = System.Drawing.Color.Yellow;
+            this.logoutToolStripMenuItem1.Name = "logoutToolStripMenuItem1";
+            this.logoutToolStripMenuItem1.Size = new System.Drawing.Size(185, 24);
+            this.logoutToolStripMenuItem1.Text = "Logout";
+            // 
+            // logoutThisDeviceToolStripMenuItem
+            // 
+            this.logoutThisDeviceToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(66)))), ((int)(((byte)(66)))), ((int)(((byte)(66)))));
+            this.logoutThisDeviceToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
+            this.logoutThisDeviceToolStripMenuItem.Name = "logoutThisDeviceToolStripMenuItem";
+            this.logoutThisDeviceToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L)));
+            this.logoutThisDeviceToolStripMenuItem.Size = new System.Drawing.Size(238, 24);
+            this.logoutThisDeviceToolStripMenuItem.Text = "Logout this device";
+            this.logoutThisDeviceToolStripMenuItem.Click += new System.EventHandler(this.logoutThisDeviceToolStripMenuItem_Click);
+            // 
+            // logoutAllDevicesToolStripMenuItem
+            // 
+            this.logoutAllDevicesToolStripMenuItem.BackColor = System.Drawing.Color.Red;
+            this.logoutAllDevicesToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.confirmLogoutOfAllDevicesToolStripMenuItem1});
+            this.logoutAllDevicesToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
+            this.logoutAllDevicesToolStripMenuItem.Name = "logoutAllDevicesToolStripMenuItem";
+            this.logoutAllDevicesToolStripMenuItem.Size = new System.Drawing.Size(238, 24);
+            this.logoutAllDevicesToolStripMenuItem.Text = "Logout all devices";
+            // 
+            // confirmLogoutOfAllDevicesToolStripMenuItem1
+            // 
+            this.confirmLogoutOfAllDevicesToolStripMenuItem1.BackColor = System.Drawing.Color.Red;
+            this.confirmLogoutOfAllDevicesToolStripMenuItem1.ForeColor = System.Drawing.Color.Yellow;
+            this.confirmLogoutOfAllDevicesToolStripMenuItem1.Name = "confirmLogoutOfAllDevicesToolStripMenuItem1";
+            this.confirmLogoutOfAllDevicesToolStripMenuItem1.Size = new System.Drawing.Size(252, 24);
+            this.confirmLogoutOfAllDevicesToolStripMenuItem1.Text = "Confirm logout of all devices";
+            this.confirmLogoutOfAllDevicesToolStripMenuItem1.Click += new System.EventHandler(this.confirmLogoutOfAllDevicesToolStripMenuItem1_Click);
+            // 
+            // deleteAccountToolStripMenuItem
+            // 
+            this.deleteAccountToolStripMenuItem.BackColor = System.Drawing.Color.Red;
+            this.deleteAccountToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.confirmAccountDeletetionToolStripMenuItem});
+            this.deleteAccountToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.deleteAccountToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
+            this.deleteAccountToolStripMenuItem.Name = "deleteAccountToolStripMenuItem";
+            this.deleteAccountToolStripMenuItem.Size = new System.Drawing.Size(185, 24);
+            this.deleteAccountToolStripMenuItem.Text = "Delete account";
+            // 
+            // confirmAccountDeletetionToolStripMenuItem
+            // 
+            this.confirmAccountDeletetionToolStripMenuItem.BackColor = System.Drawing.Color.Red;
+            this.confirmAccountDeletetionToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
+            this.confirmAccountDeletetionToolStripMenuItem.Name = "confirmAccountDeletetionToolStripMenuItem";
+            this.confirmAccountDeletetionToolStripMenuItem.Size = new System.Drawing.Size(244, 24);
+            this.confirmAccountDeletetionToolStripMenuItem.Text = "Confirm account deletetion";
+            this.confirmAccountDeletetionToolStripMenuItem.Click += new System.EventHandler(this.confirmAccountDeletetionToolStripMenuItem_Click);
             // 
             // preferencesToolStripMenuItem
             // 
@@ -295,16 +351,17 @@
             this.fontToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.arialToolStripMenuItem,
             this.lucidaSansUnicodeToolStripMenuItem});
+            this.fontToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.fontToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.fontToolStripMenuItem.Name = "fontToolStripMenuItem";
-            this.fontToolStripMenuItem.Size = new System.Drawing.Size(156, 22);
+            this.fontToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
             this.fontToolStripMenuItem.Text = "Font";
             // 
             // arialToolStripMenuItem
             // 
             this.arialToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
             this.arialToolStripMenuItem.Name = "arialToolStripMenuItem";
-            this.arialToolStripMenuItem.Size = new System.Drawing.Size(183, 22);
+            this.arialToolStripMenuItem.Size = new System.Drawing.Size(203, 24);
             this.arialToolStripMenuItem.Text = "Arial";
             this.arialToolStripMenuItem.Click += new System.EventHandler(this.arialToolStripMenuItem_Click);
             // 
@@ -312,7 +369,7 @@
             // 
             this.lucidaSansUnicodeToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
             this.lucidaSansUnicodeToolStripMenuItem.Name = "lucidaSansUnicodeToolStripMenuItem";
-            this.lucidaSansUnicodeToolStripMenuItem.Size = new System.Drawing.Size(183, 22);
+            this.lucidaSansUnicodeToolStripMenuItem.Size = new System.Drawing.Size(203, 24);
             this.lucidaSansUnicodeToolStripMenuItem.Text = "Lucida Sans Unicode";
             this.lucidaSansUnicodeToolStripMenuItem.Click += new System.EventHandler(this.lucidaSansUnicodeToolStripMenuItem_Click);
             // 
@@ -324,9 +381,10 @@
             this.toolStripMenuItem2,
             this.toolStripMenuItem3,
             this.toolStripMenuItem4});
+            this.fontSizeToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.fontSizeToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.fontSizeToolStripMenuItem.Name = "fontSizeToolStripMenuItem";
-            this.fontSizeToolStripMenuItem.Size = new System.Drawing.Size(156, 22);
+            this.fontSizeToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
             this.fontSizeToolStripMenuItem.Text = "Font size";
             // 
             // toolStripMenuItem5
@@ -334,7 +392,7 @@
             this.toolStripMenuItem5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
             this.toolStripMenuItem5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.toolStripMenuItem5.Name = "toolStripMenuItem5";
-            this.toolStripMenuItem5.Size = new System.Drawing.Size(86, 22);
+            this.toolStripMenuItem5.Size = new System.Drawing.Size(94, 24);
             this.toolStripMenuItem5.Text = "13";
             this.toolStripMenuItem5.Click += new System.EventHandler(this.toolStripMenuItem5_Click);
             // 
@@ -343,7 +401,7 @@
             this.toolStripMenuItem2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
             this.toolStripMenuItem2.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-            this.toolStripMenuItem2.Size = new System.Drawing.Size(86, 22);
+            this.toolStripMenuItem2.Size = new System.Drawing.Size(94, 24);
             this.toolStripMenuItem2.Text = "12";
             this.toolStripMenuItem2.Click += new System.EventHandler(this.toolStripMenuItem2_Click);
             // 
@@ -352,7 +410,7 @@
             this.toolStripMenuItem3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
             this.toolStripMenuItem3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.toolStripMenuItem3.Name = "toolStripMenuItem3";
-            this.toolStripMenuItem3.Size = new System.Drawing.Size(86, 22);
+            this.toolStripMenuItem3.Size = new System.Drawing.Size(94, 24);
             this.toolStripMenuItem3.Text = "11";
             this.toolStripMenuItem3.Click += new System.EventHandler(this.toolStripMenuItem3_Click);
             // 
@@ -361,37 +419,19 @@
             this.toolStripMenuItem4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
             this.toolStripMenuItem4.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.toolStripMenuItem4.Name = "toolStripMenuItem4";
-            this.toolStripMenuItem4.Size = new System.Drawing.Size(86, 22);
+            this.toolStripMenuItem4.Size = new System.Drawing.Size(94, 24);
             this.toolStripMenuItem4.Text = "10";
             this.toolStripMenuItem4.Click += new System.EventHandler(this.toolStripMenuItem4_Click);
             // 
             // fontCommandToolStripMenuItem
             // 
             this.fontCommandToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
+            this.fontCommandToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.fontCommandToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.fontCommandToolStripMenuItem.Name = "fontCommandToolStripMenuItem";
-            this.fontCommandToolStripMenuItem.Size = new System.Drawing.Size(156, 22);
+            this.fontCommandToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
             this.fontCommandToolStripMenuItem.Text = "Font command";
             this.fontCommandToolStripMenuItem.Click += new System.EventHandler(this.fontCommandToolStripMenuItem_Click);
-            // 
-            // settingsToolStripMenuItem
-            // 
-            this.settingsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
-            this.settingsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.changeNameToolStripMenuItem});
-            this.settingsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
-            this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(81, 19);
-            this.settingsToolStripMenuItem.Text = "Commands";
-            // 
-            // changeNameToolStripMenuItem
-            // 
-            this.changeNameToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
-            this.changeNameToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
-            this.changeNameToolStripMenuItem.Name = "changeNameToolStripMenuItem";
-            this.changeNameToolStripMenuItem.Size = new System.Drawing.Size(148, 22);
-            this.changeNameToolStripMenuItem.Text = "Change name";
-            this.changeNameToolStripMenuItem.Click += new System.EventHandler(this.changeNameToolStripMenuItem_Click);
             // 
             // MainInput_pic
             // 
@@ -454,6 +494,7 @@
             this.runtime.Size = new System.Drawing.Size(65, 18);
             this.runtime.TabIndex = 6;
             this.runtime.Text = "RTIME";
+            this.runtime.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // Mninp_Bk
             // 
@@ -565,14 +606,17 @@
         private System.Windows.Forms.Label runtime;
         private System.Windows.Forms.Label clock;
         private System.Windows.Forms.Timer Timer1;
-        private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem changeNameToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem logoutToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem logoutDeviceToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem logoutAllDecicesToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem confirmLogoutOfAllDevicesToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem reloadToolStripMenuItem;
         private System.Windows.Forms.Panel LeftPanel;
         private System.Windows.Forms.Panel BottomPanel;
+        private System.Windows.Forms.ToolStripMenuItem accountToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem logoutToolStripMenuItem1;
+        private System.Windows.Forms.ToolStripMenuItem logoutThisDeviceToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem logoutAllDevicesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem confirmLogoutOfAllDevicesToolStripMenuItem1;
+        private System.Windows.Forms.ToolStripMenuItem deleteAccountToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem confirmAccountDeletetionToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem changeNameToolStripMenuItem1;
+        private System.Windows.Forms.ToolStripMenuItem changePasswordToolStripMenuItem;
     }
 }
