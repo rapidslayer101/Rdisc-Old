@@ -337,17 +337,13 @@ def client_connection(cs):
 
             if request.startswith("DELAC:"):
                 password = enc.pass_to_seed(request[6:], default_salt)
-                pass_correct = False
                 u_dir = users.dirs(0)[uid]
                 u_dir = f"{uid} {u_dir[0]} {u_dir[1]}"
+                pass_present = False
                 with open(f"Users/{u_dir}/{uid}-keys.txt", encoding="utf-8") as f:
-                    lines = f.readlines()
-                    pass_ = lines[0]
-                    if password == pass_.replace("\n", ""):
-                        pass_correct = True
-                if not pass_correct:
-                    send_e("INVALID")  # password wrong
-                else:
+                    if password == f.readlines()[0].replace("\n", ""):
+                        pass_present = True
+                if pass_present:
                     send_e("VALID")
                     # email code sending code will be below
                     # add error return code for if email code sending fails
@@ -366,6 +362,32 @@ def client_connection(cs):
                             raise ConnectionResetError
                         else:
                             send_e("INVALID_CODE")
+                else:
+                    send_e("INVALID_CODE")
+
+            if request.startswith("CPASS:"):
+                try:
+                    old_pass, new_pass = request[6:].split("🱫")
+                except ValueError:
+                    raise AssertionError
+                if old_pass == new_pass:
+                    send_e("SAME_PASS")  # old pass and new pass the same
+                else:
+                    pass_correct = False
+                    u_dir = users.dirs(0)[uid]
+                    u_dir = f"{uid} {u_dir[0]} {u_dir[1]}"
+                    with open(f"Users/{u_dir}/{uid}-keys.txt", encoding="utf-8") as f:
+                        lines = f.readlines()
+                        if enc.pass_to_seed(old_pass, default_salt) == lines[0].replace("\n", ""):
+                            lines[0] = enc.pass_to_seed(new_pass, default_salt)
+                            pass_correct = True
+                    if not pass_correct:
+                        send_e("INVALID")  # password wrong
+                    else:
+                        with open(f"Users/{u_dir}/{uid}-keys.txt", "w", encoding="utf-8") as f:
+                            for line in lines:
+                                f.write(line.replace("\n", "")+"\n")
+                        send_e("VALID")
 
             if request.startswith("CUSRN:"):
                 u_name = request[6:]

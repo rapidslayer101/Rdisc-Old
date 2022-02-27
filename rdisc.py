@@ -100,11 +100,12 @@ if not ui:
 # 0.28 shortcut keys, ui reworks, on setup know version, runtime clock
 # 0.29 delete account, minor ui tweaks
 
-# 0.30 forgot or change pass, rate limits for unames
+# 0.30 change pass
+# 0.30 forgot pass
 
 # 0.31 friending (on/offline), connecting to online friends
 # 0.32 basic DM chat functionality with client to server to client connections and keys
-# 0.33 pass rate limit, downloading, saving, load req files from a first time setup file
+# 0.33 pass and unames rate limit, downloading, saving, load req files from a first time setup file
 
 # local sockets localhost:8079, localhost:8080
 # Made by rapidslayer101 (Scott Bree), General usage testing and spelling: James Judge
@@ -183,7 +184,35 @@ while True:
                 exit.update("RESTART")
             if output_ == '🱫[QUIT]':
                 exit.update("EXIT")
-            if output_.startswith('🱫[LOG'):
+            if output_.startswith('🱫[CNGPASS'):
+                print("Change password")
+                n_pass_1 = None
+                while n_pass_1 is None:
+                    n_pass_1 = receive("\n🱫[COLOR][YEL] Please enter new password", 0.1)
+                    if len(n_pass_1) < 8:
+                        to_c("\n🱫[COLOR][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
+                    else:
+                        to_c(f"\n Entered ({len(n_pass_1)}chrs): "+"*" * len(n_pass_1))
+                        if n_pass_1 == receive("\n🱫[COLOR][YEL] Please re-enter password", 0.1):
+                            n_pass_1 = enc.pass_to_seed(n_pass_1, default_salt)
+                            break
+                        else:
+                            to_c("\n🱫[COLOR][RED] PASSWORDS DO NOT MATCH!")
+                            n_pass_1 = None
+                old_pass = enc.pass_to_seed(receive("\n🱫[COLOR][YEL] Enter old password"), default_salt)
+                send_e(f"CPASS:{old_pass}🱫{n_pass_1}")
+                print(f" >> CPASS:{old_pass}🱫{n_pass_1}")
+                cng_pass_resp = recv_d(512)
+                print(f" << {cng_pass_resp}")
+                if cng_pass_resp == "VALID":
+                    to_c("\n🱫[COLOR][GRN] Success! Password has been changed")
+                else:
+                    if cng_pass_resp == "SAME_PASS":
+                        to_c("\n🱫[COLOR][RED] Old pass and new pass are the same, exiting password change")
+                    else:
+                        to_c("\n🱫[COLOR][RED] Old password incorrect, exiting password change")
+
+            if output_.startswith('🱫[LOG]'):
                 if user.key('u_name'):
                     if output_ == '🱫[LOG]':
                         try:
@@ -200,7 +229,7 @@ while True:
                         exit.update("LOGOUT")
                     else:
                         to_c("\n🱫[COLOR][RED] You must be logged in to perform this action")
-            if output_.startswith('🱫[DELAC'):
+            if output_.startswith('🱫[DELAC]'):
                 if user.key('u_name'):
                     print("Delete account")
                     pass__ = enc.pass_to_seed(receive("\n🱫[COLOR][YEL] Enter password to delete account"), default_salt)
@@ -440,8 +469,7 @@ while True:
                             to_c("\n🱫[COLOR][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
                         else:
                             to_c(f"\n Entered ({len(pass_1)}chrs): "+"*"*len(pass_1))
-                            pass_2 = receive("\n🱫[COLOR][YEL] Please re-enter password", 0.1)
-                            if pass_1 == pass_2:
+                            if pass_1 == receive("\n🱫[COLOR][YEL] Please re-enter password", 0.1):
                                 pass_ = enc.pass_to_seed(pass_1, default_salt)
                                 break
                             else:
