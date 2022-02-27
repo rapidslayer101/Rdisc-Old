@@ -99,8 +99,8 @@ if not ui:
 # 0.27 fast restarts, reloads and exits, logout current session, logins/logouts log, logout all
 # 0.28 shortcut keys, ui reworks, on setup know version, runtime clock
 # 0.29 delete account, minor ui tweaks
-
 # 0.30 change pass
+
 # 0.30 forgot pass
 
 # 0.31 friending (on/offline), connecting to online friends
@@ -158,7 +158,6 @@ while True:
                 cool_down_data.update({"msg_counter": cool_down_data["msg_counter"]+1})
             if time_since_last.seconds > 5:  # cooldown(s) when triggered
                 cool_down_data.update({"msg_counter": 0})
-
             if cool_down_data["msg_counter"] > 10:  # total before counter triggers' cooldown(s)
                 return round(5-time_since_last.seconds, 2)
             else:
@@ -229,6 +228,7 @@ while True:
                         exit.update("LOGOUT")
                     else:
                         to_c("\n🱫[COLOR][RED] You must be logged in to perform this action")
+
             if output_.startswith('🱫[DELAC]'):
                 if user.key('u_name'):
                     print("Delete account")
@@ -399,8 +399,8 @@ while True:
             to_c("🱫[INP SHOW]🱫[MNINPLEN][256] ", 0.1)  # todo set len to 7?
             while True:
                 to_c("Create a new account or log in to an existing one")
-                login_signup = receive("\n🱫[COLOR][YEL] Type 'login' or 'sign up'", 0.1).lower().replace(" ", "")
-                if login_signup in ["login", "signup"]:
+                login_signup = receive("\n🱫[COLOR][YEL] Type 'login' or 'sign up' or 'forgot' (password)", 0.1)
+                if login_signup.lower().replace(" ", "") in ["login", "signup", "forgot"]:
                     break
 
             def enter_email():
@@ -423,7 +423,6 @@ while True:
                     email_code = ""
                     while len(email_code) != 16:
                         email_code = receive().replace("-", "").upper()
-
                     send_e(f"{email_code}🱫{salted_dk}")
                     print(f" >> {email_code}🱫{salted_dk}")
                     verify_dk_resp = recv_d(512)
@@ -460,37 +459,43 @@ while True:
                             break
                 make_new_dk()
             else:
-                pass_ = None
-                while True:
-                    email = enter_email()
-                    while pass_ is None:
-                        pass_1 = receive("\n🱫[COLOR][YEL] Please enter a password", 0.1)
-                        if len(pass_1) < 8:
-                            to_c("\n🱫[COLOR][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
+                if login_signup == "signup":
+                    print("Signup")
+                    pass_ = None
+                    while True:
+                        email = enter_email()
+                        while pass_ is None:
+                            pass_1 = receive("\n🱫[COLOR][YEL] Please enter a password", 0.1)
+                            if len(pass_1) < 8:
+                                to_c("\n🱫[COLOR][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
+                            else:
+                                to_c(f"\n Entered ({len(pass_1)}chrs): "+"*"*len(pass_1))
+                                if pass_1 == receive("\n🱫[COLOR][YEL] Please re-enter password", 0.1):
+                                    pass_ = enc.pass_to_seed(pass_1, default_salt)
+                                    break
+                                else:
+                                    to_c("\n🱫[COLOR][RED] PASSWORDS DO NOT MATCH!")
+                                    pass_ = None
+                        send_e(f"NEWAC:{email}🱫{pass_}")
+                        print(f" >> NEWAC:{email}🱫{pass_}")
+                        new_ac_req = recv_d(64)
+                        if new_ac_req == "INVALID_EMAIL":
+                            print(" << INVALID_EMAIL")
+                            to_c("\n🱫[COLOR][RED] Email was invalid, probably already taken")
                         else:
-                            to_c(f"\n Entered ({len(pass_1)}chrs): "+"*"*len(pass_1))
-                            if pass_1 == receive("\n🱫[COLOR][YEL] Please re-enter password", 0.1):
-                                pass_ = enc.pass_to_seed(pass_1, default_salt)
+                            if new_ac_req == "IP_CREATE_LIMIT":
+                                to_c("\n🱫[COLOR][RED] This IP has already reached the creation limit of 2 accounts)")
                                 break
                             else:
-                                to_c("\n🱫[COLOR][RED] PASSWORDS DO NOT MATCH!")
-                                pass_ = None
-                    send_e(f"NEWAC:{email}🱫{pass_}")
-                    print(f" >> NEWAC:{email}🱫{pass_}")
-                    new_ac_req = recv_d(64)
-                    if new_ac_req == "INVALID_EMAIL":
-                        print(" << INVALID_EMAIL")
-                        to_c("\n🱫[COLOR][RED] Email was invalid, probably already taken")
-                    else:
-                        if new_ac_req == "IP_CREATE_LIMIT":
-                            to_c("\n🱫[COLOR][RED] This IP has already reached the creation limit of 2 accounts)")
-                            break
-                        else:
-                            print(" << VALID")
-                            make_new_dk()
-                            to_c("\n🱫[COLOR][GRN] Account setup complete, logging in...")
-                            print("Account setup complete, dk and sk received and saved")
-                            break
+                                print(" << VALID")
+                                make_new_dk()
+                                to_c("\n🱫[COLOR][GRN] Account setup complete, logging in...")
+                                print("Account setup complete, dk and sk received and saved")
+                                break
+                else:
+                    print("Forgot password")
+                    # todo password reset
+                    input()
 
         print("Version updater")
         send_e(hashed)
@@ -519,7 +524,6 @@ while True:
         print("Logged in loop")
         while True:
             request = receive()
-
             if request.startswith("-change name"):
                 username = request[13:].replace("#", "").replace(" ", "")
                 if username == user.key('u_name')[:-5]:
