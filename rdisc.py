@@ -99,11 +99,11 @@ if not ui:
 # 0.27 fast restarts, reloads and exits, logout current session, logins/logouts log, logout all
 # 0.28 shortcut keys, ui reworks, on setup know version, runtime clock
 # 0.29 delete account, minor ui tweaks
-# 0.30 change pass
+# 0.30 change pass, forgot pass
 
-# 0.30 forgot pass
+# 0.31 updator, friending (on/offline)
 
-# 0.31 friending (on/offline), connecting to online friends
+# 0.32 connecting to online friends
 # 0.32 basic DM chat functionality with client to server to client connections and keys
 # 0.33 pass and unames rate limit, downloading, saving, load req files from a first time setup file
 
@@ -405,12 +405,12 @@ while True:
 
             def enter_email():
                 while True:
-                    email_ = receive("\n🱫[COLOR][YEL] Please enter email", 0.1).lower()
-                    if "@" not in email_:
+                    _email_ = receive("\n🱫[COLOR][YEL] Please enter email", 0.1).lower()
+                    if "@" not in _email_:
                         to_c("\n🱫[COLOR][RED] Email does not contain an '@'")
                     else:
                         break
-                return email_
+                return _email_
 
             def make_new_dk():
                 print("Get a new device_key and session_key")
@@ -478,12 +478,12 @@ while True:
                                     pass_ = None
                         send_e(f"NEWAC:{email}🱫{pass_}")
                         print(f" >> NEWAC:{email}🱫{pass_}")
-                        new_ac_req = recv_d(64)
-                        if new_ac_req == "INVALID_EMAIL":
+                        new_ac_resp = recv_d(64)
+                        if new_ac_resp == "INVALID_EMAIL":
                             print(" << INVALID_EMAIL")
                             to_c("\n🱫[COLOR][RED] Email was invalid, probably already taken")
                         else:
-                            if new_ac_req == "IP_CREATE_LIMIT":
+                            if new_ac_resp == "IP_CREATE_LIMIT":
                                 to_c("\n🱫[COLOR][RED] This IP has already reached the creation limit of 2 accounts)")
                                 break
                             else:
@@ -494,8 +494,41 @@ while True:
                                 break
                 else:
                     print("Forgot password")
-                    # todo password reset
-                    input()
+                    send_e(f"FGPAS:{enter_email()}")
+                    if recv_d(64) == "INVALID_EMAIL":
+                        print(" << INVALID_EMAIL")
+                        to_c("\n🱫[COLOR][RED] Email invalid! No account was linked to this email")
+                    else:
+                        n_pass_1 = None
+                        while n_pass_1 is None:
+                            n_pass_1 = receive("\n🱫[COLOR][YEL] Please enter new password", 0.1)
+                            if len(n_pass_1) < 8:
+                                to_c("\n🱫[COLOR][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
+                            else:
+                                to_c(f"\n Entered ({len(n_pass_1)}chrs): " + "*" * len(n_pass_1))
+                                if n_pass_1 == receive("\n🱫[COLOR][YEL] Please re-enter password", 0.1):
+                                    n_pass_1 = enc.pass_to_seed(n_pass_1, default_salt)
+                                    break
+                                else:
+                                    to_c("\n🱫[COLOR][RED] PASSWORDS DO NOT MATCH!")
+                                    n_pass_1 = None
+                        to_c(f"\n🱫[COLOR][GRN] A verification code has "
+                             f"been sent to your email (code valid for 15 minutes)")
+                        while True:
+                            to_c(f"\n🱫[COLOR][YEL] Enter 16 char code", 0.1)
+                            email_code = ""
+                            while len(email_code) != 16:
+                                email_code = receive().replace("-", "").upper()
+                            send_e(f"{email_code}🱫{n_pass_1}")
+                            print(f" >> {email_code}")
+                            verify_dk_resp = recv_d(512)
+                            if verify_dk_resp == "VALID":
+                                print(f" << VALID:PASS_CHANGE")
+                                to_c(f"\n🱫[COLOR][GRN] Request valid, password changed")
+                                break
+                            else:
+                                print(f" << INVALID_CODE")
+                                to_c("\n🱫[COLOR][RED] Invalid email code")
 
         print("Version updater")
         send_e(hashed)
@@ -547,8 +580,7 @@ while True:
     except AssertionError:
         exit_reason = str(exit.get(0))[2:-2]
         if exit_reason == "SESSION_TAKEN":
-            input("Input to exit")
-            break
+            pass
         if exit_reason == "CONNECTION_LOST":
             print("SERVER CONNECTION LOST, RELOADING")
             to_c(f"\n🱫[COLOR][RED] Connection lost - Reloading")

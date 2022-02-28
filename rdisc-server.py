@@ -6,7 +6,7 @@ from random import choice, randint
 import enclib as enc
 
 
-min_version = "V0.25.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
+min_version = "V0.29.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
 default_salt = """TO$X-YkP#XGl>>Nw@tt ~$c[{N-uF&#~+h#<84@W3 57dkX.V'1el~1JcyMTuRwjG
                   DxnI,ufxSNzdgJyQn<-Qj--.PN+y=Gk.F/(B'Fq+D@,$*9&[`Bt.W3i;0{UN7K="""
 b62set = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
@@ -290,6 +290,43 @@ def client_connection(cs):
                                     f.write(line)
                             send_e(f"VALID:{session_key}")
 
+            if login_request.startswith("FGPAS:"):
+                email_ = login_request[6:]
+                if email_ in users.emails(0):
+                    send_e("VALID")
+                    # email code sending code will be below
+                    # add error return code for if email code sending fails
+                    email_code = "".join([choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") for x in range(16)])
+                    email_code_send = f"{email_code[:4]}-{email_code[4:8]}-{email_code[8:12]}-{email_code[12:]}"
+                    print(email_code_send)
+                    #
+                    # code_valid_until = datetime.datetime.now()+datetime.timedelta(minutes=15)
+                    while True:
+                        try:
+                            email_code_, new_pass = recv_d(1024).split("🱫")
+                        except ValueError:
+                            raise AssertionError
+                        if email_code == email_code_:
+                            dirs = users.dirs(0)
+                            for dir_ in dirs:
+                                if dirs[dir_][0] == email_:
+                                    uid = dir_
+                                    username = dirs[dir_][1]
+                            u_dir = f"{uid} {email_} {username}"
+                            with open(f"Users/{u_dir}/{uid}-keys.txt", encoding="utf-8") as f:
+                                lines = f.readlines()
+                            lines[0] = enc.pass_to_seed(new_pass, default_salt)
+                            with open(f"Users/{u_dir}/{uid}-keys.txt", "w", encoding="utf-8") as f:
+                                for line in lines:
+                                    f.write(line.replace("\n", "")+"\n")
+                            send_e("VALID")
+                            break
+                        else:
+                            send_e("INVALID_CODE")
+                else:
+                    send_e("INVALID_EMAIL")
+                    print("Not found")  # todo rate limit
+
             if login_request.startswith("LOGIN:"):
                 try:
                     uid, sk = login_request[6:].split("🱫")
@@ -363,7 +400,7 @@ def client_connection(cs):
                         else:
                             send_e("INVALID_CODE")
                 else:
-                    send_e("INVALID_CODE")
+                    send_e("INVALID_PASS")
 
             if request.startswith("CPASS:"):
                 try:
