@@ -40,7 +40,7 @@ if ui:
     else:
         os.startfile("ui.exe")
         print(" <- ui.exe launched")
-        ui_s.listen(10)
+        ui_s.listen()
         cs, client_address = ui_s.accept()
 
         def to_c(text, delay=None):
@@ -100,12 +100,13 @@ if not ui:
 # 0.28 shortcut keys, ui reworks, on setup know version, runtime clock
 # 0.29 delete account, minor ui tweaks
 # 0.30 change pass, forgot pass
+# 0.31 updator
 
-# 0.31 updator, friending (on/offline)
+# 0.32 friending (on/offline)
 
-# 0.32 connecting to online friends
-# 0.32 basic DM chat functionality with client to server to client connections and keys
-# 0.33 pass and unames rate limit, downloading, saving, load req files from a first time setup file
+# 0.33 connecting to online friends
+# 0.34 basic DM chat functionality with client to server to client connections and keys
+# 0.35 pass and unames rate limit, downloading, saving, load req files from a first time setup file
 
 # local sockets localhost:8079, localhost:8080
 # Made by rapidslayer101 (Scott Bree), General usage testing and spelling: James Judge
@@ -543,14 +544,14 @@ while True:
             to_c(f"🱫[LODVS] {version}", 0.1)
 
         if v_check_resp.startswith("INVALID:"):
-            to_c(f"\n <> Updating rdisc {v_check_resp[8:]} in 5 seconds")
-            time.sleep(5)
-            exit.update("EXIT")  # todo edit
+            version_up_info, update_size, update_hash = v_check_resp[8:].split("🱫")
+            to_c(f"\n <> Updating rdisc {version_up_info} ({round(int(update_size)/1024/1024, 2)}MB)")
+            exit.update("UPDATE")
 
-        if v_check_resp.startswith("UNKNOWN"):
-            to_c("\n🱫[COLOR][RED] <> INVALID OR CORRUPTED VERSION, downloading new copy in 5 seconds")
-            time.sleep(5)
-            exit.update("RESTART")
+        if v_check_resp.startswith("UNKNOWN:"):
+            update_size, update_hash = v_check_resp[8:].split("🱫")
+            to_c("\n🱫[COLOR][RED] <> INVALID OR CORRUPTED VERSION, downloading new copy")
+            exit.update("UPDATE")
 
         to_c(f"\n🱫[COLOR][GRN] You are now logged in as {user.key('u_name')}")
         to_c("🱫[INP SHOW]🱫", 0.1)
@@ -589,7 +590,24 @@ while True:
             print("RELOADING")
             to_c(f"\n🱫[COLOR][GRN] -- Reloading --")
             pass
+        if exit_reason == "UPDATE":
+            with open("Update.zip", "wb") as f:
+                for i in range((int(update_size)//4096)+1):
+                    bytes_read = s.recv(4096)
+                    if not bytes_read:
+                        break
+                    f.write(bytes_read)
+                    #to_c(f"\n{round(i/((int(update_size)//4096)+1)*100, 2)}%")
+            if enc.hash_a_file("Update.zip") == update_hash:
+                to_c("🱫[EXIT]")
+                time.sleep(0.5)
+                os.startfile("updater.exe")
+                break
+            else:
+                to_c(f"\n🱫[COLOR][RED] Update files corrupt")
+                pass
         if exit_reason in ["RESTART", "EXIT"]:
+            to_c("🱫[EXIT]")
             s.close()
         if exit_reason == "RESTART":
             os.startfile("rdisc.exe")

@@ -6,7 +6,9 @@ from random import choice, randint
 import enclib as enc
 
 
-min_version = "V0.29.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
+min_version = "V0.31.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
+stable_release = "V0.31.0.0"
+stable_release_zip = f"rdisc-{stable_release[1:-2]}.zip"
 default_salt = """TO$X-YkP#XGl>>Nw@tt ~$c[{N-uF&#~+h#<84@W3 57dkX.V'1el~1JcyMTuRwjG
                   DxnI,ufxSNzdgJyQn<-Qj--.PN+y=Gk.F/(B'Fq+D@,$*9&[`Bt.W3i;0{UN7K="""
 b62set = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
@@ -19,7 +21,9 @@ def version_info(hashed):
             if hashed in line:
                 version_data = line
     if not version_data:
-        return "UNKNOWN"
+        update_size = os.path.getsize(stable_release_zip)
+        update_hash = enc.hash_a_file(stable_release_zip)
+        return f"UNKNOWN:{update_size}🱫{update_hash}"
     version_, tme_, bld_num, run_num = version_data.split("§")[2:]
     release_major, major, build, run = version_.replace("V", "").split(".")
     req_release_major, req_major, req_build, req_run = min_version.replace("V", "").split(".")
@@ -31,7 +35,9 @@ def version_info(hashed):
                     valid_version = True
                     print(f"{version_} is valid for the {min_version} requirement")
     if not valid_version:
-        return f"INVALID:{version_}->{min_version}"
+        update_size = os.path.getsize(stable_release_zip)
+        update_hash = enc.hash_a_file(stable_release_zip)
+        return f"INVALID:{version_}->{stable_release}🱫{update_size}🱫{update_hash}"
     else:
         return f"VALID:{version_}🱫{tme_}🱫{bld_num}🱫{run_num}"
 
@@ -356,7 +362,13 @@ def client_connection(cs):
                             version_response = version_info(recv_d(512))
                             send_e(version_response)
                             if not version_response.startswith("VALID:"):
-                                raise AssertionError
+                                with open(stable_release_zip, "rb") as f:
+                                    while True:
+                                        bytes_read = f.read(4096)
+                                        if not bytes_read:
+                                            break
+                                        cs.sendall(bytes_read)
+                                raise ConnectionResetError
                             users.login(uid, ip)
                             break
 

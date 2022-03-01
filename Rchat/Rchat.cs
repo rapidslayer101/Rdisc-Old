@@ -102,12 +102,17 @@ namespace Rchat
 			}
 
 			//if (readData.StartsWith("🱫[SMELNE]"))
-            //{
+			//{
 			//	MainOutput.ReadOnly = false;
 			//	//MainOutput.Lines.Length
 			//	MainOutput.Lines = MainOutput.Lines.CopyTo(MainOutput.Lines.Length - 3).ToArray;
 			//	readData = readData.Replace("🱫[SMELNE]", "");
 			//}
+
+			if (readData.StartsWith("﻿🱫[EXIT]"))
+			{
+				Application.Exit();
+			}
 
 
 			if (readData.StartsWith("﻿🱫[LODVS]"))
