@@ -1,13 +1,11 @@
-import datetime
-import socket, os, rsa
-import zlib
+import datetime, zlib, socket, os
+import rsa
 from threading import Thread
 from random import choice, randint
 import enclib as enc
 
-
 min_version = "V0.31.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
-stable_release = "V0.31.0.0"
+stable_release = "V0.32.0.0"
 stable_release_zip = f"rdisc-{stable_release[1:-2]}.zip"
 default_salt = """TO$X-YkP#XGl>>Nw@tt ~$c[{N-uF&#~+h#<84@W3 57dkX.V'1el~1JcyMTuRwjG
                   DxnI,ufxSNzdgJyQn<-Qj--.PN+y=Gk.F/(B'Fq+D@,$*9&[`Bt.W3i;0{UN7K="""
@@ -49,11 +47,7 @@ if not os.path.exists("account_creation_ips.txt"):
     with open("account_creation_ips.txt", "w") as f:
         f.write("")
 
-user_dirs = {}
-u_ids = []
-u_emails = []
-u_names = []
-logged_in_users = []
+user_dirs, u_ids, u_emails, u_names, logged_in_users = [{}, [], [], [], []]
 
 for user_dir in os.listdir("Users"):
     user_id_, email_, username_, = user_dir.split(" ")
@@ -114,7 +108,7 @@ client_sockets = set()
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 s.bind(('', server_port))
-s.listen(5)
+s.listen()
 print(f"[*] Listening as 0.0.0.0:{server_port}")
 
 
@@ -130,8 +124,8 @@ def client_connection(cs):
             pub_key_cli = rsa.PublicKey.load_pkcs1(cs.recv(256))
         except ValueError:
             raise AssertionError
-        enc_seed = enc.hex_gens(78)
-        enc_salt = enc.hex_gens(32)
+        enc_seed = enc.rand_b96_string(78)
+        enc_salt = enc.rand_b96_string(32)
         cs.send(rsa.encrypt(enc_seed.encode(), pub_key_cli))
         cs.send(rsa.encrypt(enc_salt.encode(), pub_key_cli))
         alpha, shift_seed = enc.seed_to_data(enc_seed)
@@ -167,7 +161,7 @@ def client_connection(cs):
                 try:
                     email_code_cli, device_key_ = recv_d(1024).split("🱫")
                     if email_code == email_code_cli:
-                        session_key_ = enc.pass_to_seed(enc.hex_gens(128), default_salt)
+                        session_key_ = enc.pass_to_seed(enc.rand_b96_string(128), default_salt)
                         break
                     else:
                         send_e("INVALID_CODE")
@@ -285,7 +279,7 @@ def client_connection(cs):
                                 dk_ = line.split("🱫")[0]
                                 dk_l_n += 1
                                 if dk == dk_:
-                                    session_key = enc.pass_to_seed(enc.hex_gens(128), default_salt)
+                                    session_key = enc.pass_to_seed(enc.rand_b96_string(128), default_salt)
                                     lines[dk_l_n] = f"{dk_}🱫{ip}🱫{session_key}\n"
                                     dk_valid = True
                         if not dk_valid:

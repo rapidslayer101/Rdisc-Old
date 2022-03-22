@@ -1,7 +1,9 @@
 import socket, os, time, datetime, zlib, uuid, rsa
-from threading import Thread
 import enclib as enc
 
+# local sockets localhost:8079, localhost:8080
+# Made by rapidslayer101 (Scott Bree), General usage testing and spelling: James Judge
+# >>> license and agreement data here <<<
 
 try:
     hashed = enc.hash_a_file("rdisc.py")
@@ -25,95 +27,53 @@ except FileNotFoundError:
 
 
 ui = True
+ui_s = False
 
-if ui:
-    ui_s = socket.socket()
-    ui_s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    if os.path.exists("rdisc.py"):
-        ui_s.bind(("127.0.0.1", 8078))
-    else:
-        ui_s.bind(("127.0.0.1", 8079))
-    print(" -> Launching ui.exe")
-    if not os.path.isfile("ui.exe"):
-        input("[!] CRITICAL FILE ui.exe MISSING, hit enter to fall back to CLI\n")
-        ui = False
-    else:
-        os.startfile("ui.exe")
-        print(" <- ui.exe launched")
-        ui_s.listen()
-        cs, client_address = ui_s.accept()
+while True:
+    if ui:
+        if not ui_s:
+            ui_s = socket.socket()
+            ui_s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            if os.path.exists("rdisc.py"):
+                ui_s.bind(("127.0.0.1", 8078))
+            else:
+                ui_s.bind(("127.0.0.1", 8079))
+            print(" -> Launching ui.exe")
+            if not os.path.isfile("ui.exe"):
+                input("[!] CRITICAL FILE ui.exe MISSING, hit enter to fall back to CLI\n")
+                ui = False
+            else:
+                os.startfile("ui.exe")
+                print(" <- ui.exe launched")
+                ui_s.listen()
+                cs, client_address = ui_s.accept()
 
+                def to_c(text, delay=None):
+                    if delay:
+                        time.sleep(delay)
+                    try:
+                        cs.send(str(text).encode(encoding="utf-16"))
+                    except ConnectionResetError:
+                        exit.update("EXIT")
+                print(f" Connected to ui.exe via socket {client_address}")
+                to_c("\n🱫[COLOR][GRN] <- Internal socket connected\n", 0.1)
+    if not ui:
         def to_c(text, delay=None):
             if delay:
                 time.sleep(delay)
-            try:
-                cs.send(str(text).encode(encoding="utf-16"))
-            except ConnectionResetError:
-                exit.update("EXIT")
-        print(f" Connected to ui.exe via socket {client_address}")
-        to_c("\n🱫[COLOR][GRN] <- Internal socket connected\n", 0.1)
-if not ui:
-    def to_c(text, delay=None):
-        if delay:
-            time.sleep(delay)
-        if text.startswith("🱫[INP SHOW]🱫"):
-            text = text[14:]
-        if text.startswith("\n🱫[COLOR][GRN] "):  # todo CLI colors
-            text = text[24:]
-        if text.startswith("\n🱫[COLOR][YEL] "):
-            text = text[25:]
-        if text.startswith("\n🱫[COLOR][RED] "):
-            text = text[22:]
-        if text.startswith("[MNINPLEN][256] "):
-            text = text[16:]
-        if not text == "":
-            print(text)
+            if text.startswith("🱫[INP SHOW]🱫"):
+                text = text[14:]
+            if text.startswith("\n🱫[COLOR][GRN] "):  # todo CLI colors
+                text = text[15:]
+            if text.startswith("\n🱫[COLOR][YEL] "):
+                text = text[15:]
+            if text.startswith("\n🱫[COLOR][RED] "):
+                text = text[15:]
+            if text.startswith("[MNINPLEN][256] "):
+                text = text[16:]
+            if not text == "":
+                print(text)
 
-
-# 0.1 code rewrite and code foundations/framework from rchat 0.7.119.14 (process build 119, rchat GUI build 14)
-# 0.2 enc 6.4.0 implemented and seed key switching added
-# 0.3 the auth server framework, sha versioning and updating
-# 0.4 the client setup, server version checks, some UI elements updated
-# 0.5 time_key server syncing
-# 0.6 dynamic key shifting and major auth.txt storage and load rewrites
-# 0.7 df_key.txt added, auth_key system, first time login, removed exiter.txt, removed git pushes of password files
-# 0.8 most encryption stuff moved into enclib.py library, some login checks, some minor UI changes
-# 0.9 UI overhaul part 1, some work done towards resizable forms and message processing stuff
-# 0.10 server connections and basic message sending system
-# 0.11 message formatting, authorisation, naming
-# 0.12 message post fixes, cooldown + changes. ui.exe now usable as launcher, restart.bat removed
-# 0.13 upgrade to enc 7.0.0, massive rewrite to sockets instead of discord slight login changes (half complete)
-# 0.14 first functioning socket version
-# 0.15 file cleanup and load changes, code cleanup, names, multi-user support (so actually functional)
-# 0.16 socket close improvements, name changes, fixed restarts, password changes, len checks
-# 0.17 rdisc-rc3 rewrites, enc 9.5.0 implemented, changed mostly from str to bytes, removal of entire time_key system
-# 0.18 s<->c connect RSA falls back to enc 10.0.1 (implemented), signup complete (apart from key saving to auth)
-# 0.19 saving keys, logging back in via dk and sk
-# 0.20 fall back method if sk/ip wrong -> dk, if no dk -> email and pass
-# 0.21 version checking, username changing
-# 0.22 login and signup rework -> a new dk call will now also give back a sk, general validation framework
-# 0.23 users folder with new user saving to support more future data and data access efficiency, uid now in auth.txt
-# 0.24 dynamic loading rewrites, solution cleanup
-# 0.25 invalid req catching, only allow one user session, remove client wide thread, redid exit system
-# 0.26 client CLI, 1 login per IP at a time, 2 account created per IP, upto 3 dks active at once with ips and sks
-# 0.27 fast restarts, reloads and exits, logout current session, logins/logouts log, logout all
-# 0.28 shortcut keys, ui reworks, on setup know version, runtime clock
-# 0.29 delete account, minor ui tweaks
-# 0.30 change pass, forgot pass
-# 0.31 updator
-
-# 0.32 friending (on/offline)
-
-# 0.33 connecting to online friends
-# 0.34 basic DM chat functionality with client to server to client connections and keys
-# 0.35 pass and unames rate limit, downloading, saving, load req files from a first time setup file
-
-# local sockets localhost:8079, localhost:8080
-# Made by rapidslayer101 (Scott Bree), General usage testing and spelling: James Judge
-# >>> license and agreement data here <<<
-
-while True:
-    print("Started main loop")
     user_data = {}
 
     class user:
@@ -178,12 +138,15 @@ while True:
     try:
         def process_from_c(output_):
             return_value = True
-            if output_ == '🱫[RELOAD]':
+            if output_ in ['🱫[RELOAD]', "-reload"]:
                 exit.update("RELOAD")
-            if output_ == '🱫[RESTART]':
-                exit.update("RESTART")
-            if output_ == '🱫[QUIT]':
+            if output_ in ['🱫[QUIT]', "-quit"]:
                 exit.update("EXIT")
+            if output_ in ['🱫[UI]', '🱫[UIR]', '-ui', '-ui reload', '-restart']:
+                if output_ in ['🱫[UI]', '-ui']:
+                    exit.update("UI")
+                if output_ in ['🱫[UIR]', '-ui reload', '-restart']:
+                    exit.update("UIR")
             if output_.startswith('🱫[CNGPASS'):
                 print("Change password")
                 n_pass_1 = None
@@ -237,10 +200,10 @@ while True:
                     send_e(f"DELAC:{pass__}")
                     print(f" >> DELAC:{pass__}")
                     if recv_d(512) == "VALID":
-                        to_c(f"\n🱫[COLOR][GRN] A verification code has "
-                             f"been sent to your email (code valid for 15 minutes)")
+                        to_c("\n🱫[COLOR][GRN] A verification code has "
+                             "been sent to your email (code valid for 15 minutes)")
                         while True:
-                            to_c(f"\n🱫[COLOR][YEL] Enter 16 char code", 0.1)
+                            to_c("\n🱫[COLOR][YEL] Enter 16 char code", 0.1)
                             email_code = ""
                             while len(email_code) != 16:
                                 email_code = receive().replace("-", "").upper()
@@ -248,15 +211,15 @@ while True:
                             print(f" >> {email_code}")
                             verify_dk_resp = recv_d(512)
                             if verify_dk_resp == "VALID":
-                                print(f" << VALID:ACCOUNT_DELETED")
-                                to_c(f"\n🱫[COLOR][GRN] Request valid, account deleted")
+                                print(" << VALID:ACCOUNT_DELETED")
+                                to_c("\n🱫[COLOR][GRN] Request valid, account deleted")
                                 try:
                                     os.remove("auth.txt")
                                 except FileNotFoundError:
                                     pass
                                 exit.update("LOGOUT")
                             else:
-                                print(f" << INVALID_CODE")
+                                print(" << INVALID_CODE")
                                 to_c("\n🱫[COLOR][RED] Invalid email code")
                     else:
                         to_c("\n🱫[COLOR][RED] Password incorrect, exiting account deletion")
@@ -344,18 +307,18 @@ while True:
                     if not auth_data[0] == b"":
                         try:
                             user.update_key('uid', mac_dec(auth_data[0]))
-                            print(f"LOADED UID")
+                            print("LOADED UID")
                         except zlib.error:
                             pass
                         try:
                             device_key = mac_dec(auth_data[1])
-                            print(f"LOADED DK")
+                            print("LOADED DK")
                         except zlib.error:
                             pass
                 if len(auth_data) > 2:
                     try:
                         user.update_key('sk', mac_dec(auth_data[2]))
-                        print(f"LOADED SK")
+                        print("LOADED SK")
                     except zlib.error:
                         pass
 
@@ -415,12 +378,12 @@ while True:
 
             def make_new_dk():
                 print("Get a new device_key and session_key")
-                device_key_ = enc.hex_gens(128)
+                device_key_ = enc.rand_b96_string(128)
                 salted_dk = enc.pass_to_seed(device_key_, mac)
-                to_c(f"\n🱫[COLOR][GRN] A verification code has "
+                to_c("\n🱫[COLOR][GRN] A verification code has "
                      f"been sent to '{email}' (code valid for 15 minutes)")
                 while True:
-                    to_c(f"\n🱫[COLOR][YEL] Enter 16 char code", 0.1)
+                    to_c("\n🱫[COLOR][YEL] Enter 16 char code", 0.1)
                     email_code = ""
                     while len(email_code) != 16:
                         email_code = receive().replace("-", "").upper()
@@ -513,10 +476,10 @@ while True:
                                 else:
                                     to_c("\n🱫[COLOR][RED] PASSWORDS DO NOT MATCH!")
                                     n_pass_1 = None
-                        to_c(f"\n🱫[COLOR][GRN] A verification code has "
-                             f"been sent to your email (code valid for 15 minutes)")
+                        to_c("\n🱫[COLOR][GRN] A verification code has "
+                             "been sent to your email (code valid for 15 minutes)")
                         while True:
-                            to_c(f"\n🱫[COLOR][YEL] Enter 16 char code", 0.1)
+                            to_c("\n🱫[COLOR][YEL] Enter 16 char code", 0.1)
                             email_code = ""
                             while len(email_code) != 16:
                                 email_code = receive().replace("-", "").upper()
@@ -524,11 +487,11 @@ while True:
                             print(f" >> {email_code}")
                             verify_dk_resp = recv_d(512)
                             if verify_dk_resp == "VALID":
-                                print(f" << VALID:PASS_CHANGE")
-                                to_c(f"\n🱫[COLOR][GRN] Request valid, password changed")
+                                print(" << VALID:PASS_CHANGE")
+                                to_c("\n🱫[COLOR][GRN] Request valid, password changed")
                                 break
                             else:
-                                print(f" << INVALID_CODE")
+                                print(" << INVALID_CODE")
                                 to_c("\n🱫[COLOR][RED] Invalid email code")
 
         print("Version updater")
@@ -561,7 +524,7 @@ while True:
             if request.startswith("-change name"):
                 username = request[13:].replace("#", "").replace(" ", "")
                 if username == user.key('u_name')[:-5]:
-                    to_c(f"\n🱫[COLOR][RED] Username cannot be the same as previous username")
+                    to_c("\n🱫[COLOR][RED] Username cannot be the same as previous username")
                 else:
                     if 4 < len(username) < 33:
                         send_e(f"CUSRN:{username}")
@@ -571,8 +534,8 @@ while True:
                             print(" << INVALID_NAME")
                             to_c("\n🱫[COLOR][RED] Username already taken")
                         else:
-                            print(f" << VALID")
-                            to_c(f"\n🱫[COLOR][GRN] Username changed to "
+                            print(" << VALID")
+                            to_c("\n🱫[COLOR][GRN] Username changed to "
                                  f"{new_u_name_resp[6:]} from {user.key('u_name')}")
                             user.update_key('u_name', new_u_name_resp[6:])
                     else:
@@ -584,11 +547,21 @@ while True:
             pass
         if exit_reason == "CONNECTION_LOST":
             print("SERVER CONNECTION LOST, RELOADING")
-            to_c(f"\n🱫[COLOR][RED] Connection lost - Reloading")
+            to_c("\n🱫[COLOR][RED] Connection lost - Reloading")
             pass
-        if exit_reason == "RELOAD":
+        if exit_reason in ["RELOAD", "UI", "UIR"]:
+            if exit_reason in ["UI", "UIR"]:
+                if ui:
+                    to_c("🱫[EXIT]")
+                    s.close()
+                    ui_s = False
+                    if exit_reason == "UI":
+                        ui = False
+                else:
+                    ui = True
             print("RELOADING")
-            to_c(f"\n🱫[COLOR][GRN] -- Reloading --")
+            to_c("🱫[CLRO]")
+            to_c("\n🱫[COLOR][GRN] -- Reloading --", 0.1)
             pass
         if exit_reason == "UPDATE":
             with open("Update.zip", "wb") as f:
@@ -604,14 +577,11 @@ while True:
                 os.startfile("updater.exe")
                 break
             else:
-                to_c(f"\n🱫[COLOR][RED] Update files corrupt")
+                to_c("\n🱫[COLOR][RED] Update files corrupt")
                 pass
         if exit_reason in ["RESTART", "EXIT"]:
             to_c("🱫[EXIT]")
             s.close()
-        if exit_reason == "RESTART":
-            os.startfile("rdisc.exe")
-            break
         if exit_reason == "EXIT":
             break
 

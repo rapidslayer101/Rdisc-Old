@@ -177,6 +177,11 @@ namespace Rchat
 				MainInput.SelectionStart = MainInput.Text.Length;
 			}
 
+			if (readData.StartsWith("﻿🱫[CLRO]"))
+			{
+				MainOutput.Text = "";
+			}
+
 			if (readData.StartsWith("\n🱫﻿[COLOR]"))
 			{
 				readData = readData.Replace("🱫[COLOR]", "");
@@ -415,7 +420,7 @@ namespace Rchat
 
 		private void restartToolStripMenuItem_Click_1(object sender, EventArgs e)
 		{
-			byte[] bytes = Encoding.Unicode.GetBytes("🱫[RESTART]");
+			byte[] bytes = Encoding.Unicode.GetBytes("🱫[UIR]");
 			serverStream.Write(bytes, 0, bytes.Length);
 			serverStream.Flush();
 			Application.Exit();
@@ -474,6 +479,14 @@ namespace Rchat
         private void changePasswordToolStripMenuItem_Click(object sender, EventArgs e)
         {
 			byte[] bytes = Encoding.Unicode.GetBytes("🱫[CNGPASS]");
+			MainOutput.Text = "";
+			serverStream.Write(bytes, 0, bytes.Length);
+			serverStream.Flush();
+		}
+
+        private void uIToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+			byte[] bytes = Encoding.Unicode.GetBytes("🱫[UI]");
 			MainOutput.Text = "";
 			serverStream.Write(bytes, 0, bytes.Length);
 			serverStream.Flush();

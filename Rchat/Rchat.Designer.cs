@@ -58,6 +58,7 @@
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.Timer1 = new System.Windows.Forms.Timer(this.components);
             this.BottomPanel = new System.Windows.Forms.Panel();
+            this.uIToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.TopPanel.SuspendLayout();
             this.Menu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.MainInput_pic)).BeginInit();
@@ -200,17 +201,18 @@
             // optionsToolStripMenuItem
             // 
             this.optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.uIToolStripMenuItem,
             this.reloadToolStripMenuItem,
             this.restartToolStripMenuItem,
             this.quitToolStripMenuItem});
-            this.optionsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
+            this.optionsToolStripMenuItem.ForeColor = System.Drawing.SystemColors.ControlText;
             this.optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
             this.optionsToolStripMenuItem.Size = new System.Drawing.Size(41, 19);
             this.optionsToolStripMenuItem.Text = "App";
             // 
             // reloadToolStripMenuItem
             // 
-            this.reloadToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
+            this.reloadToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(66)))), ((int)(((byte)(66)))), ((int)(((byte)(66)))));
             this.reloadToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.reloadToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
             this.reloadToolStripMenuItem.Name = "reloadToolStripMenuItem";
@@ -221,7 +223,7 @@
             // 
             // restartToolStripMenuItem
             // 
-            this.restartToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(66)))), ((int)(((byte)(66)))), ((int)(((byte)(66)))));
+            this.restartToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
             this.restartToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.restartToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
             this.restartToolStripMenuItem.Name = "restartToolStripMenuItem";
@@ -340,7 +342,7 @@
             this.fontToolStripMenuItem,
             this.fontSizeToolStripMenuItem,
             this.fontCommandToolStripMenuItem});
-            this.preferencesToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
+            this.preferencesToolStripMenuItem.ForeColor = System.Drawing.SystemColors.ControlText;
             this.preferencesToolStripMenuItem.Name = "preferencesToolStripMenuItem";
             this.preferencesToolStripMenuItem.Size = new System.Drawing.Size(80, 19);
             this.preferencesToolStripMenuItem.Text = "Preferences";
@@ -352,9 +354,9 @@
             this.arialToolStripMenuItem,
             this.lucidaSansUnicodeToolStripMenuItem});
             this.fontToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.fontToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
+            this.fontToolStripMenuItem.ForeColor = System.Drawing.SystemColors.ControlText;
             this.fontToolStripMenuItem.Name = "fontToolStripMenuItem";
-            this.fontToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
+            this.fontToolStripMenuItem.Size = new System.Drawing.Size(180, 24);
             this.fontToolStripMenuItem.Text = "Font";
             // 
             // arialToolStripMenuItem
@@ -382,9 +384,9 @@
             this.toolStripMenuItem3,
             this.toolStripMenuItem4});
             this.fontSizeToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.fontSizeToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
+            this.fontSizeToolStripMenuItem.ForeColor = System.Drawing.SystemColors.ControlText;
             this.fontSizeToolStripMenuItem.Name = "fontSizeToolStripMenuItem";
-            this.fontSizeToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
+            this.fontSizeToolStripMenuItem.Size = new System.Drawing.Size(180, 24);
             this.fontSizeToolStripMenuItem.Text = "Font size";
             // 
             // toolStripMenuItem5
@@ -427,9 +429,9 @@
             // 
             this.fontCommandToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
             this.fontCommandToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.fontCommandToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
+            this.fontCommandToolStripMenuItem.ForeColor = System.Drawing.SystemColors.ControlText;
             this.fontCommandToolStripMenuItem.Name = "fontCommandToolStripMenuItem";
-            this.fontCommandToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
+            this.fontCommandToolStripMenuItem.Size = new System.Drawing.Size(180, 24);
             this.fontCommandToolStripMenuItem.Text = "Font command";
             this.fontCommandToolStripMenuItem.Click += new System.EventHandler(this.fontCommandToolStripMenuItem_Click);
             // 
@@ -540,6 +542,17 @@
             this.BottomPanel.Size = new System.Drawing.Size(1259, 26);
             this.BottomPanel.TabIndex = 0;
             // 
+            // uIToolStripMenuItem
+            // 
+            this.uIToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
+            this.uIToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.uIToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
+            this.uIToolStripMenuItem.Name = "uIToolStripMenuItem";
+            this.uIToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.U)));
+            this.uIToolStripMenuItem.Size = new System.Drawing.Size(195, 24);
+            this.uIToolStripMenuItem.Text = "Disable UI";
+            this.uIToolStripMenuItem.Click += new System.EventHandler(this.uIToolStripMenuItem_Click);
+            // 
             // Rchat
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -618,5 +631,6 @@
         private System.Windows.Forms.ToolStripMenuItem confirmAccountDeletetionToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem changeNameToolStripMenuItem1;
         private System.Windows.Forms.ToolStripMenuItem changePasswordToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem uIToolStripMenuItem;
     }
 }
