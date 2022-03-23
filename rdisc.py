@@ -45,7 +45,7 @@ while True:
             else:
                 os.startfile("ui.exe")
                 print(" <- ui.exe launched")
-                ui_s.listen()
+                ui_s.listen(1)
                 cs, client_address = ui_s.accept()
 
                 def to_c(text, delay=None):
@@ -520,6 +520,7 @@ while True:
         to_c("🱫[INP SHOW]🱫", 0.1)
         print("Logged in loop")
         while True:
+            # user data loading
             request = receive()
             if request.startswith("-change name"):
                 username = request[13:].replace("#", "").replace(" ", "")

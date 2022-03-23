@@ -25,6 +25,7 @@
             this.TopPanel = new System.Windows.Forms.Panel();
             this.Menu = new System.Windows.Forms.MenuStrip();
             this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.uIToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.reloadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.restartToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.quitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -51,19 +52,20 @@
             this.MainOutput_backing_pic = new System.Windows.Forms.PictureBox();
             this.Background = new System.Windows.Forms.Panel();
             this.LeftPanel = new System.Windows.Forms.Panel();
+            this.DM_select = new System.Windows.Forms.ListBox();
+            this.Friends_label = new System.Windows.Forms.Label();
             this.clock = new System.Windows.Forms.Label();
             this.runtime = new System.Windows.Forms.Label();
             this.Mninp_Bk = new System.Windows.Forms.Panel();
             this.MainOutput = new System.Windows.Forms.RichTextBox();
-            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.Timer1 = new System.Windows.Forms.Timer(this.components);
             this.BottomPanel = new System.Windows.Forms.Panel();
-            this.uIToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.TopPanel.SuspendLayout();
             this.Menu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.MainInput_pic)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.MainOutput_backing_pic)).BeginInit();
             this.Background.SuspendLayout();
+            this.LeftPanel.SuspendLayout();
             this.SuspendLayout();
             // 
             // Send
@@ -71,7 +73,7 @@
             this.Send.FlatAppearance.BorderSize = 0;
             this.Send.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.Send.Image = ((System.Drawing.Image)(resources.GetObject("Send.Image")));
-            this.Send.Location = new System.Drawing.Point(1201, 560);
+            this.Send.Location = new System.Drawing.Point(1201, 564);
             this.Send.Name = "Send";
             this.Send.Size = new System.Drawing.Size(50, 50);
             this.Send.TabIndex = 5;
@@ -87,7 +89,7 @@
             this.MainInput.EnableAutoDragDrop = true;
             this.MainInput.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.MainInput.ForeColor = System.Drawing.Color.White;
-            this.MainInput.Location = new System.Drawing.Point(278, 597);
+            this.MainInput.Location = new System.Drawing.Point(278, 601);
             this.MainInput.MaxLength = 4000;
             this.MainInput.Name = "MainInput";
             this.MainInput.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
@@ -103,7 +105,7 @@
             this.VersionLabel.AutoSize = true;
             this.VersionLabel.Font = new System.Drawing.Font("Montserrat", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.VersionLabel.ForeColor = System.Drawing.Color.White;
-            this.VersionLabel.Location = new System.Drawing.Point(5, 6);
+            this.VersionLabel.Location = new System.Drawing.Point(5, 2);
             this.VersionLabel.Name = "VersionLabel";
             this.VersionLabel.Size = new System.Drawing.Size(124, 22);
             this.VersionLabel.TabIndex = 7;
@@ -177,7 +179,7 @@
             this.TopPanel.Controls.Add(this.Resize);
             this.TopPanel.Location = new System.Drawing.Point(2, 0);
             this.TopPanel.Name = "TopPanel";
-            this.TopPanel.Size = new System.Drawing.Size(1262, 26);
+            this.TopPanel.Size = new System.Drawing.Size(1262, 24);
             this.TopPanel.TabIndex = 9;
             this.TopPanel.MouseMove += new System.Windows.Forms.MouseEventHandler(this.panel1_MouseMove);
             // 
@@ -209,6 +211,17 @@
             this.optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
             this.optionsToolStripMenuItem.Size = new System.Drawing.Size(41, 19);
             this.optionsToolStripMenuItem.Text = "App";
+            // 
+            // uIToolStripMenuItem
+            // 
+            this.uIToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
+            this.uIToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.uIToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
+            this.uIToolStripMenuItem.Name = "uIToolStripMenuItem";
+            this.uIToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.U)));
+            this.uIToolStripMenuItem.Size = new System.Drawing.Size(195, 24);
+            this.uIToolStripMenuItem.Text = "Disable UI";
+            this.uIToolStripMenuItem.Click += new System.EventHandler(this.uIToolStripMenuItem_Click);
             // 
             // reloadToolStripMenuItem
             // 
@@ -356,7 +369,7 @@
             this.fontToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.fontToolStripMenuItem.ForeColor = System.Drawing.SystemColors.ControlText;
             this.fontToolStripMenuItem.Name = "fontToolStripMenuItem";
-            this.fontToolStripMenuItem.Size = new System.Drawing.Size(180, 24);
+            this.fontToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
             this.fontToolStripMenuItem.Text = "Font";
             // 
             // arialToolStripMenuItem
@@ -386,7 +399,7 @@
             this.fontSizeToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.fontSizeToolStripMenuItem.ForeColor = System.Drawing.SystemColors.ControlText;
             this.fontSizeToolStripMenuItem.Name = "fontSizeToolStripMenuItem";
-            this.fontSizeToolStripMenuItem.Size = new System.Drawing.Size(180, 24);
+            this.fontSizeToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
             this.fontSizeToolStripMenuItem.Text = "Font size";
             // 
             // toolStripMenuItem5
@@ -431,7 +444,7 @@
             this.fontCommandToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.fontCommandToolStripMenuItem.ForeColor = System.Drawing.SystemColors.ControlText;
             this.fontCommandToolStripMenuItem.Name = "fontCommandToolStripMenuItem";
-            this.fontCommandToolStripMenuItem.Size = new System.Drawing.Size(180, 24);
+            this.fontCommandToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
             this.fontCommandToolStripMenuItem.Text = "Font command";
             this.fontCommandToolStripMenuItem.Click += new System.EventHandler(this.fontCommandToolStripMenuItem_Click);
             // 
@@ -462,18 +475,44 @@
             this.Background.Controls.Add(this.runtime);
             this.Background.Controls.Add(this.Mninp_Bk);
             this.Background.Controls.Add(this.Send);
-            this.Background.Location = new System.Drawing.Point(4, 29);
+            this.Background.Location = new System.Drawing.Point(4, 25);
             this.Background.Name = "Background";
-            this.Background.Size = new System.Drawing.Size(1259, 639);
+            this.Background.Size = new System.Drawing.Size(1259, 643);
             this.Background.TabIndex = 17;
             // 
             // LeftPanel
             // 
             this.LeftPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(45)))));
+            this.LeftPanel.Controls.Add(this.DM_select);
+            this.LeftPanel.Controls.Add(this.Friends_label);
             this.LeftPanel.Location = new System.Drawing.Point(0, 0);
             this.LeftPanel.Name = "LeftPanel";
             this.LeftPanel.Size = new System.Drawing.Size(250, 635);
             this.LeftPanel.TabIndex = 8;
+            // 
+            // DM_select
+            // 
+            this.DM_select.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(45)))));
+            this.DM_select.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.DM_select.Font = new System.Drawing.Font("Montserrat", 10F, System.Drawing.FontStyle.Bold);
+            this.DM_select.ForeColor = System.Drawing.Color.White;
+            this.DM_select.FormattingEnabled = true;
+            this.DM_select.ItemHeight = 18;
+            this.DM_select.Location = new System.Drawing.Point(18, 41);
+            this.DM_select.Name = "DM_select";
+            this.DM_select.Size = new System.Drawing.Size(213, 558);
+            this.DM_select.TabIndex = 2;
+            // 
+            // Friends_label
+            // 
+            this.Friends_label.AutoSize = true;
+            this.Friends_label.Font = new System.Drawing.Font("Montserrat", 10F, System.Drawing.FontStyle.Bold);
+            this.Friends_label.ForeColor = System.Drawing.Color.White;
+            this.Friends_label.Location = new System.Drawing.Point(76, 6);
+            this.Friends_label.Name = "Friends_label";
+            this.Friends_label.Size = new System.Drawing.Size(95, 20);
+            this.Friends_label.TabIndex = 0;
+            this.Friends_label.Text = "Friends (0)";
             // 
             // clock
             // 
@@ -501,7 +540,7 @@
             // Mninp_Bk
             // 
             this.Mninp_Bk.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
-            this.Mninp_Bk.Location = new System.Drawing.Point(264, 561);
+            this.Mninp_Bk.Location = new System.Drawing.Point(264, 565);
             this.Mninp_Bk.Name = "Mninp_Bk";
             this.Mninp_Bk.Size = new System.Drawing.Size(932, 50);
             this.Mninp_Bk.TabIndex = 0;
@@ -516,17 +555,12 @@
             this.MainOutput.Location = new System.Drawing.Point(278, 36);
             this.MainOutput.Name = "MainOutput";
             this.MainOutput.ReadOnly = true;
-            this.MainOutput.Size = new System.Drawing.Size(875, 520);
+            this.MainOutput.Size = new System.Drawing.Size(875, 524);
             this.MainOutput.TabIndex = 4;
             this.MainOutput.TabStop = false;
             this.MainOutput.Text = "";
             this.MainOutput.LinkClicked += new System.Windows.Forms.LinkClickedEventHandler(this.MainOutput_LinkClicked);
             this.MainOutput.TextChanged += new System.EventHandler(this.MainOutput_TextChanged);
-            // 
-            // contextMenuStrip1
-            // 
-            this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(61, 4);
             // 
             // Timer1
             // 
@@ -541,17 +575,6 @@
             this.BottomPanel.Name = "BottomPanel";
             this.BottomPanel.Size = new System.Drawing.Size(1259, 26);
             this.BottomPanel.TabIndex = 0;
-            // 
-            // uIToolStripMenuItem
-            // 
-            this.uIToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
-            this.uIToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.uIToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
-            this.uIToolStripMenuItem.Name = "uIToolStripMenuItem";
-            this.uIToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.U)));
-            this.uIToolStripMenuItem.Size = new System.Drawing.Size(195, 24);
-            this.uIToolStripMenuItem.Text = "Disable UI";
-            this.uIToolStripMenuItem.Click += new System.EventHandler(this.uIToolStripMenuItem_Click);
             // 
             // Rchat
             // 
@@ -582,6 +605,8 @@
             ((System.ComponentModel.ISupportInitialize)(this.MainOutput_backing_pic)).EndInit();
             this.Background.ResumeLayout(false);
             this.Background.PerformLayout();
+            this.LeftPanel.ResumeLayout(false);
+            this.LeftPanel.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -615,7 +640,6 @@
         private System.Windows.Forms.Panel Background;
         private System.Windows.Forms.Panel Mninp_Bk;
         private System.Windows.Forms.RichTextBox MainOutput;
-        private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.Label runtime;
         private System.Windows.Forms.Label clock;
         private System.Windows.Forms.Timer Timer1;
@@ -632,5 +656,7 @@
         private System.Windows.Forms.ToolStripMenuItem changeNameToolStripMenuItem1;
         private System.Windows.Forms.ToolStripMenuItem changePasswordToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem uIToolStripMenuItem;
+        private System.Windows.Forms.Label Friends_label;
+        private System.Windows.Forms.ListBox DM_select;
     }
 }

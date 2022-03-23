@@ -1,11 +1,10 @@
-import datetime, zlib, socket, os
-import rsa
+import datetime, zlib, socket, os, rsa
 from threading import Thread
 from random import choice, randint
 import enclib as enc
 
-min_version = "V0.31.0.0"  # CHANGE MIN CLIENT REQ VERSION HERE
-stable_release = "V0.32.0.0"
+min_version = "V0.32.1.0"  # CHANGE MIN CLIENT REQ VERSION HERE
+stable_release = "V0.32.1.0"
 stable_release_zip = f"rdisc-{stable_release[1:-2]}.zip"
 default_salt = """TO$X-YkP#XGl>>Nw@tt ~$c[{N-uF&#~+h#<84@W3 57dkX.V'1el~1JcyMTuRwjG
                   DxnI,ufxSNzdgJyQn<-Qj--.PN+y=Gk.F/(B'Fq+D@,$*9&[`Bt.W3i;0{UN7K="""

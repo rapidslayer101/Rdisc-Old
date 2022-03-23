@@ -22,7 +22,6 @@ namespace Rchat
 	public Rchat()
 		{
 			InitializeComponent();
-			FormBorderStyle = FormBorderStyle.None;
 			Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Width, Height, 20, 20));
 			Background.Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Background.Width, Background.Height, 20, 20));
 			Mninp_Bk.Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Mninp_Bk.Width, Mninp_Bk.Height, 20, 20));
