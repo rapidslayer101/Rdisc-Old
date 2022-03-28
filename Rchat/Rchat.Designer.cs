@@ -60,6 +60,7 @@
             this.MainOutput = new System.Windows.Forms.RichTextBox();
             this.Timer1 = new System.Windows.Forms.Timer(this.components);
             this.BottomPanel = new System.Windows.Forms.Panel();
+            this.addFriendToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.TopPanel.SuspendLayout();
             this.Menu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.MainInput_pic)).BeginInit();
@@ -260,6 +261,7 @@
             // accountToolStripMenuItem
             // 
             this.accountToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.addFriendToolStripMenuItem,
             this.changeNameToolStripMenuItem1,
             this.changePasswordToolStripMenuItem,
             this.logoutToolStripMenuItem1,
@@ -270,7 +272,7 @@
             // 
             // changeNameToolStripMenuItem1
             // 
-            this.changeNameToolStripMenuItem1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
+            this.changeNameToolStripMenuItem1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(66)))), ((int)(((byte)(66)))), ((int)(((byte)(66)))));
             this.changeNameToolStripMenuItem1.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.changeNameToolStripMenuItem1.ForeColor = System.Drawing.Color.Yellow;
             this.changeNameToolStripMenuItem1.Name = "changeNameToolStripMenuItem1";
@@ -280,7 +282,7 @@
             // 
             // changePasswordToolStripMenuItem
             // 
-            this.changePasswordToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(66)))), ((int)(((byte)(66)))), ((int)(((byte)(66)))));
+            this.changePasswordToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
             this.changePasswordToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.changePasswordToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
             this.changePasswordToolStripMenuItem.Name = "changePasswordToolStripMenuItem";
@@ -290,7 +292,7 @@
             // 
             // logoutToolStripMenuItem1
             // 
-            this.logoutToolStripMenuItem1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
+            this.logoutToolStripMenuItem1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(66)))), ((int)(((byte)(66)))), ((int)(((byte)(66)))));
             this.logoutToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.logoutThisDeviceToolStripMenuItem,
             this.logoutAllDevicesToolStripMenuItem});
@@ -576,6 +578,16 @@
             this.BottomPanel.Size = new System.Drawing.Size(1259, 26);
             this.BottomPanel.TabIndex = 0;
             // 
+            // addFriendToolStripMenuItem
+            // 
+            this.addFriendToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(66)))), ((int)(((byte)(66)))), ((int)(((byte)(66)))));
+            this.addFriendToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.addFriendToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
+            this.addFriendToolStripMenuItem.Name = "addFriendToolStripMenuItem";
+            this.addFriendToolStripMenuItem.Size = new System.Drawing.Size(185, 24);
+            this.addFriendToolStripMenuItem.Text = "Add friend";
+            this.addFriendToolStripMenuItem.Click += new System.EventHandler(this.addFriendToolStripMenuItem_Click);
+            // 
             // Rchat
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -658,5 +670,6 @@
         private System.Windows.Forms.ToolStripMenuItem uIToolStripMenuItem;
         private System.Windows.Forms.Label Friends_label;
         private System.Windows.Forms.ListBox DM_select;
+        private System.Windows.Forms.ToolStripMenuItem addFriendToolStripMenuItem;
     }
 }

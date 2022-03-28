@@ -30,9 +30,11 @@
 0.30 change pass, forgot pass
 0.31 updator
 0.32 ui hot switching, redone restart
+0.33 smaller responses, fixed single session issues, fixed versioning
 
-0.33 use CLI even when UI active, friending (on/offline)
+0.34 friending (on/offline)
 
-0.34 connecting to online friends
-0.35 basic DM chat functionality with client to server to client connections and keys
-0.36 pass and unames rate limit, downloading, saving, load req files from a first time setup file
+0.35 connecting to online friends
+0.36 basic DM chat functionality with client to server to client connections and keys
+0.37 pass and unames rate limit, downloading, saving, load req files from a first time setup file
+0.38 use CLI even when UI active,

@@ -167,10 +167,10 @@ while True:
                 print(f" >> CPASS:{old_pass}🱫{n_pass_1}")
                 cng_pass_resp = recv_d(512)
                 print(f" << {cng_pass_resp}")
-                if cng_pass_resp == "VALID":
+                if cng_pass_resp == "V":
                     to_c("\n🱫[COLOR][GRN] Success! Password has been changed")
                 else:
-                    if cng_pass_resp == "SAME_PASS":
+                    if cng_pass_resp == "SP":
                         to_c("\n🱫[COLOR][RED] Old pass and new pass are the same, exiting password change")
                     else:
                         to_c("\n🱫[COLOR][RED] Old password incorrect, exiting password change")
@@ -199,7 +199,7 @@ while True:
                     pass__ = enc.pass_to_seed(receive("\n🱫[COLOR][YEL] Enter password to delete account"), default_salt)
                     send_e(f"DELAC:{pass__}")
                     print(f" >> DELAC:{pass__}")
-                    if recv_d(512) == "VALID":
+                    if recv_d(512) == "V":
                         to_c("\n🱫[COLOR][GRN] A verification code has "
                              "been sent to your email (code valid for 15 minutes)")
                         while True:
@@ -209,8 +209,7 @@ while True:
                                 email_code = receive().replace("-", "").upper()
                             send_e(f"{email_code}")
                             print(f" >> {email_code}")
-                            verify_dk_resp = recv_d(512)
-                            if verify_dk_resp == "VALID":
+                            if recv_d(512) == "V":
                                 print(" << VALID:ACCOUNT_DELETED")
                                 to_c("\n🱫[COLOR][GRN] Request valid, account deleted")
                                 try:
@@ -297,7 +296,10 @@ while True:
                 exit.update("CONNECTION_LOST")
 
         def recv_d(buf_lim):
-            return enc.encrypt("d", s.recv(buf_lim), alpha, shift_seed, enc_salt)
+            try:
+                return enc.encrypt("d", s.recv(buf_lim), alpha, shift_seed, enc_salt)
+            except ConnectionResetError:
+                exit.update("CONNECTION_LOST")
 
         device_key = False
         if os.path.isfile("auth.txt"):
@@ -327,13 +329,18 @@ while True:
             send_e(f"LOGIN:{user.key('uid')}🱫{user.key('sk')}")
             print(f" >> LOGIN:{user.key('uid')}🱫{user.key('sk')}")
             login_req_resp = recv_d(512)
-            if login_req_resp.startswith("VALID:"):
+            if login_req_resp.startswith("V"):
                 print(f" << {login_req_resp}")
-                user.update_key('u_name', login_req_resp[6:])
+                user.update_key('u_name', login_req_resp[1:])
                 return True
             else:
-                print(" << INVALID_SK")
-                return False
+                if login_req_resp == "SESH_T":
+                    to_c("\n🱫[COLOR][RED] User logged in on another device or multiple app instances open")
+                    print(" << SESSION_TAKEN")
+                    exit.update("SESH_TAKEN")
+                    return False
+                else:
+                    return False
 
         while True:  # login loop
             if user.key('sk'):
@@ -344,18 +351,18 @@ while True:
                 send_e(f"NEWSK:{user.key('uid')}🱫{enc.pass_to_seed(device_key, mac)}")
                 print(f" >> NEWSK:{user.key('uid')}🱫{enc.pass_to_seed(device_key, mac)}")
                 dk_req_resp = recv_d(512)
-                if dk_req_resp.startswith("VALID:"):
-                    session_key = dk_req_resp[6:]
+                if dk_req_resp.startswith("V"):
+                    session_key = dk_req_resp[1:]
                     print(f" << VALID:{session_key}")
                     auth_txt_write(user.key('uid'), device_key, session_key)
                     user.update_key('sk', session_key)
                     if login():
                         break
                 else:
-                    if dk_req_resp == "SESSION_TAKEN":
+                    if dk_req_resp == "SESH_T":
                         to_c("\n🱫[COLOR][RED] User logged in on another device or multiple app instances open")
                         print(" << SESSION_TAKEN")
-                        exit.update("SESSION_TAKEN")
+                        exit.update("SESH_TAKEN")
                     else:
                         print(" << INVALID_DK")
 
@@ -390,13 +397,13 @@ while True:
                     send_e(f"{email_code}🱫{salted_dk}")
                     print(f" >> {email_code}🱫{salted_dk}")
                     verify_dk_resp = recv_d(512)
-                    if verify_dk_resp.startswith("VALID:"):
+                    if verify_dk_resp.startswith("V"):
                         print(f" << {verify_dk_resp}")
                         break
                     else:
                         print(" << INVALID_CODE")
                         to_c("\n🱫[COLOR][RED] Invalid email code")
-                uid, session_key_ = verify_dk_resp[6:].split("🱫")
+                uid, session_key_ = verify_dk_resp[1:].split("🱫")
                 auth_txt_write(uid, device_key_, session_key_)
                 user.update_key('sk', session_key_)
                 user.update_key('uid', uid)
@@ -410,14 +417,14 @@ while True:
                     send_e(f"NEWDK:{email}🱫{pass_}")
                     print(f" >> NEWDK:{email}🱫{pass_}")
                     new_dk_resp = recv_d(64)
-                    if new_dk_resp == "INVALID":
+                    if new_dk_resp == "N":
                         print(" << INVALID")
                         to_c("\n🱫[COLOR][RED] Email or password invalid")
                     else:
-                        if new_dk_resp == "SESSION_TAKEN":
+                        if new_dk_resp == "SESH_T":
                             to_c("\n🱫[COLOR][RED] User logged in on another device or multiple app instances open")
                             print(" << SESSION_TAKEN")
-                            exit.update("SESSION_TAKEN")
+                            exit.update("SESH_TAKEN")
                         else:
                             print(" << VALID")
                             break
@@ -443,7 +450,7 @@ while True:
                         send_e(f"NEWAC:{email}🱫{pass_}")
                         print(f" >> NEWAC:{email}🱫{pass_}")
                         new_ac_resp = recv_d(64)
-                        if new_ac_resp == "INVALID_EMAIL":
+                        if new_ac_resp == "N_MAIL":
                             print(" << INVALID_EMAIL")
                             to_c("\n🱫[COLOR][RED] Email was invalid, probably already taken")
                         else:
@@ -459,7 +466,7 @@ while True:
                 else:
                     print("Forgot password")
                     send_e(f"FGPAS:{enter_email()}")
-                    if recv_d(64) == "INVALID_EMAIL":
+                    if recv_d(64) == "N_MAIL":
                         print(" << INVALID_EMAIL")
                         to_c("\n🱫[COLOR][RED] Email invalid! No account was linked to this email")
                     else:
@@ -485,8 +492,7 @@ while True:
                                 email_code = receive().replace("-", "").upper()
                             send_e(f"{email_code}🱫{n_pass_1}")
                             print(f" >> {email_code}")
-                            verify_dk_resp = recv_d(512)
-                            if verify_dk_resp == "VALID":
+                            if recv_d(512) == "V":
                                 print(" << VALID:PASS_CHANGE")
                                 to_c("\n🱫[COLOR][GRN] Request valid, password changed")
                                 break
@@ -499,20 +505,20 @@ while True:
         print(f" >> {hashed}")
         v_check_resp = recv_d(512)
         print(f" << {v_check_resp}")
-        if v_check_resp.startswith("VALID:"):
+        if v_check_resp.startswith("V"):
             with open("version.txt", "w", encoding="utf-8") as f:
-                f.write(v_check_resp[6:])
-            version, tme, bld_num, run_num = v_check_resp[6:].split('🱫')
+                f.write(v_check_resp[1:])
+            version, tme, bld_num, run_num = v_check_resp[1:].split('🱫')
             version = f"{version} ✔"
             to_c(f"🱫[LODVS] {version}", 0.1)
 
-        if v_check_resp.startswith("INVALID:"):
-            version_up_info, update_size, update_hash = v_check_resp[8:].split("🱫")
+        if v_check_resp.startswith("N"):
+            version_up_info, update_size, update_hash = v_check_resp[1:].split("🱫")
             to_c(f"\n <> Updating rdisc {version_up_info} ({round(int(update_size)/1024/1024, 2)}MB)")
             exit.update("UPDATE")
 
-        if v_check_resp.startswith("UNKNOWN:"):
-            update_size, update_hash = v_check_resp[8:].split("🱫")
+        if v_check_resp.startswith("UNKNOWN"):
+            update_size, update_hash = v_check_resp[7:].split("🱫")
             to_c("\n🱫[COLOR][RED] <> INVALID OR CORRUPTED VERSION, downloading new copy")
             exit.update("UPDATE")
 
@@ -531,25 +537,44 @@ while True:
                         send_e(f"CUSRN:{username}")
                         print(f" >> CUSRN:{username}")
                         new_u_name_resp = recv_d(128)
-                        if new_u_name_resp == "INVALID_NAME":
+                        if new_u_name_resp == "N_NAME":
                             print(" << INVALID_NAME")
                             to_c("\n🱫[COLOR][RED] Username already taken")
                         else:
                             print(" << VALID")
                             to_c("\n🱫[COLOR][GRN] Username changed to "
-                                 f"{new_u_name_resp[6:]} from {user.key('u_name')}")
-                            user.update_key('u_name', new_u_name_resp[6:])
+                                 f"{new_u_name_resp[1:]} from {user.key('u_name')}")
+                            user.update_key('u_name', new_u_name_resp[1:])
                     else:
                         to_c(f"\n🱫[COLOR][RED] Username must be 5-32 chars, you entered: {username[:64]}")
 
+            if request.startswith("-add friend"):
+                add_friend_n = request[12:]
+                if 9 < len(add_friend_n) < 38:
+                    try:
+                        int(add_friend_n[-4:])
+                        if add_friend_n[-5] != "#":
+                            to_c(f"\n🱫[COLOR][RED] Tag missing or invalid (eg #0001)")
+                        else:
+                            send_e(f"ADDFR:{add_friend_n}")
+                            print(f" >> ADDFR:{add_friend_n}")
+                            new_fr_req = recv_d(128)
+                            print(new_fr_req)
+                    except ValueError:
+                        to_c(f"\n🱫[COLOR][RED] Invalid tag (tag example: #0001)")
+                else:
+                    to_c(f"\n🱫[COLOR][RED] Username+Tag must be 10-37 chars, you entered: {add_friend_n[:64]}")
+
     except AssertionError:
         exit_reason = str(exit.get(0))[2:-2]
-        if exit_reason == "SESSION_TAKEN":
-            pass
+        if exit_reason == "SESH_TAKEN":
+            to_c("🱫[INP SHOW]", 0.1)
+            receive("\n🱫[COLOR][YEL] Enter something to retry connection", 0.)
+            to_c("🱫[INP HIDE]", 0.1)
+            exit_reason = "RELOAD"
         if exit_reason == "CONNECTION_LOST":
             print("SERVER CONNECTION LOST, RELOADING")
             to_c("\n🱫[COLOR][RED] Connection lost - Reloading")
-            pass
         if exit_reason in ["RELOAD", "UI", "UIR"]:
             if exit_reason in ["UI", "UIR"]:
                 if ui:
@@ -563,7 +588,6 @@ while True:
             print("RELOADING")
             to_c("🱫[CLRO]")
             to_c("\n🱫[COLOR][GRN] -- Reloading --", 0.1)
-            pass
         if exit_reason == "UPDATE":
             with open("Update.zip", "wb") as f:
                 for i in range((int(update_size)//4096)+1):
@@ -571,7 +595,6 @@ while True:
                     if not bytes_read:
                         break
                     f.write(bytes_read)
-                    #to_c(f"\n{round(i/((int(update_size)//4096)+1)*100, 2)}%")
             if enc.hash_a_file("Update.zip") == update_hash:
                 to_c("🱫[EXIT]")
                 time.sleep(0.5)
@@ -579,7 +602,6 @@ while True:
                 break
             else:
                 to_c("\n🱫[COLOR][RED] Update files corrupt")
-                pass
         if exit_reason in ["RESTART", "EXIT"]:
             to_c("🱫[EXIT]")
             s.close()

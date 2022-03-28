@@ -260,28 +260,25 @@ namespace Rchat
 
 		private void MainInput_KeyDown(object sender, KeyEventArgs e)
 		{
+			if (MainInput.Visible == true)
+            {
+				if (e.KeyCode == Keys.Return)
+				{
+					e.Handled = true;
+					e.SuppressKeyPress = true;
+					byte[] bytes = Encoding.Unicode.GetBytes(MainInput.Text);
+					MainInput.Text = "";
+					serverStream.Write(bytes, 0, bytes.Length);
+					serverStream.Flush();
+				}
+				if (e.KeyCode == Keys.Back && MainInput.Text.Length == 0)
+				{
+					e.Handled = true;
+					e.SuppressKeyPress = true;
+				}
+			}
 
-			//if (e.KeyCode == Keys.Enter && e.Shift)
-			//{
-			//	MainInput.AppendText("");
-			//}
-			//else
-            //{
-			if (e.KeyCode == Keys.Return)
-			{
-				e.Handled = true;
-				e.SuppressKeyPress = true;
-				byte[] bytes = Encoding.Unicode.GetBytes(MainInput.Text);
-				MainInput.Text = "";
-				serverStream.Write(bytes, 0, bytes.Length);
-				serverStream.Flush();
-			}
-			//}
-			if (e.KeyCode == Keys.Back && MainInput.Text.Length == 0)
-			{
-				e.Handled = true;
-				e.SuppressKeyPress = true;
-			}
+
 		}
 
 		private void MainOutput_LinkClicked(object sender, LinkClickedEventArgs e)
@@ -475,7 +472,13 @@ namespace Rchat
 			MainInput.Select(MainInput.Text.Length, 0);
 		}
 
-        private void changePasswordToolStripMenuItem_Click(object sender, EventArgs e)
+		private void addFriendToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			MainInput.Text = "-add friend ";
+			MainInput.Select(MainInput.Text.Length, 0);
+		}
+
+		private void changePasswordToolStripMenuItem_Click(object sender, EventArgs e)
         {
 			byte[] bytes = Encoding.Unicode.GetBytes("🱫[CNGPASS]");
 			MainOutput.Text = "";
