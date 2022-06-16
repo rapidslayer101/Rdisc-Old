@@ -493,5 +493,10 @@ namespace Rchat
 			serverStream.Write(bytes, 0, bytes.Length);
 			serverStream.Flush();
 		}
+
+        private void Friends_label_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

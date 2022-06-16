@@ -6,8 +6,10 @@ import enclib as enc
 min_version = "V0.32.1.0"  # CHANGE MIN CLIENT REQ VERSION HERE
 stable_release = "V0.32.1.0"
 stable_release_zip = f"rdisc-{stable_release[1:-2]}.zip"
-update_size = os.path.getsize(stable_release_zip)
-update_hash = enc.hash_a_file(stable_release_zip)
+#update_size = os.path.getsize(stable_release_zip)
+update_size = 0
+#update_hash = enc.hash_a_file(stable_release_zip)
+update_hash = "null"
 default_salt = """TO$X-YkP#XGl>>Nw@tt ~$c[{N-uF&#~+h#<84@W3 57dkX.V'1el~1JcyMTuRwjG
                   DxnI,ufxSNzdgJyQn<-Qj--.PN+y=Gk.F/(B'Fq+D@,$*9&[`Bt.W3i;0{UN7K="""
 b62set = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
@@ -113,6 +115,7 @@ print(f"[*] Listening as {str(s).split('laddr=')[1][:-1]}")
 
 def client_connection(cs):
     try:
+        print("connection")
         ip_l, port = str(cs).split("raddr=")[1][2:-2].split("', ")
         ip_p1, ip_p2, ip_p3, ip_p4 = ip_l.split(".")
         ip = f"{enc.to_hex(10, 96, ip_p1)}§{enc.to_hex(10, 96, ip_p2)}" \
@@ -123,21 +126,21 @@ def client_connection(cs):
             pub_key_cli = rsa.PublicKey.load_pkcs1(cs.recv(256))
         except ValueError:
             raise AssertionError
-        enc_seed = enc.rand_b96_string(78)
-        enc_salt = enc.rand_b96_string(32)
+        enc_seed = enc.rand_b96_str(78)
+        enc_salt = enc.rand_b96_str(32)
         cs.send(rsa.encrypt(enc_seed.encode(), pub_key_cli))
         cs.send(rsa.encrypt(enc_salt.encode(), pub_key_cli))
-        alpha, shift_seed = enc.seed_to_data(enc_seed)
+        enc_key = enc.pass_to_key(enc_seed, enc_salt, 100000)
 
         def send_e(text):
             try:
-                cs.send(enc.encrypt("e", text, alpha, shift_seed, enc_salt))
+                cs.send(enc.enc_from_key(text, enc_key))
             except zlib.error:
                 raise ConnectionResetError
 
         def recv_d(buf_lim):
             try:
-                return enc.encrypt("d", cs.recv(buf_lim), alpha, shift_seed, enc_salt)
+                return enc.dec_from_key(cs.recv(buf_lim), enc_key)
             except zlib.error:
                 raise ConnectionResetError
 
@@ -163,7 +166,7 @@ def client_connection(cs):
                 try:
                     email_code_cli, device_key_ = recv_d(1024).split("🱫")
                     if email_code == email_code_cli:
-                        session_key_ = enc.pass_to_seed(enc.rand_b96_string(128), default_salt)
+                        session_key_ = enc.pass_to_seed(enc.rand_b96_str(128), default_salt)
                         break
                     else:
                         send_e("N_CODE")
@@ -281,7 +284,7 @@ def client_connection(cs):
                                 dk_ = line.split("🱫")[0]
                                 dk_l_n += 1
                                 if dk == dk_:
-                                    session_key = enc.pass_to_seed(enc.rand_b96_string(128), default_salt)
+                                    session_key = enc.pass_to_seed(enc.rand_b96_str(128), default_salt)
                                     lines[dk_l_n] = f"{dk_}🱫{ip}🱫{session_key}\n"
                                     dk_valid = True
                         if not dk_valid:

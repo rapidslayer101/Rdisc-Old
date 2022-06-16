@@ -11,3 +11,13 @@ C:\Users\rapidslayer101\source\repos\Rchat\obj\Release\ui.exe
 C:\Users\rapidslayer101\source\repos\Rchat\obj\Release\ui.pdb
 C:\Users\rapidslayer101\PycharmProjects\rdisc\ui.exe
 C:\Users\rapidslayer101\PycharmProjects\rdisc\ui.pdb
+C:\Users\rapid\PycharmProjects\Rdisc\Rchat\obj\Release\Rchat.csproj.AssemblyReference.cache
+C:\Users\rapid\PycharmProjects\Rdisc\Rchat\obj\Release\Rchat.csproj.SuggestedBindingRedirects.cache
+C:\Users\rapid\PycharmProjects\Rdisc\Rchat\obj\Release\Rchat.Properties.Resources.resources
+C:\Users\rapid\PycharmProjects\Rdisc\Rchat\obj\Release\Rchat.Rchat.resources
+C:\Users\rapid\PycharmProjects\Rdisc\Rchat\obj\Release\Rchat.csproj.GenerateResource.cache
+C:\Users\rapid\PycharmProjects\Rdisc\Rchat\obj\Release\Rchat.csproj.CoreCompileInputs.cache
+C:\Users\rapid\PycharmProjects\Rdisc\Rchat\obj\Release\ui.exe
+C:\Users\rapid\PycharmProjects\Rdisc\Rchat\obj\Release\ui.pdb
+C:\Users\rapid\PycharmProjects\rdisc\ui.exe
+C:\Users\rapid\PycharmProjects\rdisc\ui.pdb

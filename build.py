@@ -20,7 +20,7 @@ else:
 
 block_size = 65536
 hash_ = sha512()
-hashed = enc.hash_a_file("C:/Users/rapidslayer101/PycharmProjects/rdisc/venv/Scripts/dist/rdisc.exe")
+hashed = enc.hash_a_file("C:/Users/rapid/PycharmProjects/rdisc/venv/Scripts/dist/rdisc.exe")
 
 if latest_sha == hashed:
     print("This build is identical to the previous, no changes to sha.txt have been made")

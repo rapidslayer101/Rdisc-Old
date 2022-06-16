@@ -60,7 +60,6 @@
             this.MainOutput = new System.Windows.Forms.RichTextBox();
             this.Timer1 = new System.Windows.Forms.Timer(this.components);
             this.BottomPanel = new System.Windows.Forms.Panel();
-            this.addFriendToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.TopPanel.SuspendLayout();
             this.Menu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.MainInput_pic)).BeginInit();
@@ -104,11 +103,11 @@
             // VersionLabel
             // 
             this.VersionLabel.AutoSize = true;
-            this.VersionLabel.Font = new System.Drawing.Font("Montserrat", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.VersionLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.VersionLabel.ForeColor = System.Drawing.Color.White;
             this.VersionLabel.Location = new System.Drawing.Point(5, 2);
             this.VersionLabel.Name = "VersionLabel";
-            this.VersionLabel.Size = new System.Drawing.Size(124, 22);
+            this.VersionLabel.Size = new System.Drawing.Size(118, 20);
             this.VersionLabel.TabIndex = 7;
             this.VersionLabel.Tag = "";
             this.VersionLabel.Text = "RDISC V0.x.x";
@@ -261,7 +260,6 @@
             // accountToolStripMenuItem
             // 
             this.accountToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.addFriendToolStripMenuItem,
             this.changeNameToolStripMenuItem1,
             this.changePasswordToolStripMenuItem,
             this.logoutToolStripMenuItem1,
@@ -496,45 +494,46 @@
             // 
             this.DM_select.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(45)))));
             this.DM_select.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.DM_select.Font = new System.Drawing.Font("Montserrat", 10F, System.Drawing.FontStyle.Bold);
+            this.DM_select.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold);
             this.DM_select.ForeColor = System.Drawing.Color.White;
             this.DM_select.FormattingEnabled = true;
-            this.DM_select.ItemHeight = 18;
+            this.DM_select.ItemHeight = 16;
             this.DM_select.Location = new System.Drawing.Point(18, 41);
             this.DM_select.Name = "DM_select";
-            this.DM_select.Size = new System.Drawing.Size(213, 558);
+            this.DM_select.Size = new System.Drawing.Size(213, 544);
             this.DM_select.TabIndex = 2;
             // 
             // Friends_label
             // 
             this.Friends_label.AutoSize = true;
-            this.Friends_label.Font = new System.Drawing.Font("Montserrat", 10F, System.Drawing.FontStyle.Bold);
+            this.Friends_label.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold);
             this.Friends_label.ForeColor = System.Drawing.Color.White;
             this.Friends_label.Location = new System.Drawing.Point(76, 6);
             this.Friends_label.Name = "Friends_label";
-            this.Friends_label.Size = new System.Drawing.Size(95, 20);
+            this.Friends_label.Size = new System.Drawing.Size(81, 17);
             this.Friends_label.TabIndex = 0;
-            this.Friends_label.Text = "Friends (0)";
+            this.Friends_label.Text = "Online (0)";
+            this.Friends_label.Click += new System.EventHandler(this.Friends_label_Click);
             // 
             // clock
             // 
             this.clock.AutoSize = true;
-            this.clock.Font = new System.Drawing.Font("UD Digi Kyokasho NK-B", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.clock.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.clock.ForeColor = System.Drawing.Color.Red;
             this.clock.Location = new System.Drawing.Point(1168, 11);
             this.clock.Name = "clock";
-            this.clock.Size = new System.Drawing.Size(67, 18);
+            this.clock.Size = new System.Drawing.Size(67, 20);
             this.clock.TabIndex = 7;
             this.clock.Text = "CLOCK";
             // 
             // runtime
             // 
             this.runtime.AutoSize = true;
-            this.runtime.Font = new System.Drawing.Font("UD Digi Kyokasho NK-B", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.runtime.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.runtime.ForeColor = System.Drawing.Color.Red;
             this.runtime.Location = new System.Drawing.Point(1168, 41);
             this.runtime.Name = "runtime";
-            this.runtime.Size = new System.Drawing.Size(65, 18);
+            this.runtime.Size = new System.Drawing.Size(64, 20);
             this.runtime.TabIndex = 6;
             this.runtime.Text = "RTIME";
             this.runtime.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -577,16 +576,6 @@
             this.BottomPanel.Name = "BottomPanel";
             this.BottomPanel.Size = new System.Drawing.Size(1259, 26);
             this.BottomPanel.TabIndex = 0;
-            // 
-            // addFriendToolStripMenuItem
-            // 
-            this.addFriendToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(66)))), ((int)(((byte)(66)))), ((int)(((byte)(66)))));
-            this.addFriendToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.addFriendToolStripMenuItem.ForeColor = System.Drawing.Color.Yellow;
-            this.addFriendToolStripMenuItem.Name = "addFriendToolStripMenuItem";
-            this.addFriendToolStripMenuItem.Size = new System.Drawing.Size(185, 24);
-            this.addFriendToolStripMenuItem.Text = "Add friend";
-            this.addFriendToolStripMenuItem.Click += new System.EventHandler(this.addFriendToolStripMenuItem_Click);
             // 
             // Rchat
             // 
@@ -670,6 +659,5 @@
         private System.Windows.Forms.ToolStripMenuItem uIToolStripMenuItem;
         private System.Windows.Forms.Label Friends_label;
         private System.Windows.Forms.ListBox DM_select;
-        private System.Windows.Forms.ToolStripMenuItem addFriendToolStripMenuItem;
     }
 }

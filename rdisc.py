@@ -1,4 +1,8 @@
-import socket, os, time, datetime, zlib, uuid, rsa
+import socket, datetime, zlib, rsa
+from os import path, startfile, remove
+from time import sleep
+from uuid import getnode as get_mac
+from hashlib import sha512
 import enclib as enc
 
 # local sockets localhost:8079, localhost:8080
@@ -34,23 +38,23 @@ while True:
         if not ui_s:
             ui_s = socket.socket()
             ui_s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            if os.path.exists("rdisc.py"):
+            if path.exists("rdisc.py"):
                 ui_s.bind(("127.0.0.1", 8078))
             else:
                 ui_s.bind(("127.0.0.1", 8079))
             print(" -> Launching ui.exe")
-            if not os.path.isfile("ui.exe"):
-                input("[!] CRITICAL FILE ui.exe MISSING, hit enter to fall back to CLI\n")
+            if not path.isfile("ui.exe"):
+                print("[!] CRITICAL FILE ui.exe MISSING, falling back to CLI\n")
                 ui = False
             else:
-                os.startfile("ui.exe")
+                startfile("ui.exe")
                 print(" <- ui.exe launched")
                 ui_s.listen(1)
                 cs, client_address = ui_s.accept()
 
                 def to_c(text, delay=None):
                     if delay:
-                        time.sleep(delay)
+                        sleep(delay)
                     try:
                         cs.send(str(text).encode(encoding="utf-16"))
                     except ConnectionResetError:
@@ -60,7 +64,7 @@ while True:
     if not ui:
         def to_c(text, delay=None):
             if delay:
-                time.sleep(delay)
+                sleep(delay)
             if text.startswith("🱫[INP SHOW]🱫"):
                 text = text[14:]
             if text.startswith("\n🱫[COLOR][GRN] "):  # todo CLI colors
@@ -86,7 +90,7 @@ while True:
         def update_key(self, key):
             user_data.update({self: key})
 
-    if os.path.exists("version.txt"):
+    if path.exists("version.txt"):
         with open("version.txt", encoding="utf-8") as f:
             version, tme, bld_num, run_num = f.read().split('🱫')
         version = f"{version} ❌"
@@ -94,7 +98,7 @@ while True:
 
     default_salt = """52gy"J$&)6%0}fgYfm/%ino}PbJk$w<5~j'|+R .bJcSZ.H&3z'A:gip/jtW$6A=
                       G-;|&&rR81!BTElChN|+"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#."H4tq)p4"""
-    mac = enc.pass_to_seed(hex(uuid.getnode()), default_salt)
+    mac = enc.pass_to_key(hex(get_mac()), default_salt, 100000)
 
     def mac_enc(text):
         return enc.encrypt_key(text, mac, default_salt)
@@ -157,12 +161,12 @@ while True:
                     else:
                         to_c(f"\n Entered ({len(n_pass_1)}chrs): "+"*" * len(n_pass_1))
                         if n_pass_1 == receive("\n🱫[COLOR][YEL] Please re-enter password", 0.1):
-                            n_pass_1 = enc.pass_to_seed(n_pass_1, default_salt)
+                            n_pass_1 = enc.pass_to_key(n_pass_1, default_salt, 100000)
                             break
                         else:
                             to_c("\n🱫[COLOR][RED] PASSWORDS DO NOT MATCH!")
                             n_pass_1 = None
-                old_pass = enc.pass_to_seed(receive("\n🱫[COLOR][YEL] Enter old password"), default_salt)
+                old_pass = enc.pass_to_key(receive("\n🱫[COLOR][YEL] Enter old password"), default_salt, 100000)
                 send_e(f"CPASS:{old_pass}🱫{n_pass_1}")
                 print(f" >> CPASS:{old_pass}🱫{n_pass_1}")
                 cng_pass_resp = recv_d(512)
@@ -179,14 +183,14 @@ while True:
                 if user.key('u_name'):
                     if output_ == '🱫[LOG]':
                         try:
-                            os.remove("auth.txt")
+                            remove("auth.txt")
                         except FileNotFoundError:
                             pass
                         exit.update("LOGOUT")
                     if output_ == '🱫[LOG_A]':
                         send_e("LOG_A")
                         try:
-                            os.remove("auth.txt")
+                            remove("auth.txt")
                         except FileNotFoundError:
                             pass
                         exit.update("LOGOUT")
@@ -196,7 +200,7 @@ while True:
             if output_.startswith('🱫[DELAC]'):
                 if user.key('u_name'):
                     print("Delete account")
-                    pass__ = enc.pass_to_seed(receive("\n🱫[COLOR][YEL] Enter password to delete account"), default_salt)
+                    pass__ = enc.pass_to_key(receive("\n🱫[COLOR][YEL] Enter password to delete account"), default_salt, 100000)
                     send_e(f"DELAC:{pass__}")
                     print(f" >> DELAC:{pass__}")
                     if recv_d(512) == "V":
@@ -213,7 +217,7 @@ while True:
                                 print(" << VALID:ACCOUNT_DELETED")
                                 to_c("\n🱫[COLOR][GRN] Request valid, account deleted")
                                 try:
-                                    os.remove("auth.txt")
+                                    remove("auth.txt")
                                 except FileNotFoundError:
                                     pass
                                 exit.update("LOGOUT")
@@ -225,10 +229,16 @@ while True:
                 else:
                     to_c("\n🱫[COLOR][RED] You must be logged in to perform this action")
             if output_ == '🱫[GET_VDATA_E]':
-                to_c(f"🱫[LODVS_E] {version}-{tme}-{bld_num}-{run_num}")
+                try:
+                    to_c(f"🱫[LODVS_E] {version}-{tme}-{bld_num}-{run_num}")
+                except:
+                    pass
                 return_value = False
             if output_ == '🱫[GET_VDATA]':
-                to_c(f"🱫[LODVS] {version}")
+                try:
+                    to_c(f"🱫[LODVS] {version}")
+                except:
+                    pass
                 return_value = False
             if return_value:
                 return True
@@ -261,7 +271,7 @@ while True:
                 return output
 
         pub_key, pri_key = rsa.newkeys(1024)
-        server_host = "26.29.111.99"
+        server_host = "192.168.1.153"
         server_port = 8080
         s = socket.socket()
         to_c("\n >> Connecting to server")
@@ -285,24 +295,58 @@ while True:
         print(" >> Public RSA key sent")
         enc_seed = rsa.decrypt(s.recv(128), pri_key).decode()
         enc_salt = rsa.decrypt(s.recv(128), pri_key).decode()
-        alpha, shift_seed = enc.seed_to_data(enc_seed)
+        enc_key = enc.pass_to_key(enc_seed, enc_salt, 100000)
         print(" << Client enc_seed and enc_salt received and loaded")
-        to_c("\n🱫[COLOR][GRN] RSA -> enc bootstrap complete")
+        to_c("\n🱫[COLOR][GRN] RSA -> enc bootstrap complete\n")
 
         def send_e(text):
             try:
-                s.send(enc.encrypt("e", text, alpha, shift_seed, enc_salt))
+                s.send(enc.enc_from_key(text, enc_key))
             except ConnectionResetError:
                 exit.update("CONNECTION_LOST")
 
         def recv_d(buf_lim):
             try:
-                return enc.encrypt("d", s.recv(buf_lim), alpha, shift_seed, enc_salt)
+                return enc.dec_from_key(s.recv(buf_lim), enc_key)
             except ConnectionResetError:
                 exit.update("CONNECTION_LOST")
 
+        # Authenticate network key
+
+        while True:
+            to_c("🱫[INP SHOW]🱫[MNINPLEN][256] ", 0.1)
+            if not path.exists('key_location'):
+                to_c("\n🱫[COLOR][YEL] Set 'Access USB Key' drive - Eg 'D:/'")
+                while True:
+                    key_location = receive()
+                    if not path.exists(f'{key_location}key'):
+                        to_c("\n🱫[COLOR][RED] This location does not contain a key file, please try again")
+                    else:
+                        with open(f'key_location', 'w') as f:
+                            f.write(key_location)
+                        break
+            else:
+                with open('key_location', 'r') as f:
+                    key_location = f.read()
+                with open(f'{key_location}key', 'rb') as f:
+                    data = f.read()
+                if not path.exists(f'{key_location}key_salt'):
+                    to_c("\n Enter the activation key")
+                    while True:
+                        act_pass = receive()
+                        try:
+                            sign_up_key = sha512(enc.dec_from_key(data, act_pass).encode()).hexdigest()
+                            break
+                        except zlib.error:
+                            to_c("\n🱫[COLOR][RED] Invalid activation key")
+                    # todo account creation
+                    to_c("\n🱫[COLOR][GRN] Key unlocked, validating hash with server")
+
+                    input()
+                break
+
         device_key = False
-        if os.path.isfile("auth.txt"):
+        if path.isfile("auth.txt"):
             with open("auth.txt", "rb") as auth_txt:
                 auth_data = auth_txt.read().split(b"  ")
                 if len(auth_data) > 1:
@@ -348,8 +392,8 @@ while True:
                     break
             if device_key:
                 print("Get a new session_key")
-                send_e(f"NEWSK:{user.key('uid')}🱫{enc.pass_to_seed(device_key, mac)}")
-                print(f" >> NEWSK:{user.key('uid')}🱫{enc.pass_to_seed(device_key, mac)}")
+                send_e(f"NEWSK:{user.key('uid')}🱫{enc.pass_to_key(device_key, mac, 100000)}")
+                print(f" >> NEWSK:{user.key('uid')}🱫{enc.pass_to_key(device_key, mac, 100000)}")
                 dk_req_resp = recv_d(512)
                 if dk_req_resp.startswith("V"):
                     session_key = dk_req_resp[1:]
@@ -385,8 +429,8 @@ while True:
 
             def make_new_dk():
                 print("Get a new device_key and session_key")
-                device_key_ = enc.rand_b96_string(128)
-                salted_dk = enc.pass_to_seed(device_key_, mac)
+                device_key_ = enc.rand_b96_str(128)
+                salted_dk = enc.pass_to_key(device_key_, mac, 100000)
                 to_c("\n🱫[COLOR][GRN] A verification code has "
                      f"been sent to '{email}' (code valid for 15 minutes)")
                 while True:
@@ -413,7 +457,7 @@ while True:
                 while True:
                     email = enter_email()
                     to_c("\n🱫[COLOR][YEL] Please enter your password", 0.1)
-                    pass_ = enc.pass_to_seed(receive(), default_salt)
+                    pass_ = enc.pass_to_key(receive(), default_salt, 100000)
                     send_e(f"NEWDK:{email}🱫{pass_}")
                     print(f" >> NEWDK:{email}🱫{pass_}")
                     new_dk_resp = recv_d(64)
@@ -442,7 +486,7 @@ while True:
                             else:
                                 to_c(f"\n Entered ({len(pass_1)}chrs): "+"*"*len(pass_1))
                                 if pass_1 == receive("\n🱫[COLOR][YEL] Please re-enter password", 0.1):
-                                    pass_ = enc.pass_to_seed(pass_1, default_salt)
+                                    pass_ = enc.pass_to_key(pass_1, default_salt, 100000)
                                     break
                                 else:
                                     to_c("\n🱫[COLOR][RED] PASSWORDS DO NOT MATCH!")
@@ -478,7 +522,7 @@ while True:
                             else:
                                 to_c(f"\n Entered ({len(n_pass_1)}chrs): " + "*" * len(n_pass_1))
                                 if n_pass_1 == receive("\n🱫[COLOR][YEL] Please re-enter password", 0.1):
-                                    n_pass_1 = enc.pass_to_seed(n_pass_1, default_salt)
+                                    n_pass_1 = enc.pass_to_key(n_pass_1, default_salt, 100000)
                                     break
                                 else:
                                     to_c("\n🱫[COLOR][RED] PASSWORDS DO NOT MATCH!")
@@ -597,8 +641,8 @@ while True:
                     f.write(bytes_read)
             if enc.hash_a_file("Update.zip") == update_hash:
                 to_c("🱫[EXIT]")
-                time.sleep(0.5)
-                os.startfile("updater.exe")
+                sleep(0.5)
+                startfile("updater.exe")
                 break
             else:
                 to_c("\n🱫[COLOR][RED] Update files corrupt")
