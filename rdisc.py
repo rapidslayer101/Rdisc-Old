@@ -59,7 +59,7 @@ while True:
                         cs.send(str(text).encode(encoding="utf-16"))
                     except ConnectionResetError:
                         exit.update("EXIT")
-                print(f" Connected to ui.exe via socket {client_address}")
+                print(f"Connected to ui.exe via socket {client_address}")
                 to_c("\n🱫[COLOR][GRN] <- Internal socket connected\n", 0.1)
     if not ui:
         def to_c(text, delay=None):
@@ -270,49 +270,10 @@ while True:
                 process_from_c(output)
                 return output
 
-        pub_key, pri_key = rsa.newkeys(1024)
-        server_host = "192.168.1.153"
-        server_port = 8080
-        s = socket.socket()
-        to_c("\n >> Connecting to server")
-        while True:
-            try:
-                s.connect((server_host, server_port))
-                to_c("\n🱫[COLOR][GRN] << Connected to server")
-                break
-            except ConnectionRefusedError:
-                to_c("\n🱫[COLOR][RED] Could not connect to server")
-                receive("🱫[INP SHOW]\n🱫[COLOR][YEL] Enter something to retry connection", 0.1)
-                to_c("🱫[INP HIDE]", 0.1)
+        # Load network key
 
-        l_ip, l_port = str(s).split("laddr=")[1].split("raddr=")[0][2:-3].split("', ")
-        s_ip, s_port = str(s).split("raddr=")[1][2:-2].split("', ")
-        print(f"Server connected via {l_ip}:{l_port} -> {s_ip}:{s_port}")
-        try:
-            s.send(rsa.PublicKey.save_pkcs1(pub_key))
-        except ConnectionResetError:
-            exit.update("CONNECTION_LOST")
-        print(" >> Public RSA key sent")
-        enc_seed = rsa.decrypt(s.recv(128), pri_key).decode()
-        enc_salt = rsa.decrypt(s.recv(128), pri_key).decode()
-        enc_key = enc.pass_to_key(enc_seed, enc_salt, 100000)
-        print(" << Client enc_seed and enc_salt received and loaded")
-        to_c("\n🱫[COLOR][GRN] RSA -> enc bootstrap complete\n")
-
-        def send_e(text):
-            try:
-                s.send(enc.enc_from_key(text, enc_key))
-            except ConnectionResetError:
-                exit.update("CONNECTION_LOST")
-
-        def recv_d(buf_lim):
-            try:
-                return enc.dec_from_key(s.recv(buf_lim), enc_key)
-            except ConnectionResetError:
-                exit.update("CONNECTION_LOST")
-
-        # Authenticate network key
-
+        sign_up = False
+        not_found_usb_error = False
         while True:
             to_c("🱫[INP SHOW]🱫[MNINPLEN][256] ", 0.1)
             if not path.exists('key_location'):
@@ -328,22 +289,76 @@ while True:
             else:
                 with open('key_location', 'r') as f:
                     key_location = f.read()
-                with open(f'{key_location}key', 'rb') as f:
-                    data = f.read()
-                if not path.exists(f'{key_location}key_salt'):
-                    to_c("\n Enter the activation key")
-                    while True:
-                        act_pass = receive()
-                        try:
-                            sign_up_key = sha512(enc.dec_from_key(data, act_pass).encode()).hexdigest()
-                            break
-                        except zlib.error:
-                            to_c("\n🱫[COLOR][RED] Invalid activation key")
-                    # todo account creation
-                    to_c("\n🱫[COLOR][GRN] Key unlocked, validating hash with server")
+                try:
+                    with open(f'{key_location}key', 'rb') as f:
+                        key_data = f.read()
+                    if not path.exists(f'{key_location}key_salt'):
+                        to_c("\n Enter the activation key")
+                        while True:
+                            #act_pass = receive()
+                            act_pass = """8qYu[xkh"T]|>4I{G<£gY6)6F pLv2zD¬Vqk0M9P6V`82m+Pv//P/gX>5]1e?lb$8,GBt#7h%|IU{r"""
+                            try:
+                                sign_up_key = sha512(enc.dec_from_key(key_data, act_pass).encode()).hexdigest()
+                                break
+                            except zlib.error:
+                                to_c("\n🱫[COLOR][RED] Invalid activation key")
+                        to_c("\n🱫[COLOR][GRN] Key unlocked, validating hash with server")
+                        sign_up = True
+                    break
+                except FileNotFoundError:
+                    if not not_found_usb_error:
+                        to_c("\n🱫[COLOR][RED] Key file not found, insert USB")
+                    not_found_usb_error = True
+                    sleep(0.1)
 
-                    input()
+        # Connect to server
+
+        pub_key, pri_key = rsa.newkeys(1024)
+        server_host = "192.168.1.153"
+        server_port = 8080
+        s = socket.socket()
+        to_c("\n\n >> Connecting to server")
+        server_connect_error = False
+        while True:
+            try:
+                s.connect((server_host, server_port))
+                to_c("\n🱫[COLOR][GRN] << Connected to server")
                 break
+            except ConnectionRefusedError:
+                to_c("\n🱫[COLOR][RED] Could not connect to server")
+                if not server_connect_error:
+                    to_c("\n🱫[COLOR][YEL] Enter something to retry connection", 0.1)
+                server_connect_error = True
+                receive("🱫[INP SHOW]", 0.1)
+                to_c("🱫[INP HIDE]", 0.1)
+
+        l_ip, l_port = str(s).split("laddr=")[1].split("raddr=")[0][2:-3].split("', ")
+        s_ip, s_port = str(s).split("raddr=")[1][2:-2].split("', ")
+        print(f"Server connected via {l_ip}:{l_port} -> {s_ip}:{s_port}")
+        try:
+            s.send(rsa.PublicKey.save_pkcs1(pub_key))
+        except ConnectionResetError:
+            exit.update("CONNECTION_LOST")
+        print(" >> Public RSA key sent")
+        enc_seed = rsa.decrypt(s.recv(128), pri_key).decode()
+        enc_salt = rsa.decrypt(s.recv(128), pri_key).decode()
+        enc_key = enc.pass_to_key(enc_seed, enc_salt, 100000)
+        print(" << Client enc_seed and enc_salt received and loaded")
+        to_c("\n🱫[COLOR][GRN] RSA Enc bootstrap complete\n")
+
+        def send_e(text):
+            try:
+                s.send(enc.enc_from_key(text, enc_key))
+            except ConnectionResetError:
+                exit.update("CONNECTION_LOST")
+
+        def recv_d(buf_lim):
+            try:
+                return enc.dec_from_key(s.recv(buf_lim), enc_key)
+            except ConnectionResetError:
+                exit.update("CONNECTION_LOST")
+
+        # Load user data
 
         device_key = False
         if path.isfile("auth.txt"):
@@ -386,6 +401,50 @@ while True:
                 else:
                     return False
 
+        # Authenticate network key
+
+        if sign_up:
+            print("Create a new account")
+            send_e(f"NAC:{sign_up_key}")
+            print(" >> Sign up key sent")
+            nac_resp = recv_d(512)
+            if nac_resp == "N":
+                print(" << Invalid signup hash")
+                to_c("\n🱫[COLOR][RED] Invalid activation key")
+                remove("key_location")
+                exit.update("INVALID_SIGNUP_HASH")
+            else:
+                key_salt = nac_resp[2:]
+                print(" << Valid signup hash: Key salt received")
+                to_c("\n🱫[COLOR][GRN] Activation key validated")
+                pass_ = None
+                while pass_ is None:
+                    pass_1 = receive("\n🱫[COLOR][YEL] Please enter a password", 0.1)
+                    if len(pass_1) < 8:
+                        to_c("\n🱫[COLOR][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
+                    else:
+                        to_c(f"\n Entered ({len(pass_1)}chrs): " + "*" * len(pass_1))
+                        if pass_1 == receive("\n🱫[COLOR][YEL] Please re-enter password", 0.1):
+                            pass_ = enc.pass_to_key(pass_1, default_salt, 100000)
+                            break
+                        else:
+                            to_c("\n🱫[COLOR][RED] PASSWORDS DO NOT MATCH!")
+                            pass_ = None
+                # todo some form of error meaning different sha512 hashes
+                send_e(pass_)
+                print(" >> Password sent")
+                depth = int(recv_d(512))
+                print(f" << challenge_int received: {depth}")
+                user_challenge = sha512(enc.pass_to_key(pass_, key_salt, depth).encode()).hexdigest()
+                send_e(user_challenge)
+                to_c(f"\n🱫[COLOR][GRN] User authenticated, account created successfully")
+                with open(f'{key_location}key_salt', 'w') as f:
+                    f.write(key_salt)
+                print("Wrote key file salt")
+
+        input()
+        # old login code below
+
         while True:  # login loop
             if user.key('sk'):
                 if login():
@@ -418,21 +477,12 @@ while True:
                 if login_signup.lower().replace(" ", "") in ["login", "signup", "forgot"]:
                     break
 
-            def enter_email():
-                while True:
-                    _email_ = receive("\n🱫[COLOR][YEL] Please enter email", 0.1).lower()
-                    if "@" not in _email_:
-                        to_c("\n🱫[COLOR][RED] Email does not contain an '@'")
-                    else:
-                        break
-                return _email_
-
             def make_new_dk():
                 print("Get a new device_key and session_key")
                 device_key_ = enc.rand_b96_str(128)
                 salted_dk = enc.pass_to_key(device_key_, mac, 100000)
                 to_c("\n🱫[COLOR][GRN] A verification code has "
-                     f"been sent to '{email}' (code valid for 15 minutes)")
+                     f"been sent to '<PLACEHOLDER>' (code valid for 15 minutes)")
                 while True:
                     to_c("\n🱫[COLOR][YEL] Enter 16 char code", 0.1)
                     email_code = ""
@@ -455,11 +505,10 @@ while True:
             if login_signup == "login":
                 print("Login system")
                 while True:
-                    email = enter_email()
                     to_c("\n🱫[COLOR][YEL] Please enter your password", 0.1)
                     pass_ = enc.pass_to_key(receive(), default_salt, 100000)
-                    send_e(f"NEWDK:{email}🱫{pass_}")
-                    print(f" >> NEWDK:{email}🱫{pass_}")
+                    send_e(f"NEWDK:<PLACEHOLDER>🱫{pass_}")
+                    print(f" >> NEWDK:<PLACEHOLDER>🱫{pass_}")
                     new_dk_resp = recv_d(64)
                     if new_dk_resp == "N":
                         print(" << INVALID")
@@ -474,75 +523,41 @@ while True:
                             break
                 make_new_dk()
             else:
-                if login_signup == "signup":
-                    print("Signup")
-                    pass_ = None
-                    while True:
-                        email = enter_email()
-                        while pass_ is None:
-                            pass_1 = receive("\n🱫[COLOR][YEL] Please enter a password", 0.1)
-                            if len(pass_1) < 8:
-                                to_c("\n🱫[COLOR][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
-                            else:
-                                to_c(f"\n Entered ({len(pass_1)}chrs): "+"*"*len(pass_1))
-                                if pass_1 == receive("\n🱫[COLOR][YEL] Please re-enter password", 0.1):
-                                    pass_ = enc.pass_to_key(pass_1, default_salt, 100000)
-                                    break
-                                else:
-                                    to_c("\n🱫[COLOR][RED] PASSWORDS DO NOT MATCH!")
-                                    pass_ = None
-                        send_e(f"NEWAC:{email}🱫{pass_}")
-                        print(f" >> NEWAC:{email}🱫{pass_}")
-                        new_ac_resp = recv_d(64)
-                        if new_ac_resp == "N_MAIL":
-                            print(" << INVALID_EMAIL")
-                            to_c("\n🱫[COLOR][RED] Email was invalid, probably already taken")
-                        else:
-                            if new_ac_resp == "IP_CREATE_LIMIT":
-                                to_c("\n🱫[COLOR][RED] This IP has already reached the creation limit of 2 accounts)")
-                                break
-                            else:
-                                print(" << VALID")
-                                make_new_dk()
-                                to_c("\n🱫[COLOR][GRN] Account setup complete, logging in...")
-                                print("Account setup complete, dk and sk received and saved")
-                                break
+                print("Forgot password")
+                send_e(f"FGPAS:<PLACEHOLDER>")
+                if recv_d(64) == "N_MAIL":
+                    print(" << INVALID_EMAIL")
+                    to_c("\n🱫[COLOR][RED] Email invalid! No account was linked to this email")
                 else:
-                    print("Forgot password")
-                    send_e(f"FGPAS:{enter_email()}")
-                    if recv_d(64) == "N_MAIL":
-                        print(" << INVALID_EMAIL")
-                        to_c("\n🱫[COLOR][RED] Email invalid! No account was linked to this email")
-                    else:
-                        n_pass_1 = None
-                        while n_pass_1 is None:
-                            n_pass_1 = receive("\n🱫[COLOR][YEL] Please enter new password", 0.1)
-                            if len(n_pass_1) < 8:
-                                to_c("\n🱫[COLOR][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
-                            else:
-                                to_c(f"\n Entered ({len(n_pass_1)}chrs): " + "*" * len(n_pass_1))
-                                if n_pass_1 == receive("\n🱫[COLOR][YEL] Please re-enter password", 0.1):
-                                    n_pass_1 = enc.pass_to_key(n_pass_1, default_salt, 100000)
-                                    break
-                                else:
-                                    to_c("\n🱫[COLOR][RED] PASSWORDS DO NOT MATCH!")
-                                    n_pass_1 = None
-                        to_c("\n🱫[COLOR][GRN] A verification code has "
-                             "been sent to your email (code valid for 15 minutes)")
-                        while True:
-                            to_c("\n🱫[COLOR][YEL] Enter 16 char code", 0.1)
-                            email_code = ""
-                            while len(email_code) != 16:
-                                email_code = receive().replace("-", "").upper()
-                            send_e(f"{email_code}🱫{n_pass_1}")
-                            print(f" >> {email_code}")
-                            if recv_d(512) == "V":
-                                print(" << VALID:PASS_CHANGE")
-                                to_c("\n🱫[COLOR][GRN] Request valid, password changed")
+                    n_pass_1 = None
+                    while n_pass_1 is None:
+                        n_pass_1 = receive("\n🱫[COLOR][YEL] Please enter new password", 0.1)
+                        if len(n_pass_1) < 8:
+                            to_c("\n🱫[COLOR][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
+                        else:
+                            to_c(f"\n Entered ({len(n_pass_1)}chrs): " + "*" * len(n_pass_1))
+                            if n_pass_1 == receive("\n🱫[COLOR][YEL] Please re-enter password", 0.1):
+                                n_pass_1 = enc.pass_to_key(n_pass_1, default_salt, 100000)
                                 break
                             else:
-                                print(" << INVALID_CODE")
-                                to_c("\n🱫[COLOR][RED] Invalid email code")
+                                to_c("\n🱫[COLOR][RED] PASSWORDS DO NOT MATCH!")
+                                n_pass_1 = None
+                    to_c("\n🱫[COLOR][GRN] A verification code has "
+                         "been sent to your email (code valid for 15 minutes)")
+                    while True:
+                        to_c("\n🱫[COLOR][YEL] Enter 16 char code", 0.1)
+                        email_code = ""
+                        while len(email_code) != 16:
+                            email_code = receive().replace("-", "").upper()
+                        send_e(f"{email_code}🱫{n_pass_1}")
+                        print(f" >> {email_code}")
+                        if recv_d(512) == "V":
+                            print(" << VALID:PASS_CHANGE")
+                            to_c("\n🱫[COLOR][GRN] Request valid, password changed")
+                            break
+                        else:
+                            print(" << INVALID_CODE")
+                            to_c("\n🱫[COLOR][RED] Invalid email code")
 
         print("Version updater")
         send_e(hashed)
@@ -618,6 +633,7 @@ while True:
             exit_reason = "RELOAD"
         if exit_reason == "CONNECTION_LOST":
             print("SERVER CONNECTION LOST, RELOADING")
+            to_c("🱫[CLRO]")
             to_c("\n🱫[COLOR][RED] Connection lost - Reloading")
         if exit_reason in ["RELOAD", "UI", "UIR"]:
             if exit_reason in ["UI", "UIR"]:

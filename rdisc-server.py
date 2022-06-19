@@ -1,6 +1,7 @@
 import zlib, socket, os, rsa
 from threading import Thread
 from random import choice, randint
+from hashlib import sha512
 import enclib as enc
 
 min_version = "V0.32.1.0"  # CHANGE MIN CLIENT REQ VERSION HERE
@@ -115,7 +116,6 @@ print(f"[*] Listening as {str(s).split('laddr=')[1][:-1]}")
 
 def client_connection(cs):
     try:
-        print("connection")
         ip_l, port = str(cs).split("raddr=")[1][2:-2].split("', ")
         ip_p1, ip_p2, ip_p3, ip_p4 = ip_l.split(".")
         ip = f"{enc.to_hex(10, 96, ip_p1)}§{enc.to_hex(10, 96, ip_p2)}" \
@@ -178,7 +178,23 @@ def client_connection(cs):
             login_request = recv_d(1024)
             print(login_request)  # temp debug for dev
 
-            if login_request.startswith("NEWAC:"):  # todo if email contains invalid chars reject
+            if login_request.startswith("NAC:"):
+                if login_request[4:] == "87a176a2fda37a7c1d0e31fa6a7647d55b9651fcc3de6a27247b736f13318e244ac9b3aec5cc9a3134eab0090cc0ce691cdd28b9603ad8a3c3efdef57e906c60":
+                    user_salt = enc.rand_b96_str(64)
+                    send_e(f"V:{user_salt}")
+                    user_pass = recv_d(2048)
+                    print(user_pass)
+                    challenge_int = randint(1, 999999)
+                    challenge_hash = sha512(enc.pass_to_key(user_pass, user_salt, challenge_int).encode()).hexdigest()
+                    send_e(f"{challenge_int}")
+                    user_challenge = recv_d(2048)
+                    if user_challenge == challenge_hash:
+                        print("User verified")
+                    else:
+                        print("User not verified")
+                else:
+                    send_e("N")
+                input()
                 try:
                     email, password = login_request[6:].split("🱫")
                 except ValueError:
