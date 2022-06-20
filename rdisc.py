@@ -3,6 +3,7 @@ from os import path, startfile, remove
 from time import sleep
 from uuid import getnode as get_mac
 from hashlib import sha512
+#from threading import Thread
 import enclib as enc
 
 # local sockets localhost:8079, localhost:8080
@@ -265,6 +266,7 @@ while True:
 
         # Load auth key
 
+        print("Loading auth keys...")
         sign_up = False
         not_found_usb_error = False
         while True:
@@ -285,11 +287,14 @@ while True:
                 try:
                     with open(f'{key_location}key', 'rb') as f:
                         key_data = f.read()
+                    print(" - Key data loaded")
                     if path.exists(f'{key_location}key_salt'):
                         with open(f'{key_location}key_salt') as f:
                             key_salt = f.read()
+                        print(" - Key salt loaded")
                         with open(f'{key_location}u_id') as f:
                             u_id = f.read()
+                        print(" - User id loaded")
                     else:
                         to_c("\n Enter the activation key")
                         while True:
@@ -311,6 +316,7 @@ while True:
 
         # Establish connection to server
 
+        print("Establishing connection to server")
         pub_key, pri_key = rsa.newkeys(512)
         server_host = "192.168.1.153"
         server_port = 8080
@@ -332,7 +338,7 @@ while True:
 
         l_ip, l_port = str(s).split("laddr=")[1].split("raddr=")[0][2:-3].split("', ")
         s_ip, s_port = str(s).split("raddr=")[1][2:-2].split("', ")
-        print(f"Server connected via {l_ip}:{l_port} -> {s_ip}:{s_port}")
+        print(f" - Server connected via {l_ip}:{l_port} -> {s_ip}:{s_port}")
         try:
             s.send(rsa.PublicKey.save_pkcs1(pub_key))
         except ConnectionResetError:
@@ -429,12 +435,18 @@ while True:
                     challenge_resp = recv_d(512)
                     if challenge_resp != "N":
                         print(" << logged in")
-                        to_c("\n🱫[COLOR][GRN] Logged in successfully")
                         break
                     else:
                         print(" << AUTH_FAILED")
                         to_c("\n🱫[COLOR][RED] User authentication failed")
+
         print("Version updater")
+        if not path.exists("updater.exe"):
+            print(" >> updater.exe not found")
+            to_c("\n🱫[COLOR][RED] updater.exe not found, downloading...")
+            send_e("UPD")
+            update_size = recv_d(512)
+            exit.update("UPDATER_NF")
         send_e(hashed)
         print(f" >> {hashed}")
         v_check_resp = recv_d(512)
@@ -447,8 +459,8 @@ while True:
             to_c(f"🱫[LODVS] {version}", 0.1)
 
         if v_check_resp.startswith("N"):
-            version_up_info, update_size, update_hash = v_check_resp[1:].split("🱫")
-            to_c(f"\n <> Updating rdisc {version_up_info} ({round(int(update_size)/1024/1024, 2)}MB)")
+            version, update_size, update_hash = v_check_resp[1:].split("🱫")
+            to_c(f"\n <> Updating rdisc {version} - ({round(int(update_size)/1024/1024, 2)}MB)")
             exit.update("UPDATE")
 
         if v_check_resp.startswith("UNKNOWN"):
@@ -456,9 +468,22 @@ while True:
             to_c("\n🱫[COLOR][RED] <> INVALID OR CORRUPTED VERSION, downloading new copy")
             exit.update("UPDATE")
 
-        to_c(f"\n🱫[COLOR][GRN] You are now logged in as {user.key('u_id')}")
+        to_c(f"\n🱫[COLOR][GRN] You are now logged in as {u_id}")
         to_c("🱫[INP SHOW]🱫", 0.1)
         print("Logged in loop")
+
+        #def server_loop():
+        #    while True:
+        #        server_msg = s.recv(512).decode()
+        #        if server_msg.startswith("UON:"):
+        #            print(server_msg[4:])
+        #            print(server_msg)
+        #            to_c(server_msg)
+
+        #t = Thread(target=server_loop())
+        #t.daemon = True
+        #t.start()
+
         while True:
             # user data loading
             request = receive()
@@ -537,6 +562,17 @@ while True:
                 break
             else:
                 to_c("\n🱫[COLOR][RED] Update files corrupt")
+        if exit_reason == "UPDATER_NF":
+            with open("updater.exe", "wb") as f:
+                for i in range((int(update_size)//4096)+1):
+                    bytes_read = s.recv(4096)
+                    if not bytes_read:
+                        break
+                    f.write(bytes_read)
+                print("RELOADING")
+                to_c("🱫[CLRO]")
+                to_c("\n🱫[COLOR][GRN] -- Reloading --", 0.1)
+                to_c("\n🱫[COLOR][GRN] Updater downloaded successfully", 0.1)
         if exit_reason in ["RESTART", "EXIT"]:
             to_c("🱫[EXIT]")
             s.close()

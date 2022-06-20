@@ -1,16 +1,15 @@
+import time
 import zlib, socket, os, rsa
 from threading import Thread
 from random import choice, choices, randint
 from hashlib import sha512
 import enclib as enc
 
-min_version = "V0.32.1.0"  # CHANGE MIN CLIENT REQ VERSION HERE
-stable_release = "V0.32.1.0"
-stable_release_zip = f"rdisc-{stable_release[1:-2]}.zip"
-#update_size = os.path.getsize(stable_release_zip)
-update_size = 0
-#update_hash = enc.hash_a_file(stable_release_zip)
-update_hash = "null"
+min_version = "V0.35.6.0"  # CHANGE MIN CLIENT REQ VERSION HERE
+stable_release_zip = f"rdisc.zip"
+update_size = os.path.getsize(stable_release_zip)
+updater_size = os.path.getsize("updater.exe")
+update_hash = enc.hash_a_file(stable_release_zip)
 default_salt = "52gy\"J$&)6%0}fgYfm/%ino}PbJk$w<5~j'|+R .bJcSZ.H&3z'A:gip/jtW$6A=" \
                 "G-;|&&rR81!BTElChN|+\"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#.\"H4tq)p4"
 b36set = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -18,6 +17,8 @@ b62set = b36set+"abcdefghijklmnopqrstuvwxyz"
 
 
 def version_info(hashed):
+    if hashed == "UPD":
+        return "UPD"
     print(hashed)
     version_data = None
     with open("sha.txt", encoding="utf-8") as f:
@@ -39,7 +40,7 @@ def version_info(hashed):
                     if int(run) > int(req_run)-1:
                         valid_version = True
     if not valid_version:
-        return f"N{version_}->{stable_release}🱫{update_size}🱫{update_hash}"
+        return f"N{version_}🱫{update_size}🱫{update_hash}"
     else:
         return f"V{version_}🱫{tme_}🱫{bld_num}🱫{run_num}"
 
@@ -47,7 +48,7 @@ def version_info(hashed):
 if not os.path.exists("Users"):
     os.mkdir("Users")
 
-u_ids, logged_in_users = [[], []]
+u_ids, logged_in_users, sockets = [[], [], []]
 
 for user_id_ in os.listdir("Users"):
     u_ids.append(user_id_)
@@ -64,14 +65,19 @@ class users:
     def logged_in(self):
         return logged_in_users
 
-    def login(self, ip):
+    def login(self, ip, cs):
         logged_in_users.append(self)
         logged_in_users.append(ip)
+        sockets.append(cs)
+        #time.sleep(0.5)
+        #for i in sockets:
+        #    i.send(f"UON:{self}".encode())
 
-    def logout(self, ip):
+    def logout(self, ip, cs):
         try:
             logged_in_users.pop(logged_in_users.index(self))
             logged_in_users.pop(logged_in_users.index(ip))
+            sockets.pop(sockets.index(cs))
         except ValueError:
             pass
 
@@ -144,7 +150,7 @@ def client_connection(cs):
                             f.write(f"{user_pass}🱫{user_salt}")
                             #f.write(f"{user_pass}🱫{user_salt}🱫{ip}")
                         users.ids_update(u_id)
-                        users.login(u_id, ip)
+                        users.login(u_id, cs)
                         send_e(f"{u_id}")
                     else:
                         send_e("N")
@@ -174,7 +180,19 @@ def client_connection(cs):
                             else:
                                 break
                         send_e("V")
-                        version_response = version_info(recv_d(512))
+                        while True:
+                            version_response = version_info(recv_d(512))
+                            if version_response == "UPD":
+                                send_e(str(updater_size))
+                                with open("updater.exe", "rb") as f:
+                                    while True:
+                                        bytes_read = f.read(4096)
+                                        if not bytes_read:
+                                            break
+                                        cs.sendall(bytes_read)
+                                raise ConnectionResetError
+                            else:
+                                break
                         send_e(version_response)
                         if not version_response.startswith("V"):
                             with open(stable_release_zip, "rb") as f:
@@ -184,7 +202,7 @@ def client_connection(cs):
                                         break
                                     cs.sendall(bytes_read)
                             raise ConnectionResetError
-                        users.login(uid, ip)
+                        users.login(uid, ip, cs)
                         break
 
         print(f"{uid} logged in with IP-{ip}:{port} and version-{version_response}")
@@ -296,12 +314,12 @@ def client_connection(cs):
 
     except ConnectionResetError:
         print(f"{uid}-{ip}:{port} DC")
-        users.logout(uid, ip)
+        users.logout(uid, ip, cs)
     except ConnectionRefusedError:
         print(f"{uid}-{ip}:{port} DC - 1 session limit")
     except AssertionError:
         print(f"{uid}-{ip}:{port} DC - modified/invalid client request")
-        users.logout(uid, ip)
+        users.logout(uid, ip, cs)
 
 
 while True:

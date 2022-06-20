@@ -236,6 +236,11 @@ namespace Rchat
 					readData = readData.Replace("[64]", "");
 				}
 			}
+			if (readData.StartsWith("UON:"))
+            {
+				string user_item = Regex.Split(readData, "﻿UON:")[1];
+				DM_select.Items.Add(user_item);
+			}
 		}
 
 		private void VersionLabel_MouseEnter(object sender, EventArgs e)
