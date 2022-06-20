@@ -32,9 +32,10 @@
 0.32 ui hot switching, redone restart
 0.33 smaller responses, fixed single session issues, fixed versioning
 0.34 changing to rdisc-rc4, the file server and private chat network client, enc 11.8.0 implemented
-
 0.35 access key system, first time signup, remove email
 
-0.35 basic DM chat functionality with client to server to client connections and keys
-0.36 pass and unames rate limit, downloading, saving, load req files from a first time setup file
-0.37 use CLI even when UI active,
+0.36 uname setting, ip or some form of device identifier, online status
+
+0.37 basic DM chat functionality with client to server to client connections and keys
+0.38 pass and unames rate limit, downloading, saving, load req files from a first time setup file
+0.39 use CLI even when UI active,

@@ -9,7 +9,7 @@ import enclib as enc
 # Made by rapidslayer101 (Scott Bree), General usage testing and spelling: James Judge
 # >>> license and agreement data here <<<
 
-try:
+if path.exists("rdisc.py"):
     hashed = enc.hash_a_file("rdisc.py")
     with open("sha.txt", "r", encoding="utf-8") as f:
         latest_sha_, run_type_, version_, tme_, bld_num_, run_num_ = f.readlines()[-1].split("§")
@@ -26,7 +26,7 @@ try:
                   f"BLD_NM-{bld_num_[7:]} RUN_NM-{int(run_num_[7:])+1}")
             f.write(write)
         print(f"Running rdisc V{release_major}.{major}.{build}.{run}")
-except FileNotFoundError:
+else:
     hashed = enc.hash_a_file("rdisc.exe")
 
 
@@ -96,8 +96,8 @@ while True:
         version = f"{version} ❌"
         to_c(f"🱫[LODVS] {version}")
 
-    default_salt = """52gy"J$&)6%0}fgYfm/%ino}PbJk$w<5~j'|+R .bJcSZ.H&3z'A:gip/jtW$6A=
-                      G-;|&&rR81!BTElChN|+"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#."H4tq)p4"""
+    default_salt = "52gy\"J$&)6%0}fgYfm/%ino}PbJk$w<5~j'|+R .bJcSZ.H&3z'A:gip/jtW$6A=" \
+                   "G-;|&&rR81!BTElChN|+\"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#.\"H4tq)p4"
     mac = enc.pass_to_key(hex(get_mac()), default_salt, 100000)
 
     def mac_enc(text):
@@ -105,13 +105,6 @@ while True:
 
     def mac_dec(enc_text):
         return enc.decrypt_key(enc_text, mac, default_salt)
-
-    def auth_txt_write(uid, dk, sk=None):
-        auth_write = mac_enc(uid)+b"  "+mac_enc(dk)
-        if sk:
-            auth_write += b"  "+mac_enc(sk)
-        with open("auth.txt", "wb") as auth_txt_:
-            auth_txt_.write(auth_write)
 
     cool_down_data = {"x": (str(datetime.datetime.utcnow())), "msg_counter": 0}
 
@@ -270,7 +263,7 @@ while True:
                 process_from_c(output)
                 return output
 
-        # Load network key
+        # Load auth key
 
         sign_up = False
         not_found_usb_error = False
@@ -292,7 +285,12 @@ while True:
                 try:
                     with open(f'{key_location}key', 'rb') as f:
                         key_data = f.read()
-                    if not path.exists(f'{key_location}key_salt'):
+                    if path.exists(f'{key_location}key_salt'):
+                        with open(f'{key_location}key_salt') as f:
+                            key_salt = f.read()
+                        with open(f'{key_location}u_id') as f:
+                            u_id = f.read()
+                    else:
                         to_c("\n Enter the activation key")
                         while True:
                             #act_pass = receive()
@@ -309,11 +307,11 @@ while True:
                     if not not_found_usb_error:
                         to_c("\n🱫[COLOR][RED] Key file not found, insert USB")
                     not_found_usb_error = True
-                    sleep(0.1)
+                    sleep(0.2)
 
-        # Connect to server
+        # Establish connection to server
 
-        pub_key, pri_key = rsa.newkeys(1024)
+        pub_key, pri_key = rsa.newkeys(512)
         server_host = "192.168.1.153"
         server_port = 8080
         s = socket.socket()
@@ -358,50 +356,7 @@ while True:
             except ConnectionResetError:
                 exit.update("CONNECTION_LOST")
 
-        # Load user data
-
-        device_key = False
-        if path.isfile("auth.txt"):
-            with open("auth.txt", "rb") as auth_txt:
-                auth_data = auth_txt.read().split(b"  ")
-                if len(auth_data) > 1:
-                    if not auth_data[0] == b"":
-                        try:
-                            user.update_key('uid', mac_dec(auth_data[0]))
-                            print("LOADED UID")
-                        except zlib.error:
-                            pass
-                        try:
-                            device_key = mac_dec(auth_data[1])
-                            print("LOADED DK")
-                        except zlib.error:
-                            pass
-                if len(auth_data) > 2:
-                    try:
-                        user.update_key('sk', mac_dec(auth_data[2]))
-                        print("LOADED SK")
-                    except zlib.error:
-                        pass
-
-        def login():
-            print("Login with session key")
-            send_e(f"LOGIN:{user.key('uid')}🱫{user.key('sk')}")
-            print(f" >> LOGIN:{user.key('uid')}🱫{user.key('sk')}")
-            login_req_resp = recv_d(512)
-            if login_req_resp.startswith("V"):
-                print(f" << {login_req_resp}")
-                user.update_key('u_name', login_req_resp[1:])
-                return True
-            else:
-                if login_req_resp == "SESH_T":
-                    to_c("\n🱫[COLOR][RED] User logged in on another device or multiple app instances open")
-                    print(" << SESSION_TAKEN")
-                    exit.update("SESH_TAKEN")
-                    return False
-                else:
-                    return False
-
-        # Authenticate network key
+        # Login system
 
         if sign_up:
             print("Create a new account")
@@ -430,135 +385,55 @@ while True:
                         else:
                             to_c("\n🱫[COLOR][RED] PASSWORDS DO NOT MATCH!")
                             pass_ = None
-                # todo some form of error meaning different sha512 hashes
                 send_e(pass_)
                 print(" >> Password sent")
                 depth = int(recv_d(512))
                 print(f" << challenge_int received: {depth}")
                 user_challenge = sha512(enc.pass_to_key(pass_, key_salt, depth).encode()).hexdigest()
                 send_e(user_challenge)
-                to_c(f"\n🱫[COLOR][GRN] User authenticated, account created successfully")
+                print(" >> challenge_hash sent")
+                u_id = recv_d(512)
+                if u_id != "N":
+                    print(f" << received user_id: {u_id}")
+                    to_c(f"\n🱫[COLOR][GRN] User authenticated, account '{u_id}' created successfully")
+                else:
+                    print(" << AUTH_FAILED")
+                    to_c("\n🱫[COLOR][RED] User authentication failed")
+                    exit.update("AUTH_FAILED")
                 with open(f'{key_location}key_salt', 'w') as f:
                     f.write(key_salt)
-                print("Wrote key file salt")
-
-        input()
-        # old login code below
-
-        while True:  # login loop
-            if user.key('sk'):
-                if login():
-                    break
-            if device_key:
-                print("Get a new session_key")
-                send_e(f"NEWSK:{user.key('uid')}🱫{enc.pass_to_key(device_key, mac, 100000)}")
-                print(f" >> NEWSK:{user.key('uid')}🱫{enc.pass_to_key(device_key, mac, 100000)}")
-                dk_req_resp = recv_d(512)
-                if dk_req_resp.startswith("V"):
-                    session_key = dk_req_resp[1:]
-                    print(f" << VALID:{session_key}")
-                    auth_txt_write(user.key('uid'), device_key, session_key)
-                    user.update_key('sk', session_key)
-                    if login():
-                        break
-                else:
-                    if dk_req_resp == "SESH_T":
-                        to_c("\n🱫[COLOR][RED] User logged in on another device or multiple app instances open")
-                        print(" << SESSION_TAKEN")
-                        exit.update("SESH_TAKEN")
-                    else:
-                        print(" << INVALID_DK")
-
-            print("Create a new account or log in to an existing one")
-            to_c("🱫[INP SHOW]🱫[MNINPLEN][256] ", 0.1)  # todo set len to 7?
+                with open(f'{key_location}u_id', 'w') as f:
+                    f.write(u_id)
+                print("Wrote key_salt and u_id")
+                break
+        else:
+            print("Login with existing account")
+            send_e(f"LOG:{u_id}")
+            print(" >> u_id sent")
             while True:
-                to_c("Create a new account or log in to an existing one")
-                login_signup = receive("\n🱫[COLOR][YEL] Type 'login' or 'sign up' or 'forgot' (password)", 0.1)
-                if login_signup.lower().replace(" ", "") in ["login", "signup", "forgot"]:
-                    break
-
-            def make_new_dk():
-                print("Get a new device_key and session_key")
-                device_key_ = enc.rand_b96_str(128)
-                salted_dk = enc.pass_to_key(device_key_, mac, 100000)
-                to_c("\n🱫[COLOR][GRN] A verification code has "
-                     f"been sent to '<PLACEHOLDER>' (code valid for 15 minutes)")
-                while True:
-                    to_c("\n🱫[COLOR][YEL] Enter 16 char code", 0.1)
-                    email_code = ""
-                    while len(email_code) != 16:
-                        email_code = receive().replace("-", "").upper()
-                    send_e(f"{email_code}🱫{salted_dk}")
-                    print(f" >> {email_code}🱫{salted_dk}")
-                    verify_dk_resp = recv_d(512)
-                    if verify_dk_resp.startswith("V"):
-                        print(f" << {verify_dk_resp}")
+                depth = recv_d(512)
+                if depth == "N_UID":
+                    print(" << INVALID_U_ID")
+                    to_c("\n🱫[COLOR][RED] User does not exist")
+                if depth == "SESH_T":
+                    print(" << SESSION_TAKEN")
+                    to_c("\n🱫[COLOR][RED] This account or IP is already logged in")
+                    exit.update("SESH_TAKEN")
+                else:
+                    print(f" << challenge_int received: {depth}")
+                    pass_ = receive("\n🱫[COLOR][YEL] Please enter your password", 0.1)
+                    pass_ = enc.pass_to_key(pass_, default_salt, 100000)
+                    user_challenge = sha512(enc.pass_to_key(pass_, key_salt, int(depth)).encode()).hexdigest()
+                    send_e(user_challenge)
+                    print(" >> challenge_hash sent")
+                    challenge_resp = recv_d(512)
+                    if challenge_resp != "N":
+                        print(" << logged in")
+                        to_c("\n🱫[COLOR][GRN] Logged in successfully")
                         break
                     else:
-                        print(" << INVALID_CODE")
-                        to_c("\n🱫[COLOR][RED] Invalid email code")
-                uid, session_key_ = verify_dk_resp[1:].split("🱫")
-                auth_txt_write(uid, device_key_, session_key_)
-                user.update_key('sk', session_key_)
-                user.update_key('uid', uid)
-
-            if login_signup == "login":
-                print("Login system")
-                while True:
-                    to_c("\n🱫[COLOR][YEL] Please enter your password", 0.1)
-                    pass_ = enc.pass_to_key(receive(), default_salt, 100000)
-                    send_e(f"NEWDK:<PLACEHOLDER>🱫{pass_}")
-                    print(f" >> NEWDK:<PLACEHOLDER>🱫{pass_}")
-                    new_dk_resp = recv_d(64)
-                    if new_dk_resp == "N":
-                        print(" << INVALID")
-                        to_c("\n🱫[COLOR][RED] Email or password invalid")
-                    else:
-                        if new_dk_resp == "SESH_T":
-                            to_c("\n🱫[COLOR][RED] User logged in on another device or multiple app instances open")
-                            print(" << SESSION_TAKEN")
-                            exit.update("SESH_TAKEN")
-                        else:
-                            print(" << VALID")
-                            break
-                make_new_dk()
-            else:
-                print("Forgot password")
-                send_e(f"FGPAS:<PLACEHOLDER>")
-                if recv_d(64) == "N_MAIL":
-                    print(" << INVALID_EMAIL")
-                    to_c("\n🱫[COLOR][RED] Email invalid! No account was linked to this email")
-                else:
-                    n_pass_1 = None
-                    while n_pass_1 is None:
-                        n_pass_1 = receive("\n🱫[COLOR][YEL] Please enter new password", 0.1)
-                        if len(n_pass_1) < 8:
-                            to_c("\n🱫[COLOR][RED] PASSWORD TO SHORT! (must be at least 8 chars)")
-                        else:
-                            to_c(f"\n Entered ({len(n_pass_1)}chrs): " + "*" * len(n_pass_1))
-                            if n_pass_1 == receive("\n🱫[COLOR][YEL] Please re-enter password", 0.1):
-                                n_pass_1 = enc.pass_to_key(n_pass_1, default_salt, 100000)
-                                break
-                            else:
-                                to_c("\n🱫[COLOR][RED] PASSWORDS DO NOT MATCH!")
-                                n_pass_1 = None
-                    to_c("\n🱫[COLOR][GRN] A verification code has "
-                         "been sent to your email (code valid for 15 minutes)")
-                    while True:
-                        to_c("\n🱫[COLOR][YEL] Enter 16 char code", 0.1)
-                        email_code = ""
-                        while len(email_code) != 16:
-                            email_code = receive().replace("-", "").upper()
-                        send_e(f"{email_code}🱫{n_pass_1}")
-                        print(f" >> {email_code}")
-                        if recv_d(512) == "V":
-                            print(" << VALID:PASS_CHANGE")
-                            to_c("\n🱫[COLOR][GRN] Request valid, password changed")
-                            break
-                        else:
-                            print(" << INVALID_CODE")
-                            to_c("\n🱫[COLOR][RED] Invalid email code")
-
+                        print(" << AUTH_FAILED")
+                        to_c("\n🱫[COLOR][RED] User authentication failed")
         print("Version updater")
         send_e(hashed)
         print(f" >> {hashed}")
@@ -581,7 +456,7 @@ while True:
             to_c("\n🱫[COLOR][RED] <> INVALID OR CORRUPTED VERSION, downloading new copy")
             exit.update("UPDATE")
 
-        to_c(f"\n🱫[COLOR][GRN] You are now logged in as {user.key('u_name')}")
+        to_c(f"\n🱫[COLOR][GRN] You are now logged in as {user.key('u_id')}")
         to_c("🱫[INP SHOW]🱫", 0.1)
         print("Logged in loop")
         while True:
@@ -607,22 +482,22 @@ while True:
                     else:
                         to_c(f"\n🱫[COLOR][RED] Username must be 5-32 chars, you entered: {username[:64]}")
 
-            if request.startswith("-add friend"):
-                add_friend_n = request[12:]
-                if 9 < len(add_friend_n) < 38:
-                    try:
-                        int(add_friend_n[-4:])
-                        if add_friend_n[-5] != "#":
-                            to_c(f"\n🱫[COLOR][RED] Tag missing or invalid (eg #0001)")
-                        else:
-                            send_e(f"ADDFR:{add_friend_n}")
-                            print(f" >> ADDFR:{add_friend_n}")
-                            new_fr_req = recv_d(128)
-                            print(new_fr_req)
-                    except ValueError:
-                        to_c(f"\n🱫[COLOR][RED] Invalid tag (tag example: #0001)")
-                else:
-                    to_c(f"\n🱫[COLOR][RED] Username+Tag must be 10-37 chars, you entered: {add_friend_n[:64]}")
+            #if request.startswith("-add friend"):
+            #    add_friend_n = request[12:]
+            #    if 9 < len(add_friend_n) < 38:
+            #        try:
+            #            int(add_friend_n[-4:])
+            #            if add_friend_n[-5] != "#":
+            #                to_c(f"\n🱫[COLOR][RED] Tag missing or invalid (eg #0001)")
+            #            else:
+            #                send_e(f"ADDFR:{add_friend_n}")
+            #                print(f" >> ADDFR:{add_friend_n}")
+            #                new_fr_req = recv_d(128)
+            #                print(new_fr_req)
+            #        except ValueError:
+            #            to_c(f"\n🱫[COLOR][RED] Invalid tag (tag example: #0001)")
+            #    else:
+            #        to_c(f"\n🱫[COLOR][RED] Username+Tag must be 10-37 chars, you entered: {add_friend_n[:64]}")
 
     except AssertionError:
         exit_reason = str(exit.get(0))[2:-2]
