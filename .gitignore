@@ -4,3 +4,5 @@ Users
 version.txt
 key_location
 server_ip
+validation_keys.txt
+/venv/

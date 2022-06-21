@@ -1,13 +1,19 @@
-import socket, datetime, zlib, rsa
-from os import path, remove
-try :
+import socket, datetime, zlib
+from os import path, remove, system
+try:
+    import rsa
+except ModuleNotFoundError:
+    system("pip install rsa")
+    system("python launcher.py")
+    exit()
+try:
     from os import startfile
     ui = True
 except ImportError:
     print("[!] os.startfile() failed to import")
     ui = False
 from time import sleep
-from uuid import getnode as get_mac
+#from uuid import getnode as get_mac
 from hashlib import sha512
 #from threading import Thread
 import enclib as enc
@@ -16,8 +22,8 @@ import enclib as enc
 # Made by rapidslayer101 (Scott Bree), General usage testing and spelling: James Judge
 # >>> license and agreement data here <<<
 
-if path.exists("rdisc.py"):
-    hashed = enc.hash_a_file("rdisc.py")
+hashed = enc.hash_a_file("rdisc.py")
+if path.exists("sha.txt"):
     with open("sha.txt", "r", encoding="utf-8") as f:
         latest_sha_, run_type_, version_, tme_, bld_num_, run_num_ = f.readlines()[-1].split("§")
     print("prev", run_type_, version_, tme_, bld_num_, run_num_)
@@ -33,8 +39,6 @@ if path.exists("rdisc.py"):
                   f"BLD_NM-{bld_num_[7:]} RUN_NM-{int(run_num_[7:])+1}")
             f.write(write)
         print(f"Running rdisc V{release_major}.{major}.{build}.{run}")
-else:
-    hashed = enc.hash_a_file("rdisc.exe")
 
 
 ui_s = False
@@ -104,13 +108,7 @@ while True:
 
     default_salt = "52gy\"J$&)6%0}fgYfm/%ino}PbJk$w<5~j'|+R .bJcSZ.H&3z'A:gip/jtW$6A=" \
                    "G-;|&&rR81!BTElChN|+\"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#.\"H4tq)p4"
-    mac = enc.pass_to_key(hex(get_mac()), default_salt, 100000)
-
-    def mac_enc(text):
-        return enc.encrypt_key(text, mac, default_salt)
-
-    def mac_dec(enc_text):
-        return enc.decrypt_key(enc_text, mac, default_salt)
+    #mac = enc.pass_to_key(hex(get_mac()), default_salt, 100000)
 
     cool_down_data = {"x": (str(datetime.datetime.utcnow())), "msg_counter": 0}
 
@@ -283,11 +281,11 @@ while True:
                     if not path.exists(f'{key_location}key'):
                         to_c("\n🱫[COLOR][RED] This location does not contain a key file, please try again")
                     else:
-                        with open(f'key_location', 'w') as f:
+                        with open(f'key_location', 'w', encoding="utf-8") as f:
                             f.write(key_location)
                         break
             else:
-                with open('key_location', 'r') as f:
+                with open('key_location', encoding="utf-8") as f:
                     key_location = f.read()
                 try:
                     with open(f'{key_location}key', 'rb') as f:
@@ -321,7 +319,7 @@ while True:
         pub_key, pri_key = rsa.newkeys(1024)
         s = socket.socket()
         if path.exists('server_ip'):
-            with open('server_ip', 'r') as f:
+            with open('server_ip', encoding="utf-8") as f:
                 server_ip, server_port = f.read().split(":")
                 server_port = int(server_port)
             to_c("\n\n >> Connecting to server")
@@ -361,7 +359,7 @@ while True:
                                     to_c("\n\n >> Connecting to server")
                                     s.connect((server_ip, server_port))
                                     to_c("\n🱫[COLOR][GRN] << Connected to server")
-                                    with open('server_ip', 'w') as f:
+                                    with open('server_ip', 'w', encoding="utf-8") as f:
                                         f.write(f'{server_ip}:{server_port}')
                                     break
                                 except ConnectionRefusedError:
@@ -583,31 +581,6 @@ while True:
             print("RELOADING")
             to_c("🱫[CLRO]")
             to_c("\n🱫[COLOR][GRN] -- Reloading --", 0.1)
-        if exit_reason == "UPDATE":
-            with open("Update.zip", "wb") as f:
-                for i in range((int(update_size)//4096)+1):
-                    bytes_read = s.recv(4096)
-                    if not bytes_read:
-                        break
-                    f.write(bytes_read)
-            if enc.hash_a_file("Update.zip") == update_hash:
-                to_c("🱫[EXIT]")
-                sleep(0.5)
-                startfile("updater.exe")
-                break
-            else:
-                to_c("\n🱫[COLOR][RED] Update files corrupt")
-        if exit_reason == "UPDATER_NF":
-            with open("updater.exe", "wb") as f:
-                for i in range((int(update_size)//4096)+1):
-                    bytes_read = s.recv(4096)
-                    if not bytes_read:
-                        break
-                    f.write(bytes_read)
-                print("RELOADING")
-                to_c("🱫[CLRO]")
-                to_c("\n🱫[COLOR][GRN] -- Reloading --", 0.1)
-                to_c("\n🱫[COLOR][GRN] Updater downloaded successfully", 0.1)
         if exit_reason in ["RESTART", "EXIT"]:
             to_c("🱫[EXIT]")
             s.close()

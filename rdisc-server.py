@@ -5,44 +5,10 @@ from random import choice, choices, randint
 from hashlib import sha512
 import enclib as enc
 
-min_version = "V0.35.6.0"  # CHANGE MIN CLIENT REQ VERSION HERE
-stable_release_zip = f"rdisc.zip"
-update_size = path.getsize(stable_release_zip)
-updater_size = path.getsize("updater.exe")
-update_hash = enc.hash_a_file(stable_release_zip)
 default_salt = "52gy\"J$&)6%0}fgYfm/%ino}PbJk$w<5~j'|+R .bJcSZ.H&3z'A:gip/jtW$6A=" \
                 "G-;|&&rR81!BTElChN|+\"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#.\"H4tq)p4"
 b36set = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 b62set = b36set+"abcdefghijklmnopqrstuvwxyz"
-
-
-def version_info(hashed):
-    if hashed == "UPD":
-        return "UPD"
-    print(hashed)
-    version_data = None
-    with open("sha.txt", encoding="utf-8") as f:
-        for _hash_ in f.readlines():
-            if hashed in _hash_:
-                version_data = line
-    if not version_data:
-        return f"UNKNOWN{update_size}🱫{update_hash}"
-    version_, tme_, bld_num, run_num = version_data.split("§")[2:]
-    release_major, major, build, run = version_.replace("V", "").split(".")
-    req_release_major, req_major, req_build, req_run = min_version.replace("V", "").split(".")
-    valid_version = False
-    if int(release_major) > int(req_release_major)-1:
-        if int(major) > int(req_major):
-            valid_version = True
-        else:
-            if int(major) > int(req_major)-1:
-                if int(build) > int(req_build)-1:
-                    if int(run) > int(req_run)-1:
-                        valid_version = True
-    if not valid_version:
-        return f"N{version_}🱫{update_size}🱫{update_hash}"
-    else:
-        return f"V{version_}🱫{tme_}🱫{bld_num}🱫{run_num}"
 
 
 validation_hashes = []
@@ -188,30 +154,6 @@ def client_connection(cs):
                             else:
                                 break
                         send_e("V")
-                        while True:
-                            version_response = version_info(recv_d(512))
-                            if version_response == "UPD":
-                                send_e(str(updater_size))
-                                with open("updater.exe", "rb") as f:
-                                    while True:
-                                        bytes_read = f.read(4096)
-                                        if not bytes_read:
-                                            break
-                                        cs.sendall(bytes_read)
-                                raise ConnectionResetError
-                            else:
-                                break
-                        send_e(version_response)
-                        if not version_response.startswith("V"):
-                            with open(stable_release_zip, "rb") as f:
-                                while True:
-                                    bytes_read = f.read(4096)
-                                    if not bytes_read:
-                                        break
-                                    cs.sendall(bytes_read)
-                            raise ConnectionResetError
-                        users.login(uid, ip, cs)
-                        break
 
         print(f"{uid} logged in with IP-{ip}:{port} and version-{version_response}")
         while True:  # main loop
