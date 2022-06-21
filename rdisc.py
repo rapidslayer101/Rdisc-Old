@@ -368,7 +368,7 @@ while True:
 
         l_ip, l_port = str(s).split("laddr=")[1].split("raddr=")[0][2:-3].split("', ")
         s_ip, s_port = str(s).split("raddr=")[1][2:-2].split("', ")
-        print(f" - Server connected via {l_ip}:{l_port} -> {s_ip}:{s_port}")
+        print(f" << Server connected via {l_ip}:{l_port} -> {s_ip}:{s_port}")
         try:
             s.send(rsa.PublicKey.save_pkcs1(pub_key))
         except ConnectionResetError:
@@ -437,10 +437,8 @@ while True:
                     to_c("\n🱫[COLOR][RED] User authentication failed")
                     exit.update("AUTH_FAILED")
                 with open(f'{key_location}key_salt', 'w', encoding="utf-8") as f:
-                    #salt_write = f"{key_salt}🱫{u_id}"
                     f.write(key_salt+"🱫"+u_id)
                 print("Wrote key_salt and u_id")
-                break
         else:
             print("Login with existing account")
             send_e(f"LOG:{u_id}")
@@ -472,10 +470,9 @@ while True:
 
         print("Version updater")
         send_e(hashed)
-        print(f" >> {hashed}")
+        print(f" >> sent version hash")
         v_check_resp = recv_d(512)
         print(f" << {v_check_resp}")
-        print(v_check_resp)
         if v_check_resp.startswith("V"):
             with open("version.txt", "w", encoding="utf-8") as f:
                 f.write(v_check_resp[1:])
@@ -489,8 +486,7 @@ while True:
             exit.update("UPDATE")
 
         if v_check_resp.startswith("UNKNOWN"):
-            to_c("\n🱫[COLOR][RED] <> INVALID OR CORRUPTED VERSION, ????")
-            exit.update("UPDATE")
+            to_c("\n🱫[COLOR][RED] <> MODIFIED VERSION DETECTED")
 
         to_c(f"\n🱫[COLOR][GRN] You are now logged in as {u_id}")
         to_c("🱫[INP SHOW]🱫", 0.1)
@@ -530,23 +526,6 @@ while True:
                             user.update_key('u_name', new_u_name_resp[1:])
                     else:
                         to_c(f"\n🱫[COLOR][RED] Username must be 5-32 chars, you entered: {username[:64]}")
-
-            #if request.startswith("-add friend"):
-            #    add_friend_n = request[12:]
-            #    if 9 < len(add_friend_n) < 38:
-            #        try:
-            #            int(add_friend_n[-4:])
-            #            if add_friend_n[-5] != "#":
-            #                to_c(f"\n🱫[COLOR][RED] Tag missing or invalid (eg #0001)")
-            #            else:
-            #                send_e(f"ADDFR:{add_friend_n}")
-            #                print(f" >> ADDFR:{add_friend_n}")
-            #                new_fr_req = recv_d(128)
-            #                print(new_fr_req)
-            #        except ValueError:
-            #            to_c(f"\n🱫[COLOR][RED] Invalid tag (tag example: #0001)")
-            #    else:
-            #        to_c(f"\n🱫[COLOR][RED] Username+Tag must be 10-37 chars, you entered: {add_friend_n[:64]}")
 
     except AssertionError:
         exit_reason = str(exit.get(0))[2:-2]

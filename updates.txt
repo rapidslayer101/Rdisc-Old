@@ -33,8 +33,8 @@
 0.33 smaller responses, fixed single session issues, fixed versioning
 0.34 changing to rdisc-rc4, the file server and private chat network client, enc 11.8.0 implemented
 0.35 access key system, first time signup, remove email
+0.36 server ip file, updater now git, exe's removed, User class done properly
 
-0.36 server ip file, updater now git, exe's removed,
 0.37 ip or some form of device identifier, online status, uname setting
 
 0.38 basic chat functionality

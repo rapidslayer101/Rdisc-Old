@@ -24,52 +24,53 @@ def version_info(hashed):
     return f"V{version_}🱫{tme_}🱫{bld_num}🱫{run_num}"
 
 
-validation_hashes = []
 if not path.exists("validation_keys.txt"):
     with open("validation_keys.txt", "w", encoding="utf-8") as f:
         f.write("")
-else:
-    with open("validation_keys.txt", encoding="utf-8") as f:
-        for line in f.readlines():
-            validation_hashes.append(line.split("🱫")[1].replace("\n", ""))
 
 if not path.exists("Users"):
     mkdir("Users")
 
-u_ids, logged_in_users, sockets = [[], [], []]
 
-for user_id_ in listdir("Users"):
-    u_ids.append(user_id_)
+class Users:
+    def __init__(self):
+        self.ids = []
+        self.logged_in_users = []
+        self.sockets = []
+        self.valid_hashes = []
+        for user_id_ in listdir("Users"):
+            self.ids.append(user_id_)
+        with open("validation_keys.txt", encoding="utf-8") as vkf:
+            [self.valid_hashes.append(_h_.split("🱫")[1].replace("\n", "")) for _h_ in vkf.readlines()]
 
+    def v_hash_r(self, hash_r):
+        self.valid_hashes.pop(self.valid_hashes.index(hash_r))
+        with open("validation_keys.txt", "w", encoding="utf-8") as vkf:
+            for _h_ in self.valid_hashes:
+                f.write(_h_+"\n")
 
-class users:
-    def ids(self):
-        return u_ids
+    def ids_update(self, u_id):
+        self.ids.append(u_id)
+        self.ids.sort()
 
-    def ids_update(self):
-        u_ids.append(self)
-        u_ids.sort()
-
-    def logged_in(self):
-        return logged_in_users
-
-    def login(self, ip, cs):
-        logged_in_users.append(self)
-        logged_in_users.append(ip)
-        sockets.append(cs)
+    def login(self, u_id, ip, cs):
+        self.logged_in_users.append(u_id)
+        self.logged_in_users.append(ip)
+        self.sockets.append(cs)
         #time.sleep(0.5)
         #for i in sockets:
         #    i.send(f"UON:{self}".encode())
 
-    def logout(self, ip, cs):
+    def logout(self, u_id, ip, cs):
         try:
-            logged_in_users.pop(logged_in_users.index(self))
-            logged_in_users.pop(logged_in_users.index(ip))
-            sockets.pop(sockets.index(cs))
+            self.logged_in_users.pop(self.logged_in_users.index(u_id))
+            self.logged_in_users.pop(self.logged_in_users.index(ip))
+            self.sockets.pop(self.sockets.index(cs))
         except ValueError:
             pass
 
 
+users = Users()
 client_sockets = set()
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -105,7 +106,7 @@ def client_connection(cs):
                 raise ConnectionResetError
 
         def check_logged_in(uid_):
-            l_users = users.logged_in(0)
+            l_users = users.logged_in_users
             if uid_ in l_users:
                 return True
             else:
@@ -119,7 +120,7 @@ def client_connection(cs):
             print(login_request)  # temp debug for dev
 
             if login_request.startswith("NAC:"):
-                if login_request[4:] in validation_hashes:
+                if login_request[4:] in users.valid_hashes:
                     user_salt = enc.rand_b96_str(64)
                     send_e(f"V:{user_salt}")
                     user_pass = recv_d(2048)
@@ -130,12 +131,13 @@ def client_connection(cs):
                     if user_challenge == challenge_hash:
                         while True:
                             u_id = "".join(choices(b36set, k=8))
-                            if u_id not in users.ids(0):
+                            if u_id not in users.ids:
                                 break
                         mkdir(f"Users/{u_id}")
                         with open(f"Users/{u_id}/{u_id}-keys.txt", "w", encoding="utf-8") as f:
                             f.write(f"{user_pass}🱫{user_salt}")
                             #f.write(f"{user_pass}🱫{user_salt}🱫{ip}")
+                        users.v_hash_r(login_request[4:])
                         users.ids_update(u_id)
                         users.login(uid, ip, cs)
                         send_e(f"{u_id}")
@@ -151,7 +153,7 @@ def client_connection(cs):
                     raise ConnectionRefusedError
                 else:
                     try:
-                        users.ids(0).index(uid)
+                        users.ids.index(uid)
                     except ValueError:
                         send_e("N")  # User ID not found
                     else:
