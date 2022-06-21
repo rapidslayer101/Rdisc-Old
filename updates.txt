@@ -35,8 +35,9 @@
 0.35 access key system, first time signup, remove email
 0.36 server ip file, updater now git, exe's removed, User class done properly
 
-0.37 ip or some form of device identifier, online status, uname setting
+0.37 rebuilt account delete, change pass, clean app (remove user files)
+0.38 ip or some form of device identifier, online status, uname setting
 
-0.38 basic chat functionality
-0.39 downloading, saving, load req files from a first time setup file
-0.50 use CLI even when UI active,
+0.39 basic chat functionality
+0.40 downloading, saving, load req files from a first time setup file
+0.41 use CLI even when UI active,

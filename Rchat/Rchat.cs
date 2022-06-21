@@ -172,23 +172,23 @@ namespace Rchat
 				MainOutput.Text = "";
 			}
 
-			if (readData.StartsWith("\n🱫﻿[COLOR]"))
+			if (readData.StartsWith("\n🱫﻿[COL-"))
 			{
-				readData = readData.Replace("🱫[COLOR]", "");
-				if (readData.StartsWith("\n﻿[GRN]"))
+				readData = readData.Replace("🱫[COL-", "");
+				if (readData.StartsWith("\n﻿GRN]"))
                 {
 					MainOutput.SelectionColor = Color.LightGreen;
-					readData = readData.Replace("[GRN]", "");
+					readData = readData.Replace("GRN]", "");
 				}
-				if (readData.StartsWith("\n﻿[YEL]"))
+				if (readData.StartsWith("\n﻿YEL]"))
                 {
 					MainOutput.SelectionColor = Color.Yellow;
-					readData = readData.Replace("[YEL]", "");
+					readData = readData.Replace("YEL]", "");
 				}
-				if (readData.StartsWith("﻿\n[RED]"))
+				if (readData.StartsWith("﻿\nRED]"))
                 {
 					MainOutput.SelectionColor = Color.Red;
-					readData = readData.Replace("[RED]", "");
+					readData = readData.Replace("RED]", "");
 				}
 			}
 			else
@@ -456,7 +456,7 @@ namespace Rchat
 
         private void confirmAccountDeletetionToolStripMenuItem_Click(object sender, EventArgs e)
         {
-			byte[] bytes = Encoding.Unicode.GetBytes("🱫[DELAC]");
+			byte[] bytes = Encoding.Unicode.GetBytes("🱫[DLAC]");
 			MainOutput.Text = "";
 			serverStream.Write(bytes, 0, bytes.Length);
 			serverStream.Flush();

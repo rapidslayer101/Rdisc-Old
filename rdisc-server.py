@@ -1,7 +1,8 @@
-import zlib, socket, rsa
+import socket, rsa
+from zlib import error as zl_error
 from os import path, mkdir, listdir, remove, removedirs, rename
 from threading import Thread
-from random import choice, choices, randint
+from random import choices, randint
 from hashlib import sha512
 import enclib as enc
 
@@ -49,9 +50,12 @@ class Users:
             for _h_ in self.valid_hashes:
                 f.write(_h_+"\n")
 
-    def ids_update(self, u_id):
+    def ids_up(self, u_id):
         self.ids.append(u_id)
         self.ids.sort()
+
+    def ids_r(self, u_id):
+        self.ids.pop(self.ids.index(u_id))
 
     def login(self, u_id, ip, cs):
         self.logged_in_users.append(u_id)
@@ -96,13 +100,13 @@ def client_connection(cs):
         def send_e(text):
             try:
                 cs.send(enc.enc_from_key(text, enc_key))
-            except zlib.error:
+            except zl_error:
                 raise ConnectionResetError
 
         def recv_d(buf_lim):
             try:
                 return enc.dec_from_key(cs.recv(buf_lim), enc_key)
-            except zlib.error:
+            except zl_error:
                 raise ConnectionResetError
 
         def check_logged_in(uid_):
@@ -121,26 +125,26 @@ def client_connection(cs):
 
             if login_request.startswith("NAC:"):
                 if login_request[4:] in users.valid_hashes:
-                    user_salt = enc.rand_b96_str(64)
-                    send_e(f"V:{user_salt}")
-                    user_pass = recv_d(2048)
+                    u_salt = enc.rand_b96_str(64)
+                    send_e(f"V:{u_salt}")
+                    u_pass = recv_d(2048)
                     challenge_int = randint(1, 999999)
-                    challenge_hash = sha512(enc.pass_to_key(user_pass, user_salt, challenge_int).encode()).hexdigest()
+                    challenge_hash = sha512(enc.pass_to_key(u_pass, u_salt, challenge_int).encode()).hexdigest()
                     send_e(f"{challenge_int}")
                     user_challenge = recv_d(2048)
                     if user_challenge == challenge_hash:
                         while True:
-                            u_id = "".join(choices(b36set, k=8))
-                            if u_id not in users.ids:
+                            uid = "".join(choices(b36set, k=8))
+                            if uid not in users.ids:
                                 break
-                        mkdir(f"Users/{u_id}")
-                        with open(f"Users/{u_id}/{u_id}-keys.txt", "w", encoding="utf-8") as f:
-                            f.write(f"{user_pass}🱫{user_salt}")
-                            #f.write(f"{user_pass}🱫{user_salt}🱫{ip}")
+                        mkdir(f"Users/{uid}")
+                        with open(f"Users/{uid}/{uid}-keys.txt", "w", encoding="utf-8") as f:
+                            f.write(f"{u_pass}🱫{u_salt}")
+                            #f.write(f"{u_pass}🱫{u_salt}🱫{ip}")
                         users.v_hash_r(login_request[4:])
-                        users.ids_update(u_id)
+                        users.ids_up(uid)
                         users.login(uid, ip, cs)
-                        send_e(f"{u_id}")
+                        send_e(f"{uid}")
                     else:
                         send_e("N")
                 else:
@@ -187,35 +191,24 @@ def client_connection(cs):
                     f.write(log_a_write)
                 raise ConnectionResetError
 
-            if request.startswith("DELAC:"):
-                password = enc.pass_to_seed(request[6:], default_salt)
-                u_dir = users.dirs(0)[uid]
-                u_dir = f"{uid} {u_dir[0]} {u_dir[1]}"
-                pass_present = False
-                with open(f"Users/{u_dir}/{uid}-keys.txt", encoding="utf-8") as f:
-                    if password == f.readlines()[0].replace("\n", ""):
-                        pass_present = True
-                if pass_present:
+            if request.startswith("DLAC:"):
+                if u_pass == request[5:]:
                     send_e("V")
-                    # email code sending code will be below
-                    # add error return code for if email code sending fails
-                    email_code = "".join([choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") for x in range(16)])
-                    email_code_send = f"{email_code[:4]}-{email_code[4:8]}-{email_code[8:12]}-{email_code[12:]}"
-                    print(email_code_send)
-                    #
-                    # code_valid_until = datetime.datetime.now()+datetime.timedelta(minutes=15)
-                    while True:
-                        if email_code == recv_d(1024):
-                            for file in listdir(f"Users/{u_dir}"):
-                                remove(f"Users/{u_dir}/{file}")
-                            removedirs(f"Users/{u_dir}")
-                            print(f"{u_dir} deleted")
-                            send_e("V")
+                    challenge_int = randint(1, 999999)
+                    challenge_hash = sha512(enc.pass_to_key(u_pass, u_salt, challenge_int).encode()).hexdigest()
+                    send_e(f"{challenge_int}")
+                    user_challenge = recv_d(2048)
+                    if user_challenge == challenge_hash:
+                        send_e("V")
+                        if recv_d(1024) == "Y":
+                            for file in listdir(f"Users/{uid}"):
+                                remove(f"Users/{uid}/{file}")
+                            removedirs(f"Users/{uid}")
+                            users.ids_r(uid)
+                            send_e(f"V")
                             raise ConnectionResetError
-                        else:
-                            send_e("N_CODE")
                 else:
-                    send_e("N_PASS")
+                    send_e("N")
 
             if request.startswith("CPASS:"):
                 try:
