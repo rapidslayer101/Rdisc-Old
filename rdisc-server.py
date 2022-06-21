@@ -11,6 +11,19 @@ b36set = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 b62set = b36set+"abcdefghijklmnopqrstuvwxyz"
 
 
+def version_info(hashed):
+    print(hashed)
+    version_data = None
+    with open("sha.txt", encoding="utf-8") as f:
+        for _hash_ in f.readlines():
+            if hashed == _hash_.split("§")[0]:
+                version_data = _hash_
+    if not version_data:
+        return f"UNKNOWN"
+    version_, tme_, bld_num, run_num = version_data.split("§")[2:]
+    return f"V{version_}🱫{tme_}🱫{bld_num}🱫{run_num}"
+
+
 validation_hashes = []
 if not path.exists("validation_keys.txt"):
     with open("validation_keys.txt", "w", encoding="utf-8") as f:
@@ -18,7 +31,7 @@ if not path.exists("validation_keys.txt"):
 else:
     with open("validation_keys.txt", encoding="utf-8") as f:
         for line in f.readlines():
-            validation_hashes.append(line.split("🱫")[1])
+            validation_hashes.append(line.split("🱫")[1].replace("\n", ""))
 
 if not path.exists("Users"):
     mkdir("Users")
@@ -60,7 +73,7 @@ class users:
 client_sockets = set()
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-s.bind(('', 8080))
+s.bind(('', 30678))
 s.listen()
 print(f"[*] Listening as {str(s).split('laddr=')[1][:-1]}")
 
@@ -154,6 +167,10 @@ def client_connection(cs):
                             else:
                                 break
                         send_e("V")
+                        version_response = version_info(recv_d(512))
+                        send_e(version_response)
+                        users.login(uid, ip, cs)
+                        break
 
         print(f"{uid} logged in with IP-{ip}:{port} and version-{version_response}")
         while True:  # main loop

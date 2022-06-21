@@ -18,7 +18,7 @@ from hashlib import sha512
 #from threading import Thread
 import enclib as enc
 
-# local sockets localhost:8079, localhost:8080
+# local sockets localhost:30677, localhost:30678
 # Made by rapidslayer101 (Scott Bree), General usage testing and spelling: James Judge
 # >>> license and agreement data here <<<
 
@@ -38,8 +38,7 @@ if path.exists("sha.txt"):
                   f"TME-{str(datetime.datetime.now())[:-4].replace(' ', '_')} "
                   f"BLD_NM-{bld_num_[7:]} RUN_NM-{int(run_num_[7:])+1}")
             f.write(write)
-        print(f"Running rdisc V{release_major}.{major}.{build}.{run}")
-
+    print(f"Running rdisc V{release_major}.{major}.{build}.{run}")
 
 ui_s = False
 
@@ -48,10 +47,7 @@ while True:
         if not ui_s:
             ui_s = socket.socket()
             ui_s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            if path.exists("rdisc.py"):
-                ui_s.bind(("127.0.0.1", 8078))
-            else:
-                ui_s.bind(("127.0.0.1", 8079))
+            ui_s.bind(("127.0.0.1", 30677))
             print(" -> Launching ui.exe")
             if not path.isfile("ui.exe"):
                 print("[!] CRITICAL FILE ui.exe MISSING, falling back to CLI\n")
@@ -337,7 +333,7 @@ while True:
                     receive("🱫[INP SHOW]", 0.1)
                     to_c("🱫[INP HIDE]", 0.1)
         else:
-            to_c("\n🱫[COLOR][YEL] Enter server IP address and port (eg: 0.0.0.0:72)")
+            to_c("\n🱫[COLOR][YEL] Enter server IP address and port (eg: 127.0.0.1:30678)")
             while True:
                 try:
                     server_ip, server_port = receive().split(":")
@@ -357,7 +353,8 @@ while True:
                                 try:
                                     s = socket.socket()
                                     to_c("\n\n >> Connecting to server")
-                                    s.connect((server_ip, server_port))
+                                    print(server_ip, server_port)
+                                    s.connect((str(server_ip), server_port))
                                     to_c("\n🱫[COLOR][GRN] << Connected to server")
                                     with open('server_ip', 'w', encoding="utf-8") as f:
                                         f.write(f'{server_ip}:{server_port}')
@@ -474,16 +471,11 @@ while True:
                             to_c("\n🱫[COLOR][RED] User authentication failed")
 
         print("Version updater")
-        if not path.exists("updater.exe"):
-            print(" >> updater.exe not found")
-            to_c("\n🱫[COLOR][RED] updater.exe not found, downloading...")
-            send_e("UPD")
-            update_size = recv_d(512)
-            exit.update("UPDATER_NF")
         send_e(hashed)
         print(f" >> {hashed}")
         v_check_resp = recv_d(512)
         print(f" << {v_check_resp}")
+        print(v_check_resp)
         if v_check_resp.startswith("V"):
             with open("version.txt", "w", encoding="utf-8") as f:
                 f.write(v_check_resp[1:])
@@ -497,8 +489,7 @@ while True:
             exit.update("UPDATE")
 
         if v_check_resp.startswith("UNKNOWN"):
-            update_size, update_hash = v_check_resp[7:].split("🱫")
-            to_c("\n🱫[COLOR][RED] <> INVALID OR CORRUPTED VERSION, downloading new copy")
+            to_c("\n🱫[COLOR][RED] <> INVALID OR CORRUPTED VERSION, ????")
             exit.update("UPDATE")
 
         to_c(f"\n🱫[COLOR][GRN] You are now logged in as {u_id}")

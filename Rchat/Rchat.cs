@@ -33,32 +33,23 @@ namespace Rchat
 		{
 			try
 			{
-				if (System.IO.File.Exists("rdisc.py"))
-				{
-					readData = "\n -> Starting internal socket (8078)";
-					msg();
-					clientSocket.Connect("127.0.0.1", 8078);
-				}
-                else
-                {
-					readData = "\n -> Starting internal socket (8079)";
-					msg();
-					clientSocket.Connect("127.0.0.1", 8079);
-				}
+				readData = "\n -> Starting internal socket (30677)";
+				msg();
+				clientSocket.Connect("127.0.0.1", 30677);
 				new Thread(new ThreadStart(getMessage)).Start();
 			}
 			catch (Exception d)
 			{
-				try
-				{
-					Process.Start("rdisc.exe");
-					Application.Exit();
-				}
-				catch
-				{
-					MainOutput.SelectionColor = Color.Red;
-					MainOutput.AppendText("\n[!] RDISC could not initialize, rdisc.exe is likely missing\n\n" + d);
-				}
+				//try
+				//{
+				//	Process.Start("");
+				//	Application.Exit();
+				//}
+				//catch
+				//{
+				MainOutput.SelectionColor = Color.Red;
+				MainOutput.AppendText("\n[!] RDISC could not initialize, please close this window and start the launcher\n\n" + d);
+				//}
 			}
 			MI_MaxChars.Visible = Send.Visible = Mninp_Bk.Visible = MainInput.Visible = false;
 		}
