@@ -25,7 +25,7 @@ if latest_sha == hashed:
 else:
     with open("sha.txt", "a+", encoding="utf-8") as f:
         tme = str(datetime.now())[:-4].replace(' ', '_')
-        print(f"{hashed}§BLD§V{release_major}.{major}.{build}.{run}§TME-{tme}"
+        print(f"{hashed}§COM§V{release_major}.{major}.{build}.{run}§TME-{tme}"
               f"§BLD_NM-{int(bld_num[7:])+1}§RUN_NM-{run_num[7:]}")
         f.write(f"\n{hashed}§BLD§V{release_major}.{major}.{build}.{run}§TME-{tme}"
                 f"§BLD_NM-{int(bld_num[7:])+1}§RUN_NM-{run_num[7:]}")
