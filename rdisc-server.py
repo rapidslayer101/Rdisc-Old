@@ -1,5 +1,5 @@
-import time
-import zlib, socket, os, rsa
+import zlib, socket, rsa
+from os import path, mkdir, listdir, remove, removedirs, rename
 from threading import Thread
 from random import choice, choices, randint
 from hashlib import sha512
@@ -7,8 +7,8 @@ import enclib as enc
 
 min_version = "V0.35.6.0"  # CHANGE MIN CLIENT REQ VERSION HERE
 stable_release_zip = f"rdisc.zip"
-update_size = os.path.getsize(stable_release_zip)
-updater_size = os.path.getsize("updater.exe")
+update_size = path.getsize(stable_release_zip)
+updater_size = path.getsize("updater.exe")
 update_hash = enc.hash_a_file(stable_release_zip)
 default_salt = "52gy\"J$&)6%0}fgYfm/%ino}PbJk$w<5~j'|+R .bJcSZ.H&3z'A:gip/jtW$6A=" \
                 "G-;|&&rR81!BTElChN|+\"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#.\"H4tq)p4"
@@ -45,12 +45,12 @@ def version_info(hashed):
         return f"V{version_}🱫{tme_}🱫{bld_num}🱫{run_num}"
 
 
-if not os.path.exists("Users"):
-    os.mkdir("Users")
+if not path.exists("Users"):
+    mkdir("Users")
 
 u_ids, logged_in_users, sockets = [[], [], []]
 
-for user_id_ in os.listdir("Users"):
+for user_id_ in listdir("Users"):
     u_ids.append(user_id_)
 
 
@@ -132,7 +132,7 @@ def client_connection(cs):
             print(login_request)  # temp debug for dev
 
             if login_request.startswith("NAC:"):
-                if login_request[4:] == "87a176a2fda37a7c1d0e31fa6a7647d55b9651fcc3de6a27247b736f13318e244ac9b3aec5cc9a3134eab0090cc0ce691cdd28b9603ad8a3c3efdef57e906c60":
+                if login_request[4:] == "a4063d923e474d45b23bbe534ec8eaf30697114b6f5444c4013ffc347e37eb414fe75916e41777771f67a03f97aac5b9f153440095262ae2ff8a8c379262a960":
                     user_salt = enc.rand_b96_str(64)
                     send_e(f"V:{user_salt}")
                     user_pass = recv_d(2048)
@@ -145,12 +145,12 @@ def client_connection(cs):
                             u_id = "".join(choices(b36set, k=8))
                             if u_id not in users.ids(0):
                                 break
-                        os.mkdir(f"Users/{u_id}")
+                        mkdir(f"Users/{u_id}")
                         with open(f"Users/{u_id}/{u_id}-keys.txt", "w", encoding="utf-8") as f:
                             f.write(f"{user_pass}🱫{user_salt}")
                             #f.write(f"{user_pass}🱫{user_salt}🱫{ip}")
                         users.ids_update(u_id)
-                        users.login(u_id, cs)
+                        users.login(uid, ip, cs)
                         send_e(f"{u_id}")
                     else:
                         send_e("N")
@@ -237,9 +237,9 @@ def client_connection(cs):
                     # code_valid_until = datetime.datetime.now()+datetime.timedelta(minutes=15)
                     while True:
                         if email_code == recv_d(1024):
-                            for file in os.listdir(f"Users/{u_dir}"):
-                                os.remove(f"Users/{u_dir}/{file}")
-                            os.removedirs(f"Users/{u_dir}")
+                            for file in listdir(f"Users/{u_dir}"):
+                                remove(f"Users/{u_dir}/{file}")
+                            removedirs(f"Users/{u_dir}")
                             print(f"{u_dir} deleted")
                             send_e("V")
                             raise ConnectionResetError
@@ -288,7 +288,7 @@ def client_connection(cs):
                 u_name = f"{u_name}#{randint(1111, 9999)}"
                 if u_name not in users.names(0):
                     user_dir_new = f"{uid} {u_dir.split(' ')[1]} {u_name}"
-                    os.rename(f"Users/{u_dir}", f"Users/{user_dir_new}")
+                    rename(f"Users/{u_dir}", f"Users/{user_dir_new}")
                     users.dirs_update(uid, u_dir.split(' ')[1], u_name)
                     users.names_remove(users.names(0).index(u_dir.split(" ")[2]))
                     users.names_update(u_name)

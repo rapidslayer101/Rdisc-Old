@@ -1,5 +1,11 @@
 import socket, datetime, zlib, rsa
-from os import path, startfile, remove
+from os import path, remove
+try :
+    from os import startfile
+    ui = True
+except ImportError:
+    print("[!] os.startfile() failed to import")
+    ui = False
 from time import sleep
 from uuid import getnode as get_mac
 from hashlib import sha512
@@ -31,7 +37,6 @@ else:
     hashed = enc.hash_a_file("rdisc.exe")
 
 
-ui = True
 ui_s = False
 
 while True:
@@ -298,10 +303,10 @@ while True:
                     else:
                         to_c("\n Enter the activation key")
                         while True:
-                            #act_pass = receive()
-                            act_pass = """8qYu[xkh"T]|>4I{G<£gY6)6F pLv2zD¬Vqk0M9P6V`82m+Pv//P/gX>5]1e?lb$8,GBt#7h%|IU{r"""
+                            #act_key = receive()
+                            act_key = """(5US~9ibs3t^&5T[k5!l"6pfgHt=2XB{TZK0.yahH#?/z¬$S<y¬x&uZnsQb66>£kK3w46q}SDHg9c("""
                             try:
-                                sign_up_key = sha512(enc.dec_from_key(key_data, act_pass).encode()).hexdigest()
+                                sign_up_key = sha512(enc.dec_from_key(key_data, act_key).encode()).hexdigest()
                                 break
                             except zlib.error:
                                 to_c("\n🱫[COLOR][RED] Invalid activation key")
@@ -317,24 +322,58 @@ while True:
         # Establish connection to server
 
         print("Establishing connection to server")
-        pub_key, pri_key = rsa.newkeys(512)
-        server_host = "192.168.1.153"
-        server_port = 8080
+        pub_key, pri_key = rsa.newkeys(1024)
         s = socket.socket()
-        to_c("\n\n >> Connecting to server")
-        server_connect_error = False
-        while True:
-            try:
-                s.connect((server_host, server_port))
-                to_c("\n🱫[COLOR][GRN] << Connected to server")
-                break
-            except ConnectionRefusedError:
-                to_c("\n🱫[COLOR][RED] Could not connect to server")
-                if not server_connect_error:
-                    to_c("\n🱫[COLOR][YEL] Enter something to retry connection", 0.1)
-                server_connect_error = True
-                receive("🱫[INP SHOW]", 0.1)
-                to_c("🱫[INP HIDE]", 0.1)
+        if path.exists('server_ip'):
+            with open('server_ip', 'r') as f:
+                server_ip, server_port = f.read().split(":")
+                server_port = int(server_port)
+            to_c("\n\n >> Connecting to server")
+            server_connect_error = False
+            while True:
+                try:
+                    s.connect((server_ip, server_port))
+                    to_c("\n🱫[COLOR][GRN] << Connected to server")
+                    break
+                except ConnectionRefusedError:
+                    to_c("\n🱫[COLOR][RED] Could not connect to server")
+                    if not server_connect_error:
+                        to_c("\n🱫[COLOR][YEL] Enter something to retry connection", 0.1)
+                    server_connect_error = True
+                    receive("🱫[INP SHOW]", 0.1)
+                    to_c("🱫[INP HIDE]", 0.1)
+        else:
+            to_c("\n🱫[COLOR][YEL] Enter server IP address and port (eg: 0.0.0.0:72)")
+            while True:
+                try:
+                    server_ip, server_port = receive().split(":")
+                    server_port = int(server_port)
+                except ValueError or NameError:
+                    to_c("\n🱫[COLOR][RED] Invalid input")
+                else:
+                    if server_port < 1 or server_port > 65535:
+                        to_c("\n🱫[COLOR][RED] Port number must be between 1 and 65535")
+                    else:
+                        try:
+                            ip_1, ip_2, ip_3, ip_4 = server_ip.split(".")
+                        except ValueError:
+                            to_c("\n🱫[COLOR][RED] IP address must be in the format 'xxx.xxx.xxx.xxx'")
+                        try:
+                            if all(i.isdigit() and 0 <= int(i) <= 255 for i in [ip_1, ip_2, ip_3, ip_4]):
+                                try:
+                                    s = socket.socket()
+                                    to_c("\n\n >> Connecting to server")
+                                    s.connect((server_ip, server_port))
+                                    to_c("\n🱫[COLOR][GRN] << Connected to server")
+                                    with open('server_ip', 'w') as f:
+                                        f.write(f'{server_ip}:{server_port}')
+                                    break
+                                except ConnectionRefusedError:
+                                    to_c("\n🱫[COLOR][RED] Connection failed, enter another another IP address and port")
+                            else:
+                                to_c("\n🱫[COLOR][RED] IP address must have integers between 0 and 255")
+                        except NameError:
+                            to_c("\n🱫[COLOR][RED] IP address must be in the form of 'xxx.xxx.xxx.xxx'")
 
         l_ip, l_port = str(s).split("laddr=")[1].split("raddr=")[0][2:-3].split("', ")
         s_ip, s_port = str(s).split("raddr=")[1][2:-2].split("', ")
