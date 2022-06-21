@@ -294,17 +294,13 @@ while True:
                         key_data = f.read()
                     print(" - Key data loaded")
                     if path.exists(f'{key_location}key_salt'):
-                        with open(f'{key_location}key_salt') as f:
-                            key_salt = f.read()
-                        print(" - Key salt loaded")
-                        with open(f'{key_location}u_id') as f:
-                            u_id = f.read()
-                        print(" - User id loaded")
+                        with open(f'{key_location}key_salt', encoding="utf-8") as f:
+                            key_salt, u_id = f.read().split("🱫")
+                        print(" - Key salt loaded\n - User id loaded")
                     else:
                         to_c("\n Enter the activation key")
                         while True:
-                            #act_key = receive()
-                            act_key = """(5US~9ibs3t^&5T[k5!l"6pfgHt=2XB{TZK0.yahH#?/z¬$S<y¬x&uZnsQb66>£kK3w46q}SDHg9c("""
+                            act_key = receive()
                             try:
                                 sign_up_key = sha512(enc.dec_from_key(key_data, act_key).encode()).hexdigest()
                                 break
@@ -445,10 +441,9 @@ while True:
                     print(" << AUTH_FAILED")
                     to_c("\n🱫[COLOR][RED] User authentication failed")
                     exit.update("AUTH_FAILED")
-                with open(f'{key_location}key_salt', 'w') as f:
-                    f.write(key_salt)
-                with open(f'{key_location}u_id', 'w') as f:
-                    f.write(u_id)
+                with open(f'{key_location}key_salt', 'w', encoding="utf-8") as f:
+                    #salt_write = f"{key_salt}🱫{u_id}"
+                    f.write(key_salt+"🱫"+u_id)
                 print("Wrote key_salt and u_id")
                 break
         else:
@@ -457,27 +452,28 @@ while True:
             print(" >> u_id sent")
             while True:
                 depth = recv_d(512)
-                if depth == "N_UID":
+                if depth == "N":
                     print(" << INVALID_U_ID")
                     to_c("\n🱫[COLOR][RED] User does not exist")
-                if depth == "SESH_T":
-                    print(" << SESSION_TAKEN")
-                    to_c("\n🱫[COLOR][RED] This account or IP is already logged in")
-                    exit.update("SESH_TAKEN")
                 else:
-                    print(f" << challenge_int received: {depth}")
-                    pass_ = receive("\n🱫[COLOR][YEL] Please enter your password", 0.1)
-                    pass_ = enc.pass_to_key(pass_, default_salt, 100000)
-                    user_challenge = sha512(enc.pass_to_key(pass_, key_salt, int(depth)).encode()).hexdigest()
-                    send_e(user_challenge)
-                    print(" >> challenge_hash sent")
-                    challenge_resp = recv_d(512)
-                    if challenge_resp != "N":
-                        print(" << logged in")
-                        break
+                    if depth == "SESH_T":
+                        print(" << SESSION_TAKEN")
+                        to_c("\n🱫[COLOR][RED] This account or IP is already logged in")
+                        exit.update("SESH_TAKEN")
                     else:
-                        print(" << AUTH_FAILED")
-                        to_c("\n🱫[COLOR][RED] User authentication failed")
+                        print(f" << challenge_int received: {depth}")
+                        pass_ = receive("\n🱫[COLOR][YEL] Please enter your password", 0.1)
+                        pass_ = enc.pass_to_key(pass_, default_salt, 100000)
+                        user_challenge = sha512(enc.pass_to_key(pass_, key_salt, int(depth)).encode()).hexdigest()
+                        send_e(user_challenge)
+                        print(" >> challenge_hash sent")
+                        challenge_resp = recv_d(512)
+                        if challenge_resp != "N":
+                            print(" << logged in")
+                            break
+                        else:
+                            print(" << AUTH_FAILED")
+                            to_c("\n🱫[COLOR][RED] User authentication failed")
 
         print("Version updater")
         if not path.exists("updater.exe"):

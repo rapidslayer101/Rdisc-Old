@@ -22,8 +22,8 @@ def version_info(hashed):
     print(hashed)
     version_data = None
     with open("sha.txt", encoding="utf-8") as f:
-        for line in f.readlines():
-            if hashed in line:
+        for _hash_ in f.readlines():
+            if hashed in _hash_:
                 version_data = line
     if not version_data:
         return f"UNKNOWN{update_size}🱫{update_hash}"
@@ -44,6 +44,15 @@ def version_info(hashed):
     else:
         return f"V{version_}🱫{tme_}🱫{bld_num}🱫{run_num}"
 
+
+validation_hashes = []
+if not path.exists("validation_keys.txt"):
+    with open("validation_keys.txt", "w", encoding="utf-8") as f:
+        f.write("")
+else:
+    with open("validation_keys.txt", encoding="utf-8") as f:
+        for line in f.readlines():
+            validation_hashes.append(line.split("🱫")[1])
 
 if not path.exists("Users"):
     mkdir("Users")
@@ -99,8 +108,7 @@ def client_connection(cs):
             pub_key_cli = rsa.PublicKey.load_pkcs1(cs.recv(256))
         except ValueError:
             raise AssertionError
-        enc_seed = enc.rand_b96_str(48)
-        enc_salt = enc.rand_b96_str(48)
+        enc_seed, enc_salt= enc.rand_b96_str(48), enc.rand_b96_str(48)
         cs.send(rsa.encrypt(enc_seed.encode(), pub_key_cli))
         cs.send(rsa.encrypt(enc_salt.encode(), pub_key_cli))
         enc_key = enc.pass_to_key(enc_seed, enc_salt, 100000)
@@ -132,7 +140,7 @@ def client_connection(cs):
             print(login_request)  # temp debug for dev
 
             if login_request.startswith("NAC:"):
-                if login_request[4:] == "a4063d923e474d45b23bbe534ec8eaf30697114b6f5444c4013ffc347e37eb414fe75916e41777771f67a03f97aac5b9f153440095262ae2ff8a8c379262a960":
+                if login_request[4:] in validation_hashes:
                     user_salt = enc.rand_b96_str(64)
                     send_e(f"V:{user_salt}")
                     user_pass = recv_d(2048)
