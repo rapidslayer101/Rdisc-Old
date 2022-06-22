@@ -140,11 +140,10 @@ def client_connection(cs):
                         mkdir(f"Users/{uid}")
                         with open(f"Users/{uid}/{uid}-keys.txt", "w", encoding="utf-8") as f:
                             f.write(f"{u_pass}🱫{u_salt}")
-                            #f.write(f"{u_pass}🱫{u_salt}🱫{ip}")
                         users.v_hash_r(login_request[4:])
                         users.ids_up(uid)
-                        users.login(uid, ip, cs)
                         send_e(f"{uid}")
+                        break
                     else:
                         send_e("N")
                 else:
@@ -173,11 +172,11 @@ def client_connection(cs):
                             else:
                                 break
                         send_e("V")
-                        version_response = version_info(recv_d(512))
-                        send_e(version_response)
-                        users.login(uid, ip, cs)
                         break
 
+        version_response = version_info(recv_d(512))
+        send_e(version_response)
+        users.login(uid, ip, cs)
         print(f"{uid} logged in with IP-{ip}:{port} and version-{version_response}")
         while True:  # main loop
             request = recv_d(1024)
@@ -218,21 +217,17 @@ def client_connection(cs):
                 if old_pass == new_pass:
                     send_e("SP")  # old pass and new pass the same
                 else:
-                    pass_correct = False
-                    u_dir = users.dirs(0)[uid]
-                    u_dir = f"{uid} {u_dir[0]} {u_dir[1]}"
-                    with open(f"Users/{u_dir}/{uid}-keys.txt", encoding="utf-8") as f:
-                        lines = f.readlines()
-                        if enc.pass_to_seed(old_pass, default_salt) == lines[0].replace("\n", ""):
-                            lines[0] = enc.pass_to_seed(new_pass, default_salt)
-                            pass_correct = True
-                    if not pass_correct:
-                        send_e("N")  # password wrong
-                    else:
-                        with open(f"Users/{u_dir}/{uid}-keys.txt", "w", encoding="utf-8") as f:
-                            for line in lines:
-                                f.write(line.replace("\n", "")+"\n")
+                    print(old_pass, new_pass)
+                    # fetch old pass
+                    with open(f"Users/{uid}/{uid}-keys.txt", encoding="utf-8") as f:
+                        u_old_pass, _h_ = f.read().split("🱫")
+                    if old_pass == u_old_pass:
+                        print("success")
+                        with open(f"Users/{uid}/{uid}-keys.txt", "w", encoding="utf-8") as f:
+                            f.write(f"{new_pass}🱫{_h_}")
                         send_e("V")
+                    else:
+                        send_e("N")  # password wrong
 
             if request.startswith("CUSRN:"):
                 u_name = request[6:]

@@ -54,20 +54,24 @@ while True:
                 print("[!] CRITICAL FILE ui.exe MISSING, falling back to CLI\n")
                 ui = False
             else:
-                startfile("ui.exe")
-                print(" <- ui.exe launched")
-                ui_s.listen(1)
-                cs, client_address = ui_s.accept()
+                try:
+                    startfile("ui.exe")
+                    print(" <- ui.exe launched")
+                    ui_s.listen(1)
+                    cs, client_address = ui_s.accept()
 
-                def to_c(text, delay=None):
-                    if delay:
-                        sleep(delay)
-                    try:
-                        cs.send(str(text).encode(encoding="utf-16"))
-                    except ConnectionResetError:
-                        call_exit.update("EXIT")
-                print(f"Connected to ui.exe via socket {client_address}")
-                to_c("\n🱫[COL-GRN] <- Internal socket connected\n", 0.1)
+                    def to_c(text, delay=None):
+                        if delay:
+                            sleep(delay)
+                        try:
+                            cs.send(str(text).encode(encoding="utf-16"))
+                        except ConnectionResetError:
+                            call_exit.update("EXIT")
+                    print(f"Connected to ui.exe via socket {client_address}")
+                    to_c("\n🱫[COL-GRN] <- Internal socket connected\n", 0.1)
+                except NameError:
+                    print("[!] ui.exe failed to launch")
+                    ui = False
     if not ui:
         def to_c(text, delay=None):
             if delay:
@@ -75,11 +79,11 @@ while True:
             if text.startswith("🱫[INP SHOW]🱫"):
                 text = text[14:]
             if text.startswith("\n🱫[COL-GRN] "):  # todo CLI colors
-                text = text[15:]
+                text = text[12:]
             if text.startswith("\n🱫[COL-YEL] "):
-                text = text[15:]
+                text = text[12:]
             if text.startswith("\n🱫[COL-RED] "):
-                text = text[15:]
+                text = text[12:]
             if text.startswith("[MNINPLEN][256] "):
                 text = text[16:]
             if not text == "":
@@ -137,53 +141,39 @@ while True:
                     call_exit.update("UI")
                 if output_ in ['🱫[UIR]', '-ui reload', '-restart']:
                     call_exit.update("UIR")
-            if output_.startswith('🱫[CNGPASS'):
-                print("Change password")
-                n_pass_1 = None
-                while n_pass_1 is None:
-                    n_pass_1 = receive("\n🱫[COL-YEL] Please enter new password", 0.1)
-                    if len(n_pass_1) < 8:
-                        to_c("\n🱫[COL-RED] PASSWORD TO SHORT! (must be at least 8 chars)")
-                    else:
-                        to_c(f"\n Entered ({len(n_pass_1)}chrs): "+"*" * len(n_pass_1))
-                        if n_pass_1 == receive("\n🱫[COL-YEL] Please re-enter password", 0.1):
-                            n_pass_1 = enc.pass_to_key(n_pass_1, default_salt, 100000)
-                            break
-                        else:
-                            to_c("\n🱫[COL-RED] PASSWORDS DO NOT MATCH!")
+            if output_.startswith('-change pass'):  # todo change UI trigger for this
+                if "✔" in version:
+                    print("Change password")
+                    n_pass_1 = None
+                    while n_pass_1 is None:
+                        n_pass_1 = receive("\n🱫[COL-YEL] Please enter new password", 0.1)
+                        if len(n_pass_1) < 8:
+                            to_c("\n🱫[COL-RED] PASSWORD TO SHORT! (must be at least 8 chars)")
                             n_pass_1 = None
-                old_pass = enc.pass_to_key(receive("\n🱫[COL-YEL] Enter old password"), default_salt, 100000)
-                send_e(f"CPASS:{old_pass}🱫{n_pass_1}")
-                print(f" >> CPASS:{old_pass}🱫{n_pass_1}")
-                cng_pass_resp = recv_d(512)
-                print(f" << {cng_pass_resp}")
-                if cng_pass_resp == "V":
-                    to_c("\n🱫[COL-GRN] Success! Password has been changed")
+                        else:
+                            to_c(f"\n Entered ({len(n_pass_1)}chrs): "+"*" * len(n_pass_1))
+                            if n_pass_1 == receive("\n🱫[COL-YEL] Please re-enter password", 0.1):
+                                n_pass_1 = enc.pass_to_key(n_pass_1, default_salt, 100000)
+                                break
+                            else:
+                                to_c("\n🱫[COL-RED] PASSWORDS DO NOT MATCH!")
+                                n_pass_1 = None
+                    old_pass = enc.pass_to_key(receive("\n🱫[COL-YEL] Enter old password"), default_salt, 100000)
+                    send_e(f"CPASS:{old_pass}🱫{n_pass_1}")
+                    print(f" >> CPASS:{old_pass}🱫{n_pass_1}")
+                    cng_pass_resp = recv_d(512)
+                    print(f" << {cng_pass_resp}")
+                    if cng_pass_resp == "V":
+                        to_c("\n🱫[COL-GRN] Success! Password has been changed")
+                    else:
+                        if cng_pass_resp == "SP":
+                            to_c("\n🱫[COL-RED] Old pass and new pass are the same, exiting password change")
+                        else:
+                            to_c("\n🱫[COL-RED] Old password incorrect, exiting password change")
                 else:
-                    if cng_pass_resp == "SP":
-                        to_c("\n🱫[COL-RED] Old pass and new pass are the same, exiting password change")
-                    else:
-                        to_c("\n🱫[COL-RED] Old password incorrect, exiting password change")
+                    to_c("\n🱫[COL-RED] You must be logged in to perform this action")
 
-            if output_.startswith('🱫[LOG]'):
-                if user.key('u_name'):
-                    if output_ == '🱫[LOG]':
-                        try:
-                            remove("auth.txt")
-                        except FileNotFoundError:
-                            pass
-                        call_exit.update("LOGOUT")
-                    if output_ == '🱫[LOG_A]':
-                        send_e("LOG_A")
-                        try:
-                            remove("auth.txt")
-                        except FileNotFoundError:
-                            pass
-                        call_exit.update("LOGOUT")
-                    else:
-                        to_c("\n🱫[COL-RED] You must be logged in to perform this action")
-
-            if output_.startswith('🱫[DLAC]'):
+            if output_.startswith('-delete account'):  # todo change UI trigger for this
                 if "✔" in version:
                     print("Delete account")
                     pass__ = enc.pass_to_key(receive("\n🱫[COL-YEL] Enter password to delete account"), default_salt, 100000)
@@ -262,7 +252,8 @@ while True:
         sign_up = False
         not_found_usb_error = False
         while True:
-            to_c("🱫[INP SHOW]🱫[MNINPLEN][256] ", 0.1)
+            if not not_found_usb_error:
+                to_c("🱫[INP SHOW]🱫[MNINPLEN][256] ", 0.1)
             if not path.exists('key_location'):
                 to_c("\n🱫[COL-YEL] Set 'Access USB Key' drive - Eg 'D:/'")
                 while True:
@@ -521,7 +512,7 @@ while True:
             #            to_c(f"\n🱫[COL-RED] Username must be 5-32 chars, you entered: {username[:64]}")
 
     except AssertionError:
-        exit_reason = str(call_exit.get)[2:-2]
+        exit_reason = str(call_exit.exit_reason)[2:-2]
         if exit_reason == "SESH_TAKEN":
             to_c("🱫[INP SHOW]", 0.1)
             receive("\n🱫[COL-YEL] Enter something to retry connection", 0.)
