@@ -1,13 +1,7 @@
-import socket
+import socket, rsa
 from zlib import error as zl_error
 from datetime import datetime
-from os import path, remove, system
-try:
-    import rsa
-except ModuleNotFoundError:
-    system("pip install rsa")
-    system("python launcher.py")
-    exit()
+from os import path, remove
 try:
     from os import startfile
     ui = True
