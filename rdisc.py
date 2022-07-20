@@ -26,20 +26,21 @@ import enclib as enc
 hashed = enc.hash_a_file("rdisc.py")
 if path.exists("sha.txt"):
     with open("sha.txt", "r", encoding="utf-8") as f:
-        latest_sha_, run_type_, version_, tme_, bld_num_, run_num_ = f.readlines()[-1].split("§")
-    print("prev", run_type_, version_, tme_, bld_num_, run_num_)
-    release_major, major, build, run = version_.replace("V", "").split(".")
+        latest_sha_, version_, tme_, run_num_ = f.readlines()[-1].split("§")
+    print(f"Previous {version_} {tme_} {run_num_}")
+    print(version_)
+    release_major, major, run = version_.replace("V", "").split(".")
     if latest_sha_ != hashed:
         run = int(run) + 1
         with open("sha.txt", "a+", encoding="utf-8") as f:
-            write = f"\n{hashed}§RUN§V{release_major}.{major}.{build}.{run}" \
+            write = f"\n{hashed}§V{release_major}.{major}.{run}" \
                     f"§TME-{str(datetime.now())[:-4].replace(' ', '_')}" \
-                    f"§BLD_NM-{bld_num_[7:]}§RUN_NM-{int(run_num_[7:])+1}"
-            print(f"crnt RUN V{release_major}.{major}.{build}.{run} "
+                    f"§RUN_NM-{int(run_num_[7:])+1}"
+            print(f"Current V{release_major}.{major}.{run} "
                   f"TME-{str(datetime.now())[:-4].replace(' ', '_')} "
-                  f"BLD_NM-{bld_num_[7:]} RUN_NM-{int(run_num_[7:])+1}")
+                  f"RUN_NM-{int(run_num_[7:])+1}")
             f.write(write)
-    print(f"Running rdisc V{release_major}.{major}.{build}.{run}")
+    print(f"Running rdisc V{release_major}.{major}.{run}")
 
 
 ui_s = False
@@ -91,7 +92,7 @@ while True:
 
     if path.exists("version.txt"):
         with open("version.txt", encoding="utf-8") as f:
-            version, tme, bld_num, run_num = f.read().split('🱫')
+            version, tme, run_num = f.read().split('🱫')
         version = f"{version} ❌"
         to_c(f"🱫[LODVS] {version}")
 
@@ -132,15 +133,14 @@ while True:
     try:
         def process_from_c(output_):
             return_value = True
-            if output_ in ['🱫[RELOAD]', "-reload"]:
+            if output_ == "-reload":
                 call_exit.update("RELOAD")
-            if output_ in ['🱫[QUIT]', "-quit"]:
+            if output_ in ["-quit", "-exit"]:
                 call_exit.update("EXIT")
-            if output_ in ['🱫[UI]', '🱫[UIR]', '-ui', '-ui reload', '-restart']:
-                if output_ in ['🱫[UI]', '-ui']:
-                    call_exit.update("UI")
-                if output_ in ['🱫[UIR]', '-ui reload', '-restart']:
-                    call_exit.update("UIR")
+            if output_ == "-ui":
+                call_exit.update("UI")
+            if output_ in ['-ui reload', '-restart']:
+                call_exit.update("UIR")
             if output_.startswith('-change pass'):  # todo change UI trigger for this
                 if "✔" in version:
                     print("Change password")
@@ -195,9 +195,10 @@ while True:
                                     print(" >> CONFIRM_DELETION")
                                     if recv_d(512) == "V":
                                         print(" << ACCOUNT_DELETED")
-                                        to_c(f"\n🱫[COL-GRN] ACCOUNT {uid} DELETED")
-                                        # todo, here suggest app clean
-                                        break
+                                        remove("key_location")
+                                        remove(f"{key_location}key_salt")
+                                        remove(f"{key_location}key")
+                                        call_exit.update("ACCOUNT_DELETED")
                                 else:
                                     send_e("N")
                     else:
@@ -206,7 +207,7 @@ while True:
                     to_c("\n🱫[COL-RED] You must be logged in to perform this action")
             if output_ == '🱫[GET_VDATA_E]':
                 try:
-                    to_c(f"🱫[LODVS_E] {version}-{tme}-{bld_num}-{run_num}")
+                    to_c(f"🱫[LODVS_E] {version}-{tme}-{run_num}")
                 except:
                     pass
                 return_value = False
@@ -279,6 +280,7 @@ while True:
                             break
                 else:
                     to_c("\n🱫[COL-YEL] New system")
+
                     # todo new key creation system
             else:
                 with open('key_location', encoding="utf-8") as f:
@@ -447,7 +449,10 @@ while True:
                 depth = recv_d(512)
                 if depth == "N":
                     print(" << INVALID_UID")
-                    to_c("\n🱫[COL-RED] User does not exist")
+                    remove("key_location")
+                    remove(f"{key_location}key_salt")
+                    remove(f"{key_location}key")
+                    call_exit.update("USER_NOT_FOUND")
                 else:
                     if depth == "SESH_T":
                         print(" << SESSION_TAKEN")
@@ -468,7 +473,7 @@ while True:
                             print(" << AUTH_FAILED")
                             to_c("\n🱫[COL-RED] User authentication failed")
 
-        print("Version updater")
+        print("Version checker")
         send_e(hashed)
         print(f" >> sent version hash")
         v_check_resp = recv_d(512)
@@ -476,7 +481,7 @@ while True:
         if v_check_resp.startswith("V"):
             with open("version.txt", "w", encoding="utf-8") as f:
                 f.write(v_check_resp[1:])
-            version, tme, bld_num, run_num = v_check_resp[1:].split('🱫')
+            version, tme, run_num = v_check_resp[1:].split('🱫')
             version = f"{version} ✔"
             to_c(f"🱫[LODVS] {version}", 0.1)
 
@@ -538,6 +543,14 @@ while True:
             print("SERVER CONNECTION LOST, RELOADING")
             to_c("🱫[CLRO]")
             to_c("\n🱫[COL-RED] Connection lost - Reloading")
+        if exit_reason == "USER_NOT_FOUND":
+            print("USER DOES NOT EXIST, RELOADING")
+            to_c("🱫[CLRO]")
+            to_c("\n🱫[COL-RED] User does not exist - Reloading")
+        if exit_reason == "ACCOUNT_DELETED":
+            print("USER ACCOUNT DELETED, RELOADING")
+            to_c("🱫[CLRO]")
+            to_c(f"\n🱫[COL-GRN] ACCOUNT {uid} DELETED")
         if exit_reason in ["RELOAD", "UI", "UIR"]:
             if exit_reason in ["UI", "UIR"]:
                 if ui:

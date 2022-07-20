@@ -13,4 +13,4 @@ with open("validation_keys.txt", "a+", encoding="utf-8") as f:
     f.write(f"{activation_key}🱫{enc.sha512(key_file.encode()).hexdigest()}\n")
 with open(f'{key_drive}key', 'wb') as f:
     f.write(enc.enc_from_key(key_file, activation_key))
-input()
+print("Key file created")

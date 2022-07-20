@@ -21,8 +21,8 @@ def version_info(hashed):
                 version_data = _hash_
     if not version_data:
         return f"UNKNOWN"
-    version_, tme_, bld_num, run_num = version_data.split("§")[2:]
-    return f"V{version_}🱫{tme_}🱫{bld_num}🱫{run_num}"
+    version_, tme_, run_num = version_data.split("§")[1:]
+    return f"V{version_}🱫{tme_}🱫{run_num}"
 
 
 if not path.exists("validation_keys.txt"):
@@ -48,7 +48,7 @@ class Users:
         self.valid_hashes.pop(self.valid_hashes.index(hash_r))
         with open("validation_keys.txt", "w", encoding="utf-8") as vkf:
             for _h_ in self.valid_hashes:
-                f.write(_h_+"\n")
+                vkf.write(_h_+"\n")
 
     def ids_up(self, u_id):
         self.ids.append(u_id)

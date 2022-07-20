@@ -35,7 +35,7 @@
 0.35 access key system, first time signup, remove email
 0.36 server ip file, updater now git, exe's removed, User class done properly
 
-0.37 account key creator
+0.37 removed build nums, account key creator
 0.38 rebuilt account delete, change pass, clean app (remove user files)
 
 0.39 ip or some form of device identifier, non-portable key option, key creation
