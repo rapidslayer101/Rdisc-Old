@@ -4,4 +4,4 @@ cd Rdisc
 echo Unzipping python virtual environment
 tar -xf venv.zip
 echo Starting client
-venv/Scripts/python.exe rdisc.py
+start venv/Scripts/python.exe rdisc.py
