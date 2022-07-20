@@ -160,19 +160,22 @@ def client_connection(cs):
                     except ValueError:
                         send_e("N")  # User ID not found
                     else:
-                        with open(f"Users/{uid}/{uid}-keys.txt", "r", encoding="utf-8") as f:
-                            u_pass, u_salt = f.read().split("🱫")
-                        while True:
-                            challenge_int = randint(1, 999999)
-                            challenge_hash = sha512(enc.pass_to_key(u_pass, u_salt, challenge_int).encode()).hexdigest()
-                            send_e(f"{challenge_int}")
-                            user_challenge = recv_d(2048)
-                            if user_challenge != challenge_hash:
-                                send_e("N")
-                            else:
-                                break
-                        send_e("V")
-                        break
+                        try:
+                            with open(f"Users/{uid}/{uid}-keys.txt", "r", encoding="utf-8") as f:
+                                u_pass, u_salt = f.read().split("🱫")
+                            while True:
+                                challenge_int = randint(1, 999999)
+                                challenge_hash = sha512(enc.pass_to_key(u_pass, u_salt, challenge_int).encode()).hexdigest()
+                                send_e(f"{challenge_int}")
+                                user_challenge = recv_d(2048)
+                                if user_challenge != challenge_hash:
+                                    send_e("N")
+                                else:
+                                    break
+                            send_e("V")
+                            break
+                        except FileNotFoundError:
+                            send_e("N")
 
         version_response = version_info(recv_d(512))
         send_e(version_response)

@@ -41,8 +41,8 @@ if path.exists("sha.txt"):
             f.write(write)
     print(f"Running rdisc V{release_major}.{major}.{build}.{run}")
 
-ui_s = False
 
+ui_s = False
 while True:
     if ui:
         if not ui_s:
@@ -249,21 +249,37 @@ while True:
         # Load auth key
 
         print("Loading auth keys...")
+        for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+            if path.exists(f'{letter}:\key'):
+                print(f"Found key at {letter}:/key")
+                key_location = f'{letter}:/'
+                with open(f'key_location', 'w', encoding="utf-8") as f:
+                    f.write(key_location)
+                break
+
         sign_up = False
         not_found_usb_error = False
         while True:
             if not not_found_usb_error:
                 to_c("🱫[INP SHOW]🱫[MNINPLEN][256] ", 0.1)
             if not path.exists('key_location'):
-                to_c("\n🱫[COL-YEL] Set 'Access USB Key' drive - Eg 'D:/'")
-                while True:
-                    key_location = receive()
-                    if not path.exists(f'{key_location}key'):
-                        to_c("\n🱫[COL-RED] This location does not contain a key file, please try again")
-                    else:
-                        with open(f'key_location', 'w', encoding="utf-8") as f:
-                            f.write(key_location)
-                        break
+                key_set_choice = None
+                while key_set_choice not in ['create', 'login']:
+                    key_set_choice = receive("\n🱫[COL-YEL] To create a new account, "
+                                             "enter 'create', to login enter 'login'").lower()
+                if key_set_choice == "login":
+                    to_c("\n🱫[COL-YEL] Set 'Access USB Key' drive - Eg 'D:/'")
+                    while True:
+                        key_location = receive()
+                        if not path.exists(f'{key_location}key'):
+                            to_c("\n🱫[COL-RED] This location does not contain a key file, please try again")
+                        else:
+                            with open(f'key_location', 'w', encoding="utf-8") as f:
+                                f.write(key_location)
+                            break
+                else:
+                    to_c("\n🱫[COL-YEL] New system")
+                    # todo new key creation system
             else:
                 with open('key_location', encoding="utf-8") as f:
                     key_location = f.read()
@@ -526,7 +542,10 @@ while True:
             if exit_reason in ["UI", "UIR"]:
                 if ui:
                     to_c("🱫[EXIT]")
-                    s.close()
+                    try:
+                        s.close()
+                    except NameError:
+                        pass
                     ui_s = False
                     if exit_reason == "UI":
                         ui = False
@@ -537,11 +556,9 @@ while True:
             to_c("\n🱫[COL-GRN] -- Reloading --", 0.1)
         if exit_reason in ["RESTART", "EXIT"]:
             to_c("🱫[EXIT]")
-            s.close()
+            try:
+                s.close()
+            except NameError:
+                pass
         if exit_reason == "EXIT":
             break
-
-# if cooldown.check(0) == "True":  # todo maybe stop input until allowed, bring back what was entered
-#    s.send(enc.encrypt_key(client_send, user.key('df_key'), "salt"))
-# else:
-#    to_c(f"\nYOU'RE SENDING MESSAGES TOO FAST! please wait {checked}s~")
