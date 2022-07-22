@@ -196,8 +196,9 @@ namespace Rchat
 				MainOutput.SelectionColor = Color.White;
 
 			}
-			if (readData.StartsWith("\n"))
+			if (!(readData.StartsWith("🱫")))
 				MainOutput.AppendText(readData);
+
 
 			if (readData.StartsWith("🱫﻿[MNINPLEN]"))
             {

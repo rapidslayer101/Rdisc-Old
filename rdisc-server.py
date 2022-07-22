@@ -122,6 +122,8 @@ def client_connection(cs):
         while True:
             login_request = recv_d(1024)
             print(login_request)  # temp debug for dev
+            if login_request.startswith("NKY:"):
+                print(f"NKY: {login_request[4:]}")
 
             if login_request.startswith("NAC:"):
                 if login_request[4:] in users.valid_hashes:

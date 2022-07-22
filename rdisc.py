@@ -2,6 +2,7 @@ import socket, rsa
 from zlib import error as zl_error
 from datetime import datetime
 from os import path, remove
+from time import perf_counter
 try:
     from os import startfile
     ui = True
@@ -273,6 +274,106 @@ while True:
                                 f.write(key_location)
                             break
                 else:
+                    to_c("\n🱫[COL-GRN] Welcome to the account creation system")
+
+                    # the below code is taken from the Py-Locker subproject
+
+                    ##############################################################################################
+                    # known vulnerabilities
+                    # 1. The depth speed will be faster on more powerful hardware (asic devices)
+                    # 2. The depth speed will probably be faster if p2k and to_hex are rewritten in another language
+
+                    # key system
+                    # 1. master_pass + time_depth (sets depth) = key_file
+                    # 2. key_file + unlock_pass + challenge_int (depth a second~) = unlock_key
+
+                    # to get unlock_key enter unlock_pass
+
+                    def calculate_dps():
+                        loop, taken, last_output = 2, 0, 0
+                        while taken < 1:
+                            loop, start_t = loop*2, perf_counter()
+                            enc.pass_to_key(enc.rand_b96_str(10), enc.rand_b96_str(10), loop)
+                            taken = perf_counter() - start_t
+                            last_output += taken
+                            if last_output > 0.25:
+                                #to_c(f"\nDepth: {loop} RunTime: {round(taken, 3)}")
+                                to_c(".")
+                                last_output = 0
+                        return int(round(loop/(perf_counter()-start_t), 0))
+
+
+                    to_c("\n🱫[COL-YEL] Enter depth time (in hours)")
+                    while True:
+                        #depth_time = receive()
+                        depth_time = "0.011"
+                        sleep(0.1)
+                        try:
+                            if float(depth_time) > 0.01:
+                                depth_time = float(depth_time)
+                                break
+                            else:
+                                to_c("\n🱫[COL-RED] Depth must be more than 0.01 hours")
+                        except ValueError:
+                            to_c("\n🱫[COL-RED] Depth must be a valid number")
+                    depth_time *= 3600
+                    print("Enter depth time in hours, this is how long it will take to generate"
+                          " a new key file (longer is better) (master_depth)")
+                    #while True:
+                    #    master_depth = input("Set Depth: ")
+                    #    try:
+                    #        master_depth = int(master_depth)
+                    #        break
+                    #    except ValueError:
+                    #        pass
+                    #    print("Depth must be an integer number")
+                    #print(
+                    #    f"\nDO NOT FORGET YOUR MASTER PASSWORD, MASTER PIN AND MASTER DEPTH, they are needed if the key file is lost")
+                    #print(f"Master password: {master_pass} \nMaster pin: {master_pin} \nMaster depth: {master_depth}")
+                    #input("\nPress enter to continue")
+                    to_c("\n🱫[COL-GRN] Generating master key...")
+                    # todo save during generate and reloader
+                    password, salt, start = "rand".encode(), "rand".encode(), perf_counter()
+                    time_left = depth_time
+                    depth = 0
+                    loop_timer = perf_counter()
+                    while time_left > 0:
+                        depth += 1
+                        password = sha512(password+salt).digest()
+                        if perf_counter()-loop_timer > 0.25:
+                            try:
+                                time_left -= (perf_counter()-loop_timer)
+                                loop_timer = perf_counter()
+                                real_dps = int(round(depth/(perf_counter()-start), 0))
+                                to_c(f"\n Runtime: {round(perf_counter()-start, 2)}s  "
+                                     f"Time Left: {round(time_left, 2)}s  "
+                                     f"DPS: {round(real_dps/1000000, 3)}M  "
+                                     f"Depth: {depth}/{round(real_dps*time_left, 2)}  "
+                                     f"Progress: {round((depth_time-time_left)/depth_time*100, 3)}%")
+                            except ZeroDivisionError:
+                                pass
+                    master_key = enc.to_hex(16, 96, password.hex())
+                    to_c(f"\n🱫[COL-GRN] Master key generated of depth {depth}")
+                    to_c("\n🱫[COL-RED] SYSTEM NOT BUILT BEYOND THIS POINT.", 0.1)
+                    #receive("\n🱫[COL-YEL] Enter USB drive letter", 0.1)
+                    #with open(f'{key_location}key', 'wb') as f:
+                    #    to_write = f"{dps}\n{master_key}"
+                    input()
+                    print("\nEnter a 12 digit pin for key file (key_file_pin)")
+                    key_file_salt = enc.rand_b96_str(512)
+                    with open(f'{key_location}key_salt', 'w') as f:
+                        f.write(key_file_salt)
+                    print("\nKey salt file created\nCalculating DPS then creating key file\n")
+                    #with open(f'{key_location}key', 'wb') as f:
+                    #    f.write(enc.enc_from_pass(str(dps), key_file_pin[:6], key_file_salt, int(key_file_pin[6:])))
+                    print("Key file created")
+                    with open(f'key_location', 'w') as f:
+                        f.write(key_location)
+
+
+                    to_c("\n🱫[COL-YEL] Please save the below code as this is the only way to recover your account")
+                    input()
+                    send_e("NKY:")
                     to_c("\n🱫[COL-YEL] New system")
 
                     # todo new key creation system
@@ -454,6 +555,7 @@ while True:
                         call_exit.update("SESH_TAKEN")
                     else:
                         print(f" << challenge_int received: {depth}")
+                        to_c("🱫[INP SHOW]🱫", 0.1)
                         pass_ = receive("\n🱫[COL-YEL] Please enter your password", 0.1)
                         pass_ = enc.pass_to_key(pass_, default_salt, 100000)
                         user_challenge = sha512(enc.pass_to_key(pass_, key_salt, int(depth)).encode()).hexdigest()

@@ -34,11 +34,10 @@
 0.34 changing to rdisc-rc4, the file server and private chat network client, enc 11.8.0 implemented
 0.35 access key system, first time signup, remove email
 0.36 server ip file, updater now git, exe's removed, User class done properly
+0.37 removed build nums, change pass, rebuilt account delete
 
-0.37 removed build nums, account key creator
-0.38 rebuilt account delete, change pass, clean app (remove user files)
+0.38 account key creator, clean app (remove user files)
 
-0.39 ip or some form of device identifier, non-portable key option, key creation
-0.40 online status, uname setting
-0.41 basic chat functionality
+0.39 basic chat functionality
+0.40 uname setting
 0.42 use CLI even when UI active << is this actually possible?
