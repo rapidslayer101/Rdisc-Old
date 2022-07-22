@@ -35,8 +35,9 @@
 0.35 access key system, first time signup, remove email
 0.36 server ip file, updater now git, exe's removed, User class done properly
 0.37 removed build nums, change pass, rebuilt account delete
+0.38 key generator and resuming generation, key regeneration and resuming regeneration
 
-0.38 account key creator, clean app (remove user files)
+0.39 account key creator, clean app (remove user files)
 
 0.39 basic chat functionality
 0.40 uname setting
