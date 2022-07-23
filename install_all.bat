@@ -10,4 +10,3 @@ if EXIST launch.bat (
     echo Starting client
     start venv/Scripts/python.exe rdisc.py
 )
-END
