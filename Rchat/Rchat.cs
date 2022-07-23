@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -40,16 +41,22 @@ namespace Rchat
 			}
 			catch (Exception d)
 			{
-				//try
-				//{
-				//	Process.Start("");
-				//	Application.Exit();
-				//}
-				//catch
-				//{
-				MainOutput.SelectionColor = Color.Red;
-				MainOutput.AppendText("\n[!] RDISC could not initialize, please close this window and start the launcher\n\n" + d);
-				//}
+				if (!(File.Exists("validation_keys.txt")))
+					try
+					{
+						Process.Start("launch.bat");
+						Application.Exit();
+					}
+					catch
+					{
+						MainOutput.SelectionColor = Color.Red;
+						MainOutput.AppendText("\n[!] RDISC could not initialize, please close this window and start the launcher\n\n"+d);
+					}
+                else
+                {
+					MainOutput.SelectionColor = Color.Green;
+					MainOutput.AppendText("\nNew UI version successfully compiled");
+				}
 			}
 			MI_MaxChars.Visible = Send.Visible = Mninp_Bk.Visible = MainInput.Visible = false;
 		}
@@ -405,7 +412,7 @@ namespace Rchat
 
 		private void reloadToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			byte[] bytes = Encoding.Unicode.GetBytes("🱫[RELOAD]");
+			byte[] bytes = Encoding.Unicode.GetBytes("-reload");
 			MainOutput.Text = "";
 			serverStream.Write(bytes, 0, bytes.Length);
 			serverStream.Flush();
@@ -413,7 +420,7 @@ namespace Rchat
 
 		private void restartToolStripMenuItem_Click_1(object sender, EventArgs e)
 		{
-			byte[] bytes = Encoding.Unicode.GetBytes("🱫[UIR]");
+			byte[] bytes = Encoding.Unicode.GetBytes("ui reload");
 			serverStream.Write(bytes, 0, bytes.Length);
 			serverStream.Flush();
 			Application.Exit();
@@ -421,7 +428,7 @@ namespace Rchat
 
 		private void quitToolStripMenuItem_Click_1(object sender, EventArgs e)
 		{
-			byte[] bytes = Encoding.Unicode.GetBytes("🱫[QUIT]");
+			byte[] bytes = Encoding.Unicode.GetBytes("-exit");
 			serverStream.Write(bytes, 0, bytes.Length);
 			serverStream.Flush();
 			Application.Exit();
@@ -457,7 +464,7 @@ namespace Rchat
 
         private void confirmAccountDeletetionToolStripMenuItem_Click(object sender, EventArgs e)
         {
-			byte[] bytes = Encoding.Unicode.GetBytes("🱫[DLAC]");
+			byte[] bytes = Encoding.Unicode.GetBytes("-delete account");
 			MainOutput.Text = "";
 			serverStream.Write(bytes, 0, bytes.Length);
 			serverStream.Flush();
@@ -477,7 +484,7 @@ namespace Rchat
 
 		private void changePasswordToolStripMenuItem_Click(object sender, EventArgs e)
         {
-			byte[] bytes = Encoding.Unicode.GetBytes("🱫[CNGPASS]");
+			byte[] bytes = Encoding.Unicode.GetBytes("-change pass");
 			MainOutput.Text = "";
 			serverStream.Write(bytes, 0, bytes.Length);
 			serverStream.Flush();
@@ -485,15 +492,10 @@ namespace Rchat
 
         private void uIToolStripMenuItem_Click(object sender, EventArgs e)
         {
-			byte[] bytes = Encoding.Unicode.GetBytes("🱫[UI]");
+			byte[] bytes = Encoding.Unicode.GetBytes("-ui");
 			MainOutput.Text = "";
 			serverStream.Write(bytes, 0, bytes.Length);
 			serverStream.Flush();
 		}
-
-        private void Friends_label_Click(object sender, EventArgs e)
-        {
-
-        }
     }
 }

@@ -385,34 +385,22 @@ while True:
                         return int(round(loop/(perf_counter()-start_t), 0))
 
 
-                    to_c("\n🱫[COL-YEL] Enter depth time (in hours)")
+                    to_c("\n🱫[COL-YEL] Enter depth time (in minutes)")
                     while True:
                         #depth_time = receive()
                         depth_time = "0.011"
                         sleep(0.1)
                         try:
-                            if float(depth_time) > 0.01:
+                            if float(depth_time) > 0.49:
                                 depth_time = float(depth_time)
                                 break
                             else:
-                                to_c("\n🱫[COL-RED] Depth must be more than 0.01 hours")
+                                to_c("\n🱫[COL-RED] Depth must be more than 0.5 minutes")
                         except ValueError:
                             to_c("\n🱫[COL-RED] Depth must be a valid number")
-                    depth_time *= 3600
-                    print("Enter depth time in hours, this is how long it will take to generate"
+                    depth_time *= 60
+                    print("Enter depth time in minutes, this is how long it will take to generate"
                           " a new key file (longer is better) (master_depth)")
-                    #while True:
-                    #    master_depth = input("Set Depth: ")
-                    #    try:
-                    #        master_depth = int(master_depth)
-                    #        break
-                    #    except ValueError:
-                    #        pass
-                    #    print("Depth must be an integer number")
-                    #print(
-                    #    f"\nDO NOT FORGET YOUR MASTER PASSWORD, MASTER PIN AND MASTER DEPTH, they are needed if the key file is lost")
-                    #print(f"Master password: {master_pass} \nMaster pin: {master_pin} \nMaster depth: {master_depth}")
-                    #input("\nPress enter to continue")
                     generate_master_key(key_location, "rand".encode(), "rand".encode(), depth_time)
             else:
                 with open('key_location', encoding="utf-8") as f:

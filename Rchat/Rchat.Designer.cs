@@ -513,7 +513,6 @@
             this.Friends_label.Size = new System.Drawing.Size(81, 17);
             this.Friends_label.TabIndex = 0;
             this.Friends_label.Text = "Online (0)";
-            this.Friends_label.Click += new System.EventHandler(this.Friends_label_Click);
             // 
             // clock
             // 
@@ -622,7 +621,7 @@
 		private global::System.Windows.Forms.Button Exit;
 		private global::System.Windows.Forms.Button Minimise;
 		private global::System.Windows.Forms.Panel TopPanel;
-		private global::System.Windows.Forms.MenuStrip Menu;
+		private new global::System.Windows.Forms.MenuStrip Menu;
 		private global::System.Windows.Forms.ToolStripMenuItem optionsToolStripMenuItem;
 		private global::System.Windows.Forms.ToolStripMenuItem restartToolStripMenuItem;
 		private global::System.Windows.Forms.ToolStripMenuItem quitToolStripMenuItem;
