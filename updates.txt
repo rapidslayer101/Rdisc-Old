@@ -36,10 +36,10 @@
 0.36 server ip file, updater now git, exe's removed, User class done properly
 0.37 removed build nums, change pass, rebuilt account delete
 0.38 key generator and resuming generation, key regeneration and resuming regeneration
+0.39 better installers, smaller app size, account key creator
 
-0.39 better installers, venv not tracked but still downloaded, smaller app size
-0.39 account key creator, clean app (remove user files)
+0.40 account creation with activation key
 
-0.39 basic chat functionality
-0.40 uname setting
-0.42 use CLI even when UI active << is this actually possible?
+0.41 uname setting, basic chat functionality
+0.42 venv not tracked but still downloaded, clean app (remove user files), version.txt store hash and check
+0.43 use CLI even when UI active << is this actually possible?

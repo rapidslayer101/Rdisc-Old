@@ -23,6 +23,7 @@
             this.Exit = new System.Windows.Forms.Button();
             this.Minimise = new System.Windows.Forms.Button();
             this.TopPanel = new System.Windows.Forms.Panel();
+            this.ConnectionStatus = new System.Windows.Forms.Label();
             this.Menu = new System.Windows.Forms.MenuStrip();
             this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.uIToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -53,7 +54,7 @@
             this.Background = new System.Windows.Forms.Panel();
             this.LeftPanel = new System.Windows.Forms.Panel();
             this.DM_select = new System.Windows.Forms.ListBox();
-            this.Friends_label = new System.Windows.Forms.Label();
+            this.Online = new System.Windows.Forms.Label();
             this.clock = new System.Windows.Forms.Label();
             this.runtime = new System.Windows.Forms.Label();
             this.Mninp_Bk = new System.Windows.Forms.Panel();
@@ -105,7 +106,7 @@
             this.VersionLabel.AutoSize = true;
             this.VersionLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.VersionLabel.ForeColor = System.Drawing.Color.White;
-            this.VersionLabel.Location = new System.Drawing.Point(5, 2);
+            this.VersionLabel.Location = new System.Drawing.Point(27, 2);
             this.VersionLabel.Name = "VersionLabel";
             this.VersionLabel.Size = new System.Drawing.Size(118, 20);
             this.VersionLabel.TabIndex = 7;
@@ -174,6 +175,7 @@
             // 
             // TopPanel
             // 
+            this.TopPanel.Controls.Add(this.ConnectionStatus);
             this.TopPanel.Controls.Add(this.Minimise);
             this.TopPanel.Controls.Add(this.Exit);
             this.TopPanel.Controls.Add(this.Resize);
@@ -182,6 +184,18 @@
             this.TopPanel.Size = new System.Drawing.Size(1262, 24);
             this.TopPanel.TabIndex = 9;
             this.TopPanel.MouseMove += new System.Windows.Forms.MouseEventHandler(this.panel1_MouseMove);
+            // 
+            // ConnectionStatus
+            // 
+            this.ConnectionStatus.AutoSize = true;
+            this.ConnectionStatus.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.ConnectionStatus.ForeColor = System.Drawing.Color.Red;
+            this.ConnectionStatus.Location = new System.Drawing.Point(2, 2);
+            this.ConnectionStatus.Name = "ConnectionStatus";
+            this.ConnectionStatus.Size = new System.Drawing.Size(26, 20);
+            this.ConnectionStatus.TabIndex = 9;
+            this.ConnectionStatus.Text = "🔴";
+            this.ConnectionStatus.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // Menu
             // 
@@ -369,7 +383,7 @@
             this.fontToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.fontToolStripMenuItem.ForeColor = System.Drawing.SystemColors.ControlText;
             this.fontToolStripMenuItem.Name = "fontToolStripMenuItem";
-            this.fontToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
+            this.fontToolStripMenuItem.Size = new System.Drawing.Size(180, 24);
             this.fontToolStripMenuItem.Text = "Font";
             // 
             // arialToolStripMenuItem
@@ -399,7 +413,7 @@
             this.fontSizeToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.fontSizeToolStripMenuItem.ForeColor = System.Drawing.SystemColors.ControlText;
             this.fontSizeToolStripMenuItem.Name = "fontSizeToolStripMenuItem";
-            this.fontSizeToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
+            this.fontSizeToolStripMenuItem.Size = new System.Drawing.Size(180, 24);
             this.fontSizeToolStripMenuItem.Text = "Font size";
             // 
             // toolStripMenuItem5
@@ -407,7 +421,7 @@
             this.toolStripMenuItem5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
             this.toolStripMenuItem5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.toolStripMenuItem5.Name = "toolStripMenuItem5";
-            this.toolStripMenuItem5.Size = new System.Drawing.Size(94, 24);
+            this.toolStripMenuItem5.Size = new System.Drawing.Size(180, 24);
             this.toolStripMenuItem5.Text = "13";
             this.toolStripMenuItem5.Click += new System.EventHandler(this.toolStripMenuItem5_Click);
             // 
@@ -416,7 +430,7 @@
             this.toolStripMenuItem2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
             this.toolStripMenuItem2.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-            this.toolStripMenuItem2.Size = new System.Drawing.Size(94, 24);
+            this.toolStripMenuItem2.Size = new System.Drawing.Size(180, 24);
             this.toolStripMenuItem2.Text = "12";
             this.toolStripMenuItem2.Click += new System.EventHandler(this.toolStripMenuItem2_Click);
             // 
@@ -425,7 +439,7 @@
             this.toolStripMenuItem3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
             this.toolStripMenuItem3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.toolStripMenuItem3.Name = "toolStripMenuItem3";
-            this.toolStripMenuItem3.Size = new System.Drawing.Size(94, 24);
+            this.toolStripMenuItem3.Size = new System.Drawing.Size(180, 24);
             this.toolStripMenuItem3.Text = "11";
             this.toolStripMenuItem3.Click += new System.EventHandler(this.toolStripMenuItem3_Click);
             // 
@@ -434,7 +448,7 @@
             this.toolStripMenuItem4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(81)))), ((int)(((byte)(255)))));
             this.toolStripMenuItem4.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(0)))), ((int)(((byte)(162)))));
             this.toolStripMenuItem4.Name = "toolStripMenuItem4";
-            this.toolStripMenuItem4.Size = new System.Drawing.Size(94, 24);
+            this.toolStripMenuItem4.Size = new System.Drawing.Size(180, 24);
             this.toolStripMenuItem4.Text = "10";
             this.toolStripMenuItem4.Click += new System.EventHandler(this.toolStripMenuItem4_Click);
             // 
@@ -444,7 +458,7 @@
             this.fontCommandToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.fontCommandToolStripMenuItem.ForeColor = System.Drawing.SystemColors.ControlText;
             this.fontCommandToolStripMenuItem.Name = "fontCommandToolStripMenuItem";
-            this.fontCommandToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
+            this.fontCommandToolStripMenuItem.Size = new System.Drawing.Size(180, 24);
             this.fontCommandToolStripMenuItem.Text = "Font command";
             this.fontCommandToolStripMenuItem.Click += new System.EventHandler(this.fontCommandToolStripMenuItem_Click);
             // 
@@ -484,7 +498,7 @@
             // 
             this.LeftPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(45)))));
             this.LeftPanel.Controls.Add(this.DM_select);
-            this.LeftPanel.Controls.Add(this.Friends_label);
+            this.LeftPanel.Controls.Add(this.Online);
             this.LeftPanel.Location = new System.Drawing.Point(0, 0);
             this.LeftPanel.Name = "LeftPanel";
             this.LeftPanel.Size = new System.Drawing.Size(250, 635);
@@ -503,16 +517,16 @@
             this.DM_select.Size = new System.Drawing.Size(213, 544);
             this.DM_select.TabIndex = 2;
             // 
-            // Friends_label
+            // Online
             // 
-            this.Friends_label.AutoSize = true;
-            this.Friends_label.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold);
-            this.Friends_label.ForeColor = System.Drawing.Color.White;
-            this.Friends_label.Location = new System.Drawing.Point(76, 6);
-            this.Friends_label.Name = "Friends_label";
-            this.Friends_label.Size = new System.Drawing.Size(81, 17);
-            this.Friends_label.TabIndex = 0;
-            this.Friends_label.Text = "Online (0)";
+            this.Online.AutoSize = true;
+            this.Online.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold);
+            this.Online.ForeColor = System.Drawing.Color.White;
+            this.Online.Location = new System.Drawing.Point(76, 6);
+            this.Online.Name = "Online";
+            this.Online.Size = new System.Drawing.Size(81, 17);
+            this.Online.TabIndex = 0;
+            this.Online.Text = "Online (0)";
             // 
             // clock
             // 
@@ -599,6 +613,7 @@
             this.Text = "Rchat";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.TopPanel.ResumeLayout(false);
+            this.TopPanel.PerformLayout();
             this.Menu.ResumeLayout(false);
             this.Menu.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.MainInput_pic)).EndInit();
@@ -656,7 +671,8 @@
         private System.Windows.Forms.ToolStripMenuItem changeNameToolStripMenuItem1;
         private System.Windows.Forms.ToolStripMenuItem changePasswordToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem uIToolStripMenuItem;
-        private System.Windows.Forms.Label Friends_label;
+        private System.Windows.Forms.Label Online;
         private System.Windows.Forms.ListBox DM_select;
+        private System.Windows.Forms.Label ConnectionStatus;
     }
 }

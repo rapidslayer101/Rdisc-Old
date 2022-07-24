@@ -206,6 +206,21 @@ namespace Rchat
 			if (!(readData.StartsWith("🱫")))
 				MainOutput.AppendText(readData);
 
+			if (readData.StartsWith("﻿🱫[DC]"))
+			{
+				ConnectionStatus.ForeColor = Color.Red;
+			}
+
+			if (readData.StartsWith("﻿🱫[CONNECTED]"))
+			{
+				ConnectionStatus.ForeColor = Color.Yellow;
+			}
+
+			if (readData.StartsWith("﻿🱫[LOGGED_IN]"))
+			{
+				ConnectionStatus.ForeColor = Color.LightGreen;
+			}
+
 
 			if (readData.StartsWith("🱫﻿[MNINPLEN]"))
             {

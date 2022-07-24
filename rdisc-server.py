@@ -6,14 +6,8 @@ from random import choices, randint
 from hashlib import sha512
 import enclib as enc
 
-default_salt = "52gy\"J$&)6%0}fgYfm/%ino}PbJk$w<5~j'|+R .bJcSZ.H&3z'A:gip/jtW$6A=" \
-                "G-;|&&rR81!BTElChN|+\"TCM'CNJ+ws@ZQ~7[:¬`-OC8)JCTtI¬k<i#.\"H4tq)p4"
-b36set = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-b62set = b36set+"abcdefghijklmnopqrstuvwxyz"
-
 
 def version_info(hashed):
-    print(hashed)
     version_data = None
     with open("sha.txt", encoding="utf-8") as f:
         for _hash_ in f.readlines():
@@ -21,8 +15,10 @@ def version_info(hashed):
                 version_data = _hash_
     if not version_data:
         return f"UNKNOWN"
+        print(f"UNKNOWN: {hashed}")
     version_, tme_, run_num = version_data.split("§")[1:]
-    return f"V{version_}🱫{tme_}🱫{run_num}"
+    print(f"{version_}🱫{tme_}🱫{run_num}")
+    return f"{version_}🱫{tme_}🱫{run_num}"
 
 
 if not path.exists("validation_keys.txt"):
@@ -61,9 +57,6 @@ class Users:
         self.logged_in_users.append(u_id)
         self.logged_in_users.append(ip)
         self.sockets.append(cs)
-        #time.sleep(0.5)
-        #for i in sockets:
-        #    i.send(f"UON:{self}".encode())
 
     def logout(self, u_id, ip, cs):
         try:
@@ -136,7 +129,7 @@ def client_connection(cs):
                     user_challenge = recv_d(2048)
                     if user_challenge == challenge_hash:
                         while True:
-                            uid = "".join(choices(b36set, k=8))
+                            uid = "".join(choices("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", k=8))
                             if uid not in users.ids:
                                 break
                         mkdir(f"Users/{uid}")

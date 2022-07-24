@@ -3,6 +3,7 @@ from zlib import error as zl_error
 from datetime import datetime
 from os import path, remove
 from time import perf_counter
+from random import uniform, choices, randint
 try:
     from os import startfile
     ui = True
@@ -43,13 +44,13 @@ def generate_master_key(key_location, file_key, salt, depth_time, current_depth=
     start, time_left, loop_timer = perf_counter(), depth_time, perf_counter()
     while time_left > 0:
         current_depth += 1
-        file_key = sha512(file_key + salt).digest()
+        file_key = sha512(file_key+salt).digest()
         if perf_counter() - loop_timer > 0.25:
             try:
-                time_left -= (perf_counter() - loop_timer)
+                time_left -= (perf_counter()-loop_timer)
                 loop_timer = perf_counter()
-                real_dps = int(round(current_depth / (perf_counter() - start), 0))
-                to_c(f"\n Runtime: {round(perf_counter() - start, 2)}s  "
+                real_dps = int(round(current_depth/(perf_counter()-start), 0))
+                to_c(f"\n Runtime: {round(perf_counter()-start, 2)}s  "
                      f"Time Left: {round(time_left, 2)}s  "
                      f"DPS: {round(real_dps / 1000000, 3)}M  "
                      f"Depth: {current_depth}/{round(real_dps * time_left, 2)}  "
@@ -59,43 +60,41 @@ def generate_master_key(key_location, file_key, salt, depth_time, current_depth=
                             str(time_left).encode() + b"NGEN" + str(current_depth).encode())
             except ZeroDivisionError:
                 pass
-    finish_key(key_location, enc.to_hex(16, 96, file_key.hex()), current_depth)
+    to_c(f"\n🱫[COL-YEL] Depth pin: {current_depth}", 0.1)
+    to_c("\n🱫[COL-RED] DO NOT LOSE YOUR DEPTH PIN, IT IS NECESSARY TO RECOVER YOUR ACCOUNT", 0.1)
+    to_c("\n This pin is used to generate your account key")
+    rand_confirmation = str(randint(0, 9))
+    to_c(f"\n🱫[COL-YEL] Once you have written down your depth pin enter '{rand_confirmation}'", 0.1)
+    written_confirmation = receive()
+    while written_confirmation != rand_confirmation:
+        written_confirmation = receive()
+    with open(f"{key_location}key", "wb") as f:
+        f.write(file_key+b"MAKE_KEY")
+    return file_key
 
 
 def regenerate_master_key(key_location, file_key, salt, depth_to, current_depth=0):
     to_c("\n🱫[COL-GRN] Generating master key...")
     start, depth_left, loop_timer = perf_counter(), depth_to-current_depth, perf_counter()
     for depth_count in range(depth_left):
-        file_key = sha512(file_key + salt).digest()
+        file_key = sha512(file_key+salt).digest()
         if perf_counter() - loop_timer > 0.25:
             try:
                 loop_timer = perf_counter()
-                real_dps = int(round((current_depth+depth_count) / (perf_counter() - start), 0))
-                to_c(f"\n Runtime: {round(perf_counter() - start, 2)}s  "
+                real_dps = int(round((current_depth+depth_count)/(perf_counter()-start), 0))
+                to_c(f"\n Runtime: {round(perf_counter()-start, 2)}s  "
                      f"Time Left: {round((depth_left-(current_depth+depth_count))/real_dps, 2)}s  "
-                     f"DPS: {round(real_dps / 1000000, 3)}M  "
+                     f"DPS: {round(real_dps/1000000, 3)}M  "
                      f"Depth: {current_depth+depth_count}/{depth_to}  "
-                     f"Progress: {round((current_depth+depth_count) / depth_to * 100, 3)}%")
+                     f"Progress: {round((current_depth+depth_count)/depth_to * 100, 3)}%")
                 with open(f'{key_location}key', 'wb') as f:
                     f.write(file_key + b"RGEN" + salt + b"RGEN" +
                             str(depth_to).encode() + b"RGEN" + str(current_depth+depth_count).encode())
             except ZeroDivisionError:
                 pass
-    finish_key(key_location, enc.to_hex(16, 96, file_key.hex()), current_depth+depth_count)
-
-
-def finish_key(key_location, file_key, depth):
-    to_c(f"\n🱫[COL-GRN] Master key generated of depth {depth}")
-    to_c(f"\n🱫[COL-GRN] {file_key}", 0.1)
-    to_c("\n🱫[COL-RED] SYSTEM NOT BUILT BEYOND THIS POINT.", 0.1)
-    # receive("\n🱫[COL-YEL] Enter USB drive letter", 0.1)
-    # with open(f'{key_location}key', 'wb') as f:
-    #    to_write = f"{dps}\n{master_key}"
-    input()
-    print("Key file created")
-    with open(f'key_location', 'w') as f:
-        f.write(key_location)
-    to_c("\n🱫[COL-YEL] Please save the below code as this is the only way to recover your account")
+    with open(f"{key_location}key", "wb") as f:
+        f.write(file_key+b"MAKE_KEY")
+    return file_key
 
 
 ui_s = False
@@ -196,7 +195,7 @@ while True:
                 call_exit.update("UI")
             if output_ in ['-ui reload', '-restart']:
                 call_exit.update("UIR")
-            if output_.startswith('-change pass'):  # todo change UI trigger for this
+            if output_.startswith('-change pass'):
                 if "✔" in version:
                     print("Change password")
                     n_pass_1 = None
@@ -228,15 +227,15 @@ while True:
                 else:
                     to_c("\n🱫[COL-RED] You must be logged in to perform this action")
 
-            if output_.startswith('-delete account'):  # todo change UI trigger for this
+            if output_.startswith('-delete account'):
                 if "✔" in version:
                     print("Delete account")
                     pass__ = enc.pass_to_key(receive("\n🱫[COL-YEL] Enter password to delete account"), default_salt, 100000)
                     send_e(f"DLAC:{pass__}")
                     print(" >> Password sent")
                     if recv_d(512) == "V":
+                        to_c("\n🱫[COL-GRN] Password correct")
                         while True:
-                            to_c("\n🱫[COL-GRN] Password correct")
                             depth_ = int(recv_d(512))
                             print(f" << challenge_int received: {depth}")
                             user_challenge_ = sha512(enc.pass_to_key(pass_, key_salt, depth_).encode()).hexdigest()
@@ -256,6 +255,8 @@ while True:
                                         call_exit.update("ACCOUNT_DELETED")
                                 else:
                                     send_e("N")
+                                    to_c("\n🱫[COL-RED] Didn't enter 'CONFIRM', exiting account deletion")
+                                    break
                     else:
                         to_c("\n🱫[COL-RED] Password incorrect, exiting account deletion")
                 else:
@@ -302,18 +303,19 @@ while True:
                 process_from_c(output)
                 return output
 
-        # Load auth key
+        # Key loading
 
-        print("Loading auth keys...")
+        print("Loading account keys...")
         for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
             if path.exists(f'{letter}:\key'):
-                print(f"Found key at {letter}:/key")
+                print(f" - Found key at {letter}:/key")
                 key_location = f'{letter}:/'
                 with open(f'key_location', 'w', encoding="utf-8") as f:
                     f.write(key_location)
                 break
 
-        sign_up = False
+        sign_up_key = False
+        file_key = False
         not_found_usb_error = False
         while True:
             if not not_found_usb_error:
@@ -329,115 +331,106 @@ while True:
                     else:
                         to_c("\n🱫[COL-RED] Invalid input, please try again")
                 if key_set_choice == "lost":
-                    to_c("\n🱫[COL-YEL] Enter USB drive letter to store key")
+                    to_c("\n🱫[COL-YEL] Enter USB drive letter to store account_key")
                     while True:
                         key_location = f"{receive().upper()}:/"
                         if path.exists(key_location):
                             break
                         else:
                             to_c("\n🱫[COL-RED] This drive does not exist")
-                    # todo add confirmations
-                    to_c("\n🱫[COL-YEL] Enter recovery code")
-                    #while True:
-                    password = receive()
-                    to_c("\n🱫[COL-YEL] Enter depth code")
+                    to_c("\n🱫[COL-YEL] Enter your recovery code in format 'XXXXX-XXXXX-XXXXX-XXXXX-XXXXX'")
+                    while True:
+                        recovery_code = receive().upper()
+                        if len(recovery_code) == 29 and recovery_code.count("-") == 4:
+                            if receive(f"\n🱫[COL-YEL] You have entered: "
+                                       f"{recovery_code} is this correct (y/n)").lower() == "y":
+                                recovery_code = recovery_code.replace("-", "")
+                                break
+                        else:
+                            to_c("\n🱫[COL-RED] Invalid recovery code, please try again")
+
+                    to_c("\n🱫[COL-YEL] Enter depth pin")
                     while True:
                         depth = receive()
                         if depth.isdigit():
-                            break
+                            if receive(f"\n🱫[COL-YEL] You have entered: "
+                                       f"{depth} is this correct (y/n)").lower() == "y":
+                                break
                         else:
                             to_c("\n🱫[COL-RED] Invalid input")
-                    regenerate_master_key(key_location, password.encode(), "rand".encode(), int(depth))
+                    file_key = regenerate_master_key(key_location, recovery_code[:15].encode(),
+                                                     recovery_code[15:].encode(), int(depth))
+                    break
                 else:
                     to_c("\n🱫[COL-GRN] Welcome to the account creation system")
-                    to_c("\n🱫[COL-YEL] Enter USB drive letter to store key", 0.1)
+                    to_c("\n🱫[COL-YEL] Enter USB drive letter to store account keys", 0.1)
                     while True:
                         key_location = f"{receive().upper()}:/"
                         if path.exists(key_location):
                             break
                         else:
                             to_c("\n🱫[COL-RED] This drive does not exist")
-
-                    # the below code is taken from the Py-Locker subproject
-
-                    ##############################################################################################
-                    # known vulnerabilities
-                    # 1. The depth speed will be faster on more powerful hardware (asic devices)
-                    # 2. The depth speed will probably be faster if p2k and to_hex are rewritten in another language
-
-                    # key system
-                    # 1. master_pass + time_depth (sets depth) = key_file
-                    # 2. key_file + unlock_pass + challenge_int (depth a second~) = unlock_key
-
-                    # to get unlock_key enter unlock_pass
-
-                    def calculate_dps():
-                        loop, taken, last_output = 2, 0, 0
-                        while taken < 1:
-                            loop, start_t = loop*2, perf_counter()
-                            enc.pass_to_key(enc.rand_b96_str(10), enc.rand_b96_str(10), loop)
-                            taken = perf_counter() - start_t
-                            last_output += taken
-                            if last_output > 0.25:
-                                #to_c(f"\nDepth: {loop} RunTime: {round(taken, 3)}")
-                                to_c(".")
-                                last_output = 0
-                        return int(round(loop/(perf_counter()-start_t), 0))
-
-
-                    to_c("\n🱫[COL-YEL] Enter depth time (in minutes)")
-                    while True:
-                        #depth_time = receive()
-                        depth_time = "0.011"
-                        sleep(0.1)
-                        try:
-                            if float(depth_time) > 0.49:
-                                depth_time = float(depth_time)
-                                break
-                            else:
-                                to_c("\n🱫[COL-RED] Depth must be more than 0.5 minutes")
-                        except ValueError:
-                            to_c("\n🱫[COL-RED] Depth must be a valid number")
-                    depth_time *= 60
-                    print("Enter depth time in minutes, this is how long it will take to generate"
-                          " a new key file (longer is better) (master_depth)")
-                    generate_master_key(key_location, "rand".encode(), "rand".encode(), depth_time)
+                    pass_code = "".join(choices("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", k=int(25)))
+                    pass_code_print = "-".join([pass_code[i:i+5] for i in range(0, len(pass_code), 5)])
+                    to_c(f"\n🱫[COL-YEL] Your recovery code is: {pass_code_print}")
+                    to_c("\n🱫[COL-RED] DO NOT LOSE YOUR RECOVERY CODE, IT IS NECESSARY TO RECOVER YOUR ACCOUNT", 0.1)
+                    to_c("\n This code is used to generate your account key")
+                    rand_confirmation = str(randint(0, 9))
+                    to_c(f"\n🱫[COL-YEL] Once you have written down your recovery code enter '{rand_confirmation}'", 0.1)
+                    written_confirmation = receive()
+                    while written_confirmation != rand_confirmation:
+                        written_confirmation = receive()
+                    to_c(f"\n🱫[COL-GRN] Starting key generation...")
+                    file_key = generate_master_key(key_location, pass_code[:15].encode(),
+                                                   pass_code[15:].encode(), uniform(30, 90))
+                    break
             else:
                 with open('key_location', encoding="utf-8") as f:
                     key_location = f.read()
-                try:
-                    with open(f'{key_location}key', 'rb') as f:
-                        key_data = f.read()
-                    print(" - Key data loaded")
-                    if len(key_data.split(b"NGEN")) == 4:
-                        print(" - Detected old generation key, resuming...")
-                        key_data = key_data.split(b"NGEN")
-                        generate_master_key(key_location, key_data[0], key_data[1],
-                                            float(key_data[2]), int(key_data[3]))
-                    else:
-                        if len(key_data.split(b"RGEN")) == 4:
-                            print(" - Detected old regeneration key, resuming...")
-                            key_data = key_data.split(b"RGEN")
-                            regenerate_master_key(key_location, key_data[0], key_data[1],
-                                                  int(key_data[2]), int(key_data[3]))
-                        else:
-                            if path.exists(f'{key_location}key_salt'):
-                                with open(f'{key_location}key_salt', encoding="utf-8") as f:
-                                    key_salt, uid = f.read().split("🱫")
-                                print(" - Key salt loaded\n - User id loaded")
-                            else:
-                                to_c("\n Enter activation key")
-                                while True:
-                                    act_key = receive()
-                                    try:
-                                        sign_up_key = sha512(enc.dec_from_key(key_data, act_key).encode()).hexdigest()
-                                        break
-                                    except zl_error:
-                                        to_c("\n🱫[COL-RED] Invalid activation key")
-                                to_c("\n🱫[COL-GRN] Key unlocked, validating hash with server")
-                                sign_up = True
+                if path.exists(f'{key_location}'):
+                    if path.exists(f'{key_location}key'):
+                        with open(f'{key_location}key', 'rb') as f:
+                            key_data = f.read()
+                        print(" - Key data loaded")
+                        if len(key_data.split(b"NGEN")) == 4:
+                            print(" - Detected old generation key, resuming...")
+                            key_data = key_data.split(b"NGEN")
+                            file_key = generate_master_key(key_location, key_data[0], key_data[1],
+                                                           float(key_data[2]), int(key_data[3]))
                             break
-                except FileNotFoundError:
+                        else:
+                            if len(key_data.split(b"RGEN")) == 4:
+                                print(" - Detected old regeneration key, resuming...")
+                                key_data = key_data.split(b"RGEN")
+                                file_key = regenerate_master_key(key_location, key_data[0], key_data[1],
+                                                                 int(key_data[2]), int(key_data[3]))
+                                break
+                            else:
+                                if key_data.endswith(b"MAKE_KEY"):
+                                    file_key = key_data.replace(b"MAKE_KEY", b"")
+                                    break
+                                else:
+                                    if path.exists(f'{key_location}key_salt'):
+                                        with open(f'{key_location}key_salt', encoding="utf-8") as f:
+                                            key_salt, uid = f.read().split("🱫")
+                                        print(" - Key salt loaded\n - User id loaded")
+                                    else:
+                                        to_c("\n Enter activation key")
+                                        while True:
+                                            act_key = receive()
+                                            try:
+                                                sign_up_key = sha512(
+                                                    enc.dec_from_key(key_data, act_key).encode()).hexdigest()
+                                                break
+                                            except zl_error:
+                                                sign_up_key = False
+                                                to_c("\n🱫[COL-RED] Invalid activation key")
+                                        to_c("\n🱫[COL-GRN] Key unlocked, validating hash with server")
+                                    break
+                    else:
+                        to_c("\n🱫[COL-RED] USB drive does not contain a key file, resetting...")
+                        remove(f'key_location')
+                else:
                     if not not_found_usb_error:
                         to_c("\n🱫[COL-RED] Key file not found, insert USB")
                     not_found_usb_error = True
@@ -511,6 +504,7 @@ while True:
         enc_seed = rsa.decrypt(s.recv(128), pri_key).decode()
         enc_salt = rsa.decrypt(s.recv(128), pri_key).decode()
         enc_key = enc.pass_to_key(enc_seed, enc_salt, 100000)
+        to_c("🱫[CONNECTED]")
         print(" << Client enc_seed and enc_salt received and loaded")
         to_c("\n🱫[COL-GRN] RSA Enc bootstrap complete\n")
 
@@ -528,7 +522,14 @@ while True:
 
         # Login system
 
-        if sign_up:
+        if file_key:
+            print("Create a new account key")  # todo also do account recovery option
+            print(file_key)
+            #to_c(f"\n🱫[COL-YEL] {enc.to_hex(16, 96, file_key.hex())}", 0.1)
+            to_c(f"\n🱫[COL-RED] System not build any further", 0.1)
+            input()
+
+        if sign_up_key:
             print("Create a new account")
             send_e(f"NAC:{sign_up_key}")
             print(" >> Sign up key sent")
@@ -613,30 +614,18 @@ while True:
         print(f" << {v_check_resp}")
         if v_check_resp.startswith("V"):
             with open("version.txt", "w", encoding="utf-8") as f:
-                f.write(v_check_resp[1:])
-            version, tme, run_num = v_check_resp[1:].split('🱫')
+                f.write(v_check_resp)
+            version, tme, run_num = v_check_resp.split('🱫')
             version = f"{version} ✔"
             to_c(f"🱫[LODVS] {version}", 0.1)
-
-        if v_check_resp.startswith("N"):
-            version, update_size, update_hash = v_check_resp[1:].split("🱫")
-            to_c(f"\n <> Updating rdisc {version} - ({round(int(update_size)/1024/1024, 2)}MB)")
-            call_exit.update("UPDATE")
 
         if v_check_resp.startswith("UNKNOWN"):
             to_c("\n🱫[COL-RED] <> MODIFIED VERSION DETECTED")
 
+        to_c("🱫[LOGGED_IN]", 0.1)
         to_c(f"\n🱫[COL-GRN] You are now logged in as {uid}")
         to_c("🱫[INP SHOW]🱫", 0.1)
         print("Logged in loop")
-
-        #def server_loop():
-        #    while True:
-        #        server_msg = s.recv(512).decode()
-        #        if server_msg.startswith("UON:"):
-        #            print(server_msg[4:])
-        #            print(server_msg)
-        #            to_c(server_msg)
 
         #t = Thread(target=server_loop())
         #t.daemon = True
@@ -667,6 +656,7 @@ while True:
 
     except AssertionError:
         exit_reason = str(call_exit.exit_reason)[2:-2]
+        to_c("🱫[DC]")
         if exit_reason == "SESH_TAKEN":
             to_c("🱫[INP SHOW]", 0.1)
             receive("\n🱫[COL-YEL] Enter something to retry connection", 0.)
