@@ -76,14 +76,14 @@ def generate_master_key(key_location, file_key, salt, depth_time, current_depth=
 def regenerate_master_key(key_location, file_key, salt, depth_to, current_depth=0):
     to_c("\n🱫[COL-GRN] Generating master key...")
     start, depth_left, loop_timer = perf_counter(), depth_to-current_depth, perf_counter()
-    for depth_count in range(depth_left):
+    for depth_count in range(1, depth_left+1):
         file_key = sha512(file_key+salt).digest()
         if perf_counter() - loop_timer > 0.25:
             try:
                 loop_timer = perf_counter()
-                real_dps = int(round((current_depth+depth_count)/(perf_counter()-start), 0))
+                real_dps = int(round(depth_count/(perf_counter()-start), 0))
                 to_c(f"\n Runtime: {round(perf_counter()-start, 2)}s  "
-                     f"Time Left: {round((depth_left-(current_depth+depth_count))/real_dps, 2)}s  "
+                     f"Time Left: {round((depth_left-depth_count)/real_dps, 2)}s  "
                      f"DPS: {round(real_dps/1000000, 3)}M  "
                      f"Depth: {current_depth+depth_count}/{depth_to}  "
                      f"Progress: {round((current_depth+depth_count)/depth_to * 100, 3)}%")
@@ -398,35 +398,33 @@ while True:
                             file_key = generate_master_key(key_location, key_data[0], key_data[1],
                                                            float(key_data[2]), int(key_data[3]))
                             break
+                        if len(key_data.split(b"RGEN")) == 4:
+                            print(" - Detected old regeneration key, resuming...")
+                            key_data = key_data.split(b"RGEN")
+                            file_key = regenerate_master_key(key_location, key_data[0], key_data[1],
+                                                             int(key_data[2]), int(key_data[3]))
+                            break
+                        if key_data.endswith(b"MAKE_KEY"):
+                            file_key = key_data.replace(b"MAKE_KEY", b"")
+                            break
                         else:
-                            if len(key_data.split(b"RGEN")) == 4:
-                                print(" - Detected old regeneration key, resuming...")
-                                key_data = key_data.split(b"RGEN")
-                                file_key = regenerate_master_key(key_location, key_data[0], key_data[1],
-                                                                 int(key_data[2]), int(key_data[3]))
-                                break
+                            if path.exists(f'{key_location}key_salt'):
+                                with open(f'{key_location}key_salt', encoding="utf-8") as f:
+                                    key_salt, uid = f.read().split("🱫")
+                                print(" - Key salt loaded\n - User id loaded")
                             else:
-                                if key_data.endswith(b"MAKE_KEY"):
-                                    file_key = key_data.replace(b"MAKE_KEY", b"")
-                                    break
-                                else:
-                                    if path.exists(f'{key_location}key_salt'):
-                                        with open(f'{key_location}key_salt', encoding="utf-8") as f:
-                                            key_salt, uid = f.read().split("🱫")
-                                        print(" - Key salt loaded\n - User id loaded")
-                                    else:
-                                        to_c("\n Enter activation key")
-                                        while True:
-                                            act_key = receive()
-                                            try:
-                                                sign_up_key = sha512(
-                                                    enc.dec_from_key(key_data, act_key).encode()).hexdigest()
-                                                break
-                                            except zl_error:
-                                                sign_up_key = False
-                                                to_c("\n🱫[COL-RED] Invalid activation key")
-                                        to_c("\n🱫[COL-GRN] Key unlocked, validating hash with server")
-                                    break
+                                to_c("\n Enter activation key")
+                                while True:
+                                    act_key = receive()
+                                    try:
+                                        sign_up_key = sha512(
+                                            enc.dec_from_key(key_data, act_key).encode()).hexdigest()
+                                        break
+                                    except zl_error:
+                                        sign_up_key = False
+                                        to_c("\n🱫[COL-RED] Invalid activation key")
+                                to_c("\n🱫[COL-GRN] Key unlocked, validating hash with server")
+                            break
                     else:
                         to_c("\n🱫[COL-RED] USB drive does not contain a key file, resetting...")
                         remove(f'key_location')
@@ -525,8 +523,12 @@ while True:
         if file_key:
             print("Create a new account key")  # todo also do account recovery option
             print(file_key)
-            #to_c(f"\n🱫[COL-YEL] {enc.to_hex(16, 96, file_key.hex())}", 0.1)
-            to_c(f"\n🱫[COL-RED] System not build any further", 0.1)
+            to_c(f"\n🱫[COL-YEL] {enc.to_base(16, 96, file_key.hex())}", 0.1)
+            # recaptcha to prove human
+
+            # send hash to server
+            # server hashes with activation key and sends back
+            to_c(f"\n🱫[COL-RED] System not built any further", 0.1)
             input()
 
         if sign_up_key:

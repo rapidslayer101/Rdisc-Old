@@ -85,7 +85,7 @@ def client_connection(cs):
             pub_key_cli = rsa.PublicKey.load_pkcs1(cs.recv(256))
         except ValueError:
             raise AssertionError
-        enc_seed, enc_salt= enc.rand_b96_str(48), enc.rand_b96_str(48)
+        enc_seed, enc_salt = enc.rand_b96_str(48), enc.rand_b96_str(48)
         cs.send(rsa.encrypt(enc_seed.encode(), pub_key_cli))
         cs.send(rsa.encrypt(enc_salt.encode(), pub_key_cli))
         enc_key = enc.pass_to_key(enc_seed, enc_salt, 100000)
